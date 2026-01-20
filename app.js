@@ -1,6 +1,6 @@
 /******** CONFIG ********/
 const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
-const API_TOKEN = "EL_MISMO_TOKEN_DEL_CODE_GS";
+const API_TOKEN = "RH_CSS_BIOMETRICO_2025_DINALOG_PRIVATE_TOKEN";
 
 /******** HELPERS ********/
 const qs = id => document.getElementById(id);
