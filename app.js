@@ -1,99 +1,91 @@
-// 1) Pega aquí tu WebApp URL (Deployment)
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysXhUkmFlNMeeOpuSWT7or7PEFs6GrNqq8WNcLWBMDmGfMimtvgI9uq5ICFw2yTFtO/exec"; // ejemplo: https://script.google.com/macros/s/XXXXX/exec
+/******** CONFIG ********/
+const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
+const API_TOKEN = "EL_MISMO_TOKEN_DEL_CODE_GS";
 
-const $ = (id)=>document.getElementById(id);
+/******** HELPERS ********/
+const qs = id => document.getElementById(id);
 
-async function api(action, params = {}) {
-  const qs = new URLSearchParams({ action, ...params });
-  const url = `${WEBAPP_URL}?${qs.toString()}`;
-  const res = await fetch(url, { method:"GET" });
-  // PDF no se pide por aquí (se abre en nueva pestaña)
-  return await res.json();
-}
+/******** INIT ********/
+document.addEventListener("DOMContentLoaded", () => {
+  loadEmployees();
+  qs("btnBuscar").onclick = queryData;
+  qs("btnPDF").onclick = exportPDF;
+});
 
-function setStatus(msg){ $("status").textContent = msg || ""; }
-function setError(msg){ $("error").textContent = msg || ""; }
+/******** META ********/
+async function loadEmployees() {
+  const res = await fetch(`${API_URL}?action=meta&token=${API_TOKEN}`);
+  const data = await res.json();
 
-async function loadMeta() {
-  setError("");
-  setStatus("Cargando empleados...");
-  const data = await api("meta");
-  if (!data.ok) throw new Error(data.error || "Error meta");
-  const sel = $("employee");
-  // limpiar
-  sel.innerHTML = `<option value="TODOS">TODOS</option>`;
-  (data.employees || []).forEach(n=>{
-    const opt = document.createElement("option");
-    opt.value = n;
-    opt.textContent = n;
-    sel.appendChild(opt);
-  });
-  setStatus(`Empleados cargados: ${(data.employees||[]).length}`);
-}
-
-function renderTable(rows) {
-  const thead = $("thead");
-  const tbody = $("tbody");
-  thead.innerHTML = "";
-  tbody.innerHTML = "";
-
-  if (!rows || rows.length === 0) {
-    $("meta").textContent = "Sin resultados";
+  if (!data.ok) {
+    qs("status").textContent = data.error;
     return;
   }
 
-  const cols = Object.keys(rows[0]);
-
-  const trh = document.createElement("tr");
-  cols.forEach(c=>{
-    const th = document.createElement("th");
-    th.textContent = c;
-    trh.appendChild(th);
+  const sel = qs("employee");
+  data.employees.forEach(e => {
+    const opt = document.createElement("option");
+    opt.value = e;
+    opt.textContent = e;
+    sel.appendChild(opt);
   });
-  thead.appendChild(trh);
+}
 
-  rows.forEach(r=>{
+/******** QUERY ********/
+async function queryData() {
+  qs("status").textContent = "Consultando...";
+  qs("tableBody").innerHTML = "";
+  qs("tableHead").innerHTML = "";
+
+  const params = new URLSearchParams({
+    action: "query",
+    token: API_TOKEN,
+    employee: qs("employee").value,
+    from: qs("from").value,
+    to: qs("to").value,
+    limit: 500
+  });
+
+  const res = await fetch(`${API_URL}?${params.toString()}`);
+  const data = await res.json();
+
+  if (!data.ok) {
+    qs("status").textContent = data.error;
+    return;
+  }
+
+  qs("status").textContent = `Registros encontrados: ${data.total}`;
+
+  if (!data.rows.length) return;
+
+  // Header
+  Object.keys(data.rows[0]).forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    qs("tableHead").appendChild(th);
+  });
+
+  // Rows
+  data.rows.forEach(r => {
     const tr = document.createElement("tr");
-    cols.forEach(c=>{
+    Object.values(r).forEach(v => {
       const td = document.createElement("td");
-      td.textContent = (r[c] ?? "");
+      td.textContent = v;
       tr.appendChild(td);
     });
-    tbody.appendChild(tr);
+    qs("tableBody").appendChild(tr);
   });
 }
 
-async function runQuery() {
-  setError("");
-  setStatus("Consultando...");
-  $("btnPdf").disabled = true;
+/******** PDF ********/
+function exportPDF() {
+  const params = new URLSearchParams({
+    action: "pdf",
+    token: API_TOKEN,
+    employee: qs("employee").value,
+    from: qs("from").value,
+    to: qs("to").value
+  });
 
-  const from = $("from").value;
-  const to = $("to").value;
-  const employee = $("employee").value || "TODOS";
-
-  const data = await api("query", { from, to, employee, limit:"200", offset:"0" });
-  if (!data.ok) throw new Error(data.error || "Error query");
-
-  $("meta").textContent = `Total match: ${data.total} | Mostrando: ${data.rows.length} | Offset: ${data.offset}`;
-  renderTable(data.rows);
-  setStatus("Listo.");
-
-  // habilita PDF si hay datos
-  $("btnPdf").disabled = !(data.total > 0);
+  window.open(`${API_URL}?${params.toString()}`, "_blank");
 }
-
-function openPdf() {
-  const from = $("from").value;
-  const to = $("to").value;
-  const employee = $("employee").value || "TODOS";
-
-  const qs = new URLSearchParams({ action:"pdf", from, to, employee });
-  window.open(`${WEBAPP_URL}?${qs.toString()}`, "_blank");
-}
-
-document.addEventListener("DOMContentLoaded", async ()=>{
-  $("btnQuery").addEventListener("click", ()=>runQuery().catch(e=>setError(e.message||String(e))));
-  $("btnPdf").addEventListener("click", openPdf);
-  loadMeta().catch(e=>setError(e.message||String(e)));
-});
