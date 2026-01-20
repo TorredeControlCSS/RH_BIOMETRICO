@@ -1,1 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RH Biometrico Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>RH — Biometrico Dashboard</h1>
 
+  <div class="card">
+    <div class="row">
+      <label>Desde <input type="date" id="from"></label>
+      <label>Hasta <input type="date" id="to"></label>
+      <label>Empleado
+        <select id="employee">
+          <option value="TODOS">TODOS</option>
+        </select>
+      </label>
+      <button id="btnQuery">Consultar</button>
+      <button id="btnPdf" disabled>Exportar PDF</button>
+    </div>
+    <div id="status" class="muted"></div>
+    <div id="error" class="err"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="pill" id="meta">—</div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
