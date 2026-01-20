@@ -1,5 +1,5 @@
 // 1) Pega aquí tu WebApp URL (Deployment)
-const WEBAPP_URL = "PEGA_AQUI_TU_WEBAPP_URL"; // ejemplo: https://script.google.com/macros/s/XXXXX/exec
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzc9VK7oeS8djC-lYXt5je7zMQY-vfGxrRrZdqDP2KGI0fRlSCHXmu88-kweBbO5JC7/exec"; // ejemplo: https://script.google.com/macros/s/XXXXX/exec
 
 const $ = (id)=>document.getElementById(id);
 
