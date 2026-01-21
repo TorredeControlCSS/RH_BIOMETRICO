@@ -3,275 +3,143 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3C
 const API_TOKEN = "RH_CSS_BIOMETRICO_2025_DINALOG_PRIVATE_TOKEN";
 
 /******** HELPERS ********/
-const qs = (id) => document.getElementById(id);
+const qs = id => document.getElementById(id);
 
 function setStatus(msg) {
-  const el = qs("status");
-  if (el) el.textContent = msg || "";
+  qs("status").textContent = msg;
 }
 
-function valOrEmpty(id) {
-  const el = qs(id);
-  return el ? String(el.value || "").trim() : "";
+function clearTable(headId, bodyId) {
+  qs(headId).innerHTML = "";
+  qs(bodyId).innerHTML = "";
 }
 
-function ensureContainers() {
-  // KPI
-  if (!qs("kpiBox")) {
-    const box = document.createElement("div");
-    box.id = "kpiBox";
-    box.style.margin = "10px 0";
-    box.style.padding = "10px";
-    box.style.border = "1px solid #ddd";
-    box.style.background = "#fafafa";
-    const anchor = qs("status")?.parentElement || document.body;
-    anchor.insertBefore(box, anchor.firstChild);
-  }
-
-  // Secciones de tablas
-  const sections = [
-    { id: "tblAsistencia", title: "Asistencia diaria" },
-    { id: "tblHeTxt", title: "Horas Extra + TXT" },
-    { id: "tblBenefits", title: "Beneficios (Alimentación + Transporte)" }
-  ];
-
-  const root = qs("tablesRoot") || document.body;
-
-  sections.forEach((s) => {
-    if (!qs(s.id)) {
-      const wrap = document.createElement("div");
-      wrap.style.marginTop = "14px";
-
-      const h = document.createElement("h3");
-      h.textContent = s.title;
-
-      const table = document.createElement("table");
-      table.id = s.id;
-      table.style.width = "100%";
-      table.style.borderCollapse = "collapse";
-
-      const thead = document.createElement("thead");
-      const trh = document.createElement("tr");
-      trh.id = `${s.id}Head`;
-      thead.appendChild(trh);
-
-      const tbody = document.createElement("tbody");
-      tbody.id = `${s.id}Body`;
-
-      table.appendChild(thead);
-      table.appendChild(tbody);
-
-      wrap.appendChild(h);
-      wrap.appendChild(table);
-      root.appendChild(wrap);
-    }
-  });
-}
-
-function clearTable(tableId) {
-  const head = qs(`${tableId}Head`);
-  const body = qs(`${tableId}Body`);
-  if (head) head.innerHTML = "";
-  if (body) body.innerHTML = "";
-}
-
-function renderTable(tableId, rows, columnOrder = null, maxRows = 3000) {
-  clearTable(tableId);
-
-  const head = qs(`${tableId}Head`);
-  const body = qs(`${tableId}Body`);
-
-  if (!head || !body) return;
+function renderTable(headId, bodyId, rows) {
+  clearTable(headId, bodyId);
   if (!rows || !rows.length) return;
 
-  const cols = columnOrder && columnOrder.length ? columnOrder : Object.keys(rows[0]);
+  const headers = Object.keys(rows[0]);
 
-  // Header
-  cols.forEach((c) => {
+  // header
+  const trh = document.createElement("tr");
+  headers.forEach(h => {
     const th = document.createElement("th");
-    th.textContent = c;
-    th.style.border = "1px solid #ddd";
-    th.style.padding = "4px 6px";
-    th.style.background = "#f3f3f3";
-    head.appendChild(th);
+    th.textContent = h;
+    trh.appendChild(th);
   });
+  qs(headId).appendChild(trh);
 
-  // Rows
-  const take = Math.min(rows.length, maxRows);
-  for (let i = 0; i < take; i++) {
-    const r = rows[i];
+  // body
+  rows.forEach(r => {
     const tr = document.createElement("tr");
-    cols.forEach((c) => {
+    headers.forEach(h => {
       const td = document.createElement("td");
-      td.textContent = (r[c] === null || r[c] === undefined) ? "" : String(r[c]);
-      td.style.border = "1px solid #ddd";
-      td.style.padding = "4px 6px";
+      td.textContent = (r[h] === null || r[h] === undefined) ? "" : r[h];
       tr.appendChild(td);
     });
-    body.appendChild(tr);
-  }
-}
-
-function renderKpis(data) {
-  const box = qs("kpiBox");
-  if (!box) return;
-
-  const he = data.heTxtTotals || {};
-  const ben = data.benefitsTotals || {};
-  const filters = data.filters || {};
-
-  box.innerHTML = `
-    <div><b>Empleado:</b> ${filters.employee || ""}</div>
-    <div><b>Rango:</b> ${filters.from || "—"} a ${filters.to || "—"}</div>
-    <div style="margin-top:8px;">
-      <b>Total eventos:</b> ${data.totalEvents ?? 0} |
-      <b>Días asistencia:</b> ${(data.asistenciaTotals && data.asistenciaTotals.total) ? data.asistenciaTotals.total : (data.asistenciaRows ? data.asistenciaRows.length : 0)}
-    </div>
-    <div style="margin-top:6px;">
-      <b>HE calc:</b> ${he.total_he_calc_hours_hhmm || "00:00"} (${he.total_he_calc_hours || 0}) |
-      <b>HE pagable:</b> ${he.total_he_payable_hours_hhmm || "00:00"} (${he.total_he_payable_hours || 0}) |
-      <b>TXT:</b> ${he.total_txt_hours_hhmm || "00:00"} (${he.total_txt_hours || 0})
-    </div>
-    <div style="margin-top:6px;">
-      <b>Beneficios:</b> ${ben.total_beneficios || 0} |
-      <b>Alimentación:</b> ${ben.total_alimentacion || 0} |
-      <b>Transporte:</b> ${ben.total_transporte || 0}
-    </div>
-  `;
+    qs(bodyId).appendChild(tr);
+  });
 }
 
 /******** INIT ********/
 document.addEventListener("DOMContentLoaded", () => {
-  ensureContainers();
   loadEmployees();
 
-  const btnBuscar = qs("btnBuscar");
-  const btnPDF = qs("btnPDF");
+  qs("btnBuscar").onclick = queryData;
+  qs("btnPDF").onclick = exportPDF;
 
-  if (btnBuscar) btnBuscar.onclick = queryAnalytics;
-  if (btnPDF) btnPDF.onclick = exportPDF;
+  // Defaults: últimos 30 días
+  const now = new Date();
+  const to = now.toISOString().slice(0,10);
+  const fromDate = new Date(now.getTime() - 29*24*3600*1000);
+  const from = fromDate.toISOString().slice(0,10);
+  qs("from").value = from;
+  qs("to").value = to;
 });
 
 /******** META ********/
 async function loadEmployees() {
   try {
-    setStatus("Cargando empleados...");
-
-    const res = await fetch(`${API_URL}?action=meta&token=${encodeURIComponent(API_TOKEN)}`);
+    const res = await fetch(`${API_URL}?action=meta&token=${API_TOKEN}`);
     const data = await res.json();
 
     if (!data.ok) {
-      setStatus(data.error || "Error en meta");
+      setStatus(data.error || "Error en META");
       return;
     }
 
     const sel = qs("employee");
-    if (!sel) return;
+    // limpiar options menos el primero
+    while (sel.options.length > 1) sel.remove(1);
 
-    // limpiar (dejando la primera opción si existe)
-    const keepFirst = sel.options.length ? sel.options[0] : null;
-    sel.innerHTML = "";
-    if (keepFirst) sel.appendChild(keepFirst);
-
-    data.employees.forEach((e) => {
+    data.employees.forEach(e => {
       const opt = document.createElement("option");
       opt.value = e;
       opt.textContent = e;
       sel.appendChild(opt);
     });
 
-    // opcional: set placeholders fecha si existen inputs
-    if (qs("from") && data.minDate && !qs("from").value) qs("from").value = data.minDate;
-    if (qs("to") && data.maxDate && !qs("to").value) qs("to").value = data.maxDate;
-
     setStatus("Listo.");
   } catch (err) {
-    setStatus(err.message || String(err));
+    setStatus("Error cargando empleados: " + err.message);
   }
 }
 
-/******** ANALYTICS ********/
-async function queryAnalytics() {
+/******** QUERY ********/
+async function queryData() {
   try {
-    setStatus("Calculando analítica...");
+    setStatus("Consultando...");
 
-    // limpiar tablas
-    ["tblAsistencia", "tblHeTxt", "tblBenefits"].forEach(clearTable);
-    if (qs("kpiBox")) qs("kpiBox").innerHTML = "";
+    clearTable("asistenciaHead", "asistenciaBody");
+    clearTable("heHead", "heBody");
+    clearTable("benHead", "benBody");
 
     const params = new URLSearchParams({
-      action: "analytics",
+      action: "query",
       token: API_TOKEN,
-      employee: valOrEmpty("employee") || "TODOS",
-      from: valOrEmpty("from"),
-      to: valOrEmpty("to")
+      employee: qs("employee").value,
+      from: qs("from").value,
+      to: qs("to").value
     });
 
     const res = await fetch(`${API_URL}?${params.toString()}`);
     const data = await res.json();
 
     if (!data.ok) {
-      setStatus(data.error || "Error en analytics");
+      setStatus(data.error || "Error en QUERY");
       return;
     }
 
-    // KPIs
-    renderKpis(data);
+    const he = (data.heTxt && data.heTxt.totals) ? data.heTxt.totals : {};
+    const ben = (data.benefits && data.benefits.totals) ? data.benefits.totals : {};
 
-    // Tablas
-    renderTable("tblAsistencia", data.asistenciaRows || [], [
-      "user_id","full_name","date","weekday","day_type","holiday_name",
-      "marks_count","first_in","last_out","work_span_hhmm","mark_type","audit_flag","issues"
-    ]);
+    const msg =
+      `Eventos: ${data.totalEvents} | Días: ${data.asistencia.total} | ` +
+      `HE Calc: ${he.total_he_calc_hours_hhmm || "00:00"} | ` +
+      `HE Pag: ${he.total_he_payable_hours_hhmm || "00:00"} | ` +
+      `TXT: ${he.total_txt_hours_hhmm || "00:00"} | ` +
+      `Beneficios Total: ${ben.total_beneficios || 0}`;
 
-    renderTable("tblHeTxt", data.heTxtRows || [], [
-      "user_id","full_name","date","weekday","day_type","first_in","last_out","work_span_hhmm",
-      "he_calc_hhmm","he_payable_hhmm","txt_hhmm","applies_he_paid","applies_txt","rule_applied","catalog_match","audit_flag"
-    ]);
+    setStatus(msg);
 
-    renderTable("tblBenefits", data.benefitsRows || [], [
-      "user_id","full_name","date","weekday","day_type",
-      "he_payable_hhmm","txt_hhmm",
-      "alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef","audit_flag"
-    ]);
-
-    setStatus(`Listo. Eventos: ${data.totalEvents}. Días: ${(data.asistenciaRows || []).length}.`);
+    renderTable("asistenciaHead", "asistenciaBody", data.asistencia.rows || []);
+    renderTable("heHead", "heBody", (data.heTxt && data.heTxt.rows) ? data.heTxt.rows : []);
+    renderTable("benHead", "benBody", (data.benefits && data.benefits.rows) ? data.benefits.rows : []);
 
   } catch (err) {
-    setStatus(err.message || String(err));
+    setStatus("Error consultando: " + err.message);
   }
 }
 
 /******** PDF ********/
-async function exportPDF() {
-  try {
-    setStatus("Generando PDF...");
+function exportPDF() {
+  const params = new URLSearchParams({
+    action: "pdf",
+    token: API_TOKEN,
+    employee: qs("employee").value,
+    from: qs("from").value,
+    to: qs("to").value
+  });
 
-    const params = new URLSearchParams({
-      action: "pdf",
-      token: API_TOKEN,
-      employee: valOrEmpty("employee") || "TODOS",
-      from: valOrEmpty("from"),
-      to: valOrEmpty("to")
-    });
-
-    const res = await fetch(`${API_URL}?${params.toString()}`);
-    const data = await res.json();
-
-    if (!data.ok) {
-      setStatus(data.error || "Error generando PDF");
-      return;
-    }
-
-    if (!data.pdfUrl) {
-      setStatus("PDF generado, pero no se recibió pdfUrl.");
-      return;
-    }
-
-    setStatus("PDF listo.");
-    window.open(data.pdfUrl, "_blank");
-
-  } catch (err) {
-    setStatus(err.message || String(err));
-  }
+  window.open(`${API_URL}?${params.toString()}`, "_blank");
 }
