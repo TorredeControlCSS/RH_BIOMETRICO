@@ -3,41 +3,58 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3C
 const API_TOKEN = "RH_CSS_BIOMETRICO_2025_DINALOG_PRIVATE_TOKEN";
 
 /******** HELPERS ********/
-const qs = id => document.getElementById(id);
+const qs = (id) => document.getElementById(id);
 
 function setStatus(msg) {
-  qs("status").textContent = msg;
+  qs("status").textContent = msg || "";
 }
 
-function clearTable(headId, bodyId) {
-  qs(headId).innerHTML = "";
-  qs(bodyId).innerHTML = "";
+function setSummary(t) {
+  const s = t || {};
+  qs("summary").textContent =
+    `Eventos: ${s.events_count || 0} | ` +
+    `Días: ${s.days_count || 0} | ` +
+    `HE Calc: ${s.he_calc_hhmm || "00:00"} | ` +
+    `HE Pag: ${s.he_pay_hhmm || "00:00"} | ` +
+    `TXT: ${s.txt_hhmm || "00:00"} | ` +
+    `Beneficios Total: ${s.benefits_total || 0}`;
 }
 
-function renderTable(headId, bodyId, rows) {
-  clearTable(headId, bodyId);
-  if (!rows || !rows.length) return;
+function clearTables() {
+  qs("asistHead").innerHTML = "";
+  qs("asistBody").innerHTML = "";
+  qs("heHead").innerHTML = "";
+  qs("heBody").innerHTML = "";
+  qs("benHead").innerHTML = "";
+  qs("benBody").innerHTML = "";
+}
 
-  const headers = Object.keys(rows[0]);
+function renderTable(headId, bodyId, columns, rows) {
+  const head = qs(headId);
+  const body = qs(bodyId);
 
-  // header
-  const trh = document.createElement("tr");
-  headers.forEach(h => {
+  head.innerHTML = "";
+  body.innerHTML = "";
+
+  // headers
+  columns.forEach(col => {
     const th = document.createElement("th");
-    th.textContent = h;
-    trh.appendChild(th);
+    th.textContent = col.label;
+    head.appendChild(th);
   });
-  qs(headId).appendChild(trh);
 
-  // body
+  // rows
+  if (!rows || rows.length === 0) return;
+
   rows.forEach(r => {
     const tr = document.createElement("tr");
-    headers.forEach(h => {
+    columns.forEach(col => {
       const td = document.createElement("td");
-      td.textContent = (r[h] === null || r[h] === undefined) ? "" : r[h];
+      const v = (r && r[col.key] != null) ? r[col.key] : "";
+      td.textContent = v;
       tr.appendChild(td);
     });
-    qs(bodyId).appendChild(tr);
+    body.appendChild(tr);
   });
 }
 
@@ -45,33 +62,30 @@ function renderTable(headId, bodyId, rows) {
 document.addEventListener("DOMContentLoaded", () => {
   loadEmployees();
 
+  // Default: rango último mes si quieres (si no, lo dejas vacío)
+  // const today = new Date();
+  // const prior = new Date(today.getTime() - 30*24*3600*1000);
+  // qs("from").value = prior.toISOString().slice(0,10);
+  // qs("to").value = today.toISOString().slice(0,10);
+
   qs("btnBuscar").onclick = queryData;
   qs("btnPDF").onclick = exportPDF;
-
-  // Defaults: últimos 30 días
-  const now = new Date();
-  const to = now.toISOString().slice(0,10);
-  const fromDate = new Date(now.getTime() - 29*24*3600*1000);
-  const from = fromDate.toISOString().slice(0,10);
-  qs("from").value = from;
-  qs("to").value = to;
 });
 
 /******** META ********/
 async function loadEmployees() {
   try {
-    const res = await fetch(`${API_URL}?action=meta&token=${API_TOKEN}`);
+    setStatus("Cargando empleados...");
+    const res = await fetch(`${API_URL}?action=meta&token=${encodeURIComponent(API_TOKEN)}`);
     const data = await res.json();
 
     if (!data.ok) {
-      setStatus(data.error || "Error en META");
+      setStatus(data.error || "Error meta");
       return;
     }
 
     const sel = qs("employee");
-    // limpiar options menos el primero
-    while (sel.options.length > 1) sel.remove(1);
-
+    // dejar "TODOS" y agregar el resto
     data.employees.forEach(e => {
       const opt = document.createElement("option");
       opt.value = e;
@@ -79,9 +93,9 @@ async function loadEmployees() {
       sel.appendChild(opt);
     });
 
-    setStatus("Listo.");
-  } catch (err) {
-    setStatus("Error cargando empleados: " + err.message);
+    setStatus("");
+  } catch (e) {
+    setStatus("Error cargando empleados: " + (e.message || e));
   }
 }
 
@@ -89,57 +103,111 @@ async function loadEmployees() {
 async function queryData() {
   try {
     setStatus("Consultando...");
-
-    clearTable("asistenciaHead", "asistenciaBody");
-    clearTable("heHead", "heBody");
-    clearTable("benHead", "benBody");
+    setSummary(null);
+    clearTables();
 
     const params = new URLSearchParams({
       action: "query",
       token: API_TOKEN,
-      employee: qs("employee").value,
-      from: qs("from").value,
-      to: qs("to").value
+      employee: qs("employee").value || "TODOS",
+      from: qs("from").value || "",
+      to: qs("to").value || ""
     });
 
     const res = await fetch(`${API_URL}?${params.toString()}`);
     const data = await res.json();
 
     if (!data.ok) {
-      setStatus(data.error || "Error en QUERY");
+      setStatus(data.error || "Error query");
       return;
     }
 
-    const he = (data.heTxt && data.heTxt.totals) ? data.heTxt.totals : {};
-    const ben = (data.benefits && data.benefits.totals) ? data.benefits.totals : {};
+    setStatus("");
+    setSummary(data.totals);
 
-    const msg =
-      `Eventos: ${data.totalEvents} | Días: ${data.asistencia.total} | ` +
-      `HE Calc: ${he.total_he_calc_hours_hhmm || "00:00"} | ` +
-      `HE Pag: ${he.total_he_payable_hours_hhmm || "00:00"} | ` +
-      `TXT: ${he.total_txt_hours_hhmm || "00:00"} | ` +
-      `Beneficios Total: ${ben.total_beneficios || 0}`;
+    // Asistencia
+    renderTable(
+      "asistHead",
+      "asistBody",
+      [
+        { key: "full_name", label: "Empleado" },
+        { key: "date", label: "Fecha" },
+        { key: "weekday", label: "Día" },
+        { key: "day_type", label: "Tipo" },
+        { key: "marks_count", label: "Marcas" },
+        { key: "first_in", label: "Entrada" },
+        { key: "last_out", label: "Salida" },
+        { key: "work_span_hhmm", label: "Rango" },
+        { key: "audit_flag", label: "Auditoría" },
+        { key: "issues", label: "Observación" }
+      ],
+      data.asistencia || []
+    );
 
-    setStatus(msg);
+    // HE/TXT
+    renderTable(
+      "heHead",
+      "heBody",
+      [
+        { key: "full_name", label: "Empleado" },
+        { key: "date", label: "Fecha" },
+        { key: "day_type", label: "Tipo" },
+        { key: "first_in", label: "Entrada" },
+        { key: "last_out", label: "Salida" },
+        { key: "he_calc_hhmm", label: "HE Calc" },
+        { key: "he_payable_hhmm", label: "HE Pag" },
+        { key: "txt_hhmm", label: "TXT" },
+        { key: "rule_applied", label: "Regla" },
+        { key: "catalog_match", label: "Catálogo" }
+      ],
+      data.he_txt || []
+    );
 
-    renderTable("asistenciaHead", "asistenciaBody", data.asistencia.rows || []);
-    renderTable("heHead", "heBody", (data.heTxt && data.heTxt.rows) ? data.heTxt.rows : []);
-    renderTable("benHead", "benBody", (data.benefits && data.benefits.rows) ? data.benefits.rows : []);
+    // Beneficios
+    renderTable(
+      "benHead",
+      "benBody",
+      [
+        { key: "full_name", label: "Empleado" },
+        { key: "date", label: "Fecha" },
+        { key: "alim_b", label: "Alimentación" },
+        { key: "transp_b", label: "Transporte" },
+        { key: "benefits_b", label: "Total" },
+        { key: "benefits_rule", label: "Regla" }
+      ],
+      data.beneficios || []
+    );
 
-  } catch (err) {
-    setStatus("Error consultando: " + err.message);
+  } catch (e) {
+    setStatus("Error query: " + (e.message || e));
   }
 }
 
 /******** PDF ********/
-function exportPDF() {
-  const params = new URLSearchParams({
-    action: "pdf",
-    token: API_TOKEN,
-    employee: qs("employee").value,
-    from: qs("from").value,
-    to: qs("to").value
-  });
+async function exportPDF() {
+  try {
+    setStatus("Generando PDF...");
+    const params = new URLSearchParams({
+      action: "pdf",
+      token: API_TOKEN,
+      employee: qs("employee").value || "TODOS",
+      from: qs("from").value || "",
+      to: qs("to").value || ""
+    });
 
-  window.open(`${API_URL}?${params.toString()}`, "_blank");
+    const res = await fetch(`${API_URL}?${params.toString()}`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      setStatus(data.error || "Error PDF");
+      return;
+    }
+
+    setStatus("");
+    // Abrir link del PDF en Drive
+    window.open(data.url, "_blank");
+
+  } catch (e) {
+    setStatus("Error PDF: " + (e.message || e));
+  }
 }
