@@ -1,103 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
   <title>RH Biométrico | Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Opcional: favicon para quitar el 404 en consola -->
-  <!-- <link rel="icon" href="favicon.ico"> -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <header class="page-header">
-    <h2>RH Biométrico – Dashboard Histórico</h2>
-    <p class="sub">Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.</p>
-  </header>
+<h2>RH Biométrico – Dashboard Histórico</h2>
+<p class="subtitle">Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.</p>
 
-  <section class="filters">
-    <label>Empleado:
-      <select id="employee">
-        <option value="TODOS">TODOS</option>
-      </select>
-    </label>
+<div class="filters">
+  <label>Empleado:
+    <select id="employee">
+      <option value="TODOS">TODOS</option>
+    </select>
+  </label>
 
-    <label>Desde:
-      <input type="date" id="from" />
-    </label>
+  <label>Desde:
+    <input type="date" id="from">
+  </label>
 
-    <label>Hasta:
-      <input type="date" id="to" />
-    </label>
+  <label>Hasta:
+    <input type="date" id="to">
+  </label>
 
-    <button id="btnBuscar" type="button">Buscar</button>
-    <button id="btnPDF" type="button">Exportar PDF</button>
-  </section>
+  <button id="btnBuscar">Buscar</button>
+  <button id="btnPDF">Exportar PDF</button>
+</div>
 
-  <section class="status-bar">
-    <div id="status"></div>
-  </section>
+<div id="status"></div>
 
-  <!-- KPIs / Resumen -->
-  <section id="kpiBox" class="kpi-box">
-    <!-- app.js lo llena -->
-  </section>
+<h3>Asistencia diaria</h3>
+<div class="tableWrap">
+  <table id="tblAsistencia">
+    <thead id="asistenciaHead"></thead>
+    <tbody id="asistenciaBody"></tbody>
+  </table>
+</div>
 
-  <!-- TABLA 1: Asistencia diaria -->
-  <section class="card">
-    <div class="card-header">
-      <h3>Asistencia diaria</h3>
-      <div class="hint">Consolidado por nombre + fecha. Incluye auditoría y rangos.</div>
-    </div>
+<h3>Horas Extra + TXT</h3>
+<div class="tableWrap">
+  <table id="tblHeTxt">
+    <thead id="heHead"></thead>
+    <tbody id="heBody"></tbody>
+  </table>
+</div>
 
-    <div class="table-wrap">
-      <table id="tblAsistencia" class="table">
-        <thead>
-          <tr id="tblAsistenciaHead"></tr>
-        </thead>
-        <tbody id="tblAsistenciaBody"></tbody>
-      </table>
-    </div>
-  </section>
+<h3>Beneficios (Alimentación + Transporte)</h3>
+<div class="tableWrap">
+  <table id="tblBenefits">
+    <thead id="benHead"></thead>
+    <tbody id="benBody"></tbody>
+  </table>
+</div>
 
-  <!-- TABLA 2: HE + TXT -->
-  <section class="card">
-    <div class="card-header">
-      <h3>Horas Extra + TXT</h3>
-      <div class="hint">Cálculo por reglas (laborable / fin de semana / feriado) y flags del catálogo.</div>
-    </div>
+<p class="footer">RH Biométrico – Torre de Control CSS / DINALOG</p>
 
-    <div class="table-wrap">
-      <table id="tblHeTxt" class="table">
-        <thead>
-          <tr id="tblHeTxtHead"></tr>
-        </thead>
-        <tbody id="tblHeTxtBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- TABLA 3: Beneficios -->
-  <section class="card">
-    <div class="card-header">
-      <h3>Beneficios (Alimentación + Transporte)</h3>
-      <div class="hint">Aplicación según reglas y si procede con HE pagable / fin de semana / feriado.</div>
-    </div>
-
-    <div class="table-wrap">
-      <table id="tblBenefits" class="table">
-        <thead>
-          <tr id="tblBenefitsHead"></tr>
-        </thead>
-        <tbody id="tblBenefitsBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <footer class="page-footer">
-    <small>RH Biométrico – Torre de Control CSS / DINALOG</small>
-  </footer>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
