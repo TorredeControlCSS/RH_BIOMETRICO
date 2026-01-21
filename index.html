@@ -1,62 +1,63 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>RH Biométrico | Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<h2>RH Biométrico – Dashboard Histórico</h2>
-<p class="subtitle">Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.</p>
+  <h2>RH Biométrico – Dashboard Histórico</h2>
+  <div class="sub">
+    Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.
+  </div>
 
-<div class="filters">
-  <label>Empleado:
-    <select id="employee">
-      <option value="TODOS">TODOS</option>
-    </select>
-  </label>
+  <div class="filters">
+    <label>Empleado:
+      <select id="employee">
+        <option value="TODOS">TODOS</option>
+      </select>
+    </label>
 
-  <label>Desde:
-    <input type="date" id="from">
-  </label>
+    <label>Desde:
+      <input type="date" id="from">
+    </label>
 
-  <label>Hasta:
-    <input type="date" id="to">
-  </label>
+    <label>Hasta:
+      <input type="date" id="to">
+    </label>
 
-  <button id="btnBuscar">Buscar</button>
-  <button id="btnPDF">Exportar PDF</button>
-</div>
+    <button id="btnBuscar">Buscar</button>
+    <button id="btnPDF">Exportar PDF</button>
+  </div>
 
-<div id="status"></div>
+  <div id="status"></div>
 
-<h3>Asistencia diaria</h3>
-<div class="tableWrap">
-  <table id="tblAsistencia">
-    <thead id="asistenciaHead"></thead>
-    <tbody id="asistenciaBody"></tbody>
+  <div id="summary" class="summary">
+    Eventos: 0 | Días: 0 | HE Calc: 00:00 | HE Pag: 00:00 | TXT: 00:00 | Beneficios Total: 0
+  </div>
+
+  <h3>Asistencia diaria</h3>
+  <table class="tbl">
+    <thead><tr id="asistHead"></tr></thead>
+    <tbody id="asistBody"></tbody>
   </table>
-</div>
 
-<h3>Horas Extra + TXT</h3>
-<div class="tableWrap">
-  <table id="tblHeTxt">
-    <thead id="heHead"></thead>
+  <h3>Horas Extra + TXT</h3>
+  <table class="tbl">
+    <thead><tr id="heHead"></tr></thead>
     <tbody id="heBody"></tbody>
   </table>
-</div>
 
-<h3>Beneficios (Alimentación + Transporte)</h3>
-<div class="tableWrap">
-  <table id="tblBenefits">
-    <thead id="benHead"></thead>
+  <h3>Beneficios (Alimentación + Transporte)</h3>
+  <table class="tbl">
+    <thead><tr id="benHead"></tr></thead>
     <tbody id="benBody"></tbody>
   </table>
-</div>
 
-<p class="footer">RH Biométrico – Torre de Control CSS / DINALOG</p>
+  <div class="footer">RH Biométrico – Torre de Control CSS / DINALOG</div>
 
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
