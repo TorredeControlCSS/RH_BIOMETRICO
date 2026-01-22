@@ -2,16 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>RH Biométrico | Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <h2>RH Biométrico – Dashboard Histórico</h2>
-  <div class="sub">
-    Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.
-  </div>
+  <p>Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.</p>
 
   <div class="filters">
     <label>Empleado:
@@ -32,31 +29,33 @@
     <button id="btnPDF">Exportar PDF</button>
   </div>
 
-  <div id="status"></div>
+  <div id="status" class="status"></div>
 
-  <div id="summary" class="summary">
+  <div class="kpis" id="kpis">
     Eventos: 0 | Días: 0 | HE Calc: 00:00 | HE Pag: 00:00 | TXT: 00:00 | Beneficios Total: 0
   </div>
 
   <h3>Asistencia diaria</h3>
-  <table class="tbl">
-    <thead><tr id="asistHead"></tr></thead>
-    <tbody id="asistBody"></tbody>
+  <table class="results">
+    <thead><tr id="headAsistencia"></tr></thead>
+    <tbody id="bodyAsistencia"></tbody>
   </table>
 
   <h3>Horas Extra + TXT</h3>
-  <table class="tbl">
-    <thead><tr id="heHead"></tr></thead>
-    <tbody id="heBody"></tbody>
+  <table class="results">
+    <thead><tr id="headHE"></tr></thead>
+    <tbody id="bodyHE"></tbody>
   </table>
 
   <h3>Beneficios (Alimentación + Transporte)</h3>
-  <table class="tbl">
-    <thead><tr id="benHead"></tr></thead>
-    <tbody id="benBody"></tbody>
+  <table class="results">
+    <thead><tr id="headBEN"></tr></thead>
+    <tbody id="bodyBEN"></tbody>
   </table>
 
-  <div class="footer">RH Biométrico – Torre de Control CSS / DINALOG</div>
+  <footer style="margin-top:14px;">
+    RH Biométrico – Torre de Control CSS / DINALOG
+  </footer>
 
   <script src="app.js"></script>
 </body>
