@@ -141,7 +141,7 @@ async function runQuery() {
       to
     });
 
-    renderKPIs(q.totals || {});
+    renderKPIs(q);
     renderTables(q);
     renderCharts(q);
 
@@ -193,13 +193,20 @@ async function runPdf() {
 // =====================
 // Render
 // =====================
-function renderKPIs(t) {
+function renderKPIs(q) {
+  const t = q.totals || {};
+  const m = q.monthly || {};
+  const mt = (m.totals || {});
+
   kpiEvents.textContent = safeNum(t.total_events);
-  kpiDays.textContent = safeNum(t.total_days);
+  kpiDays.textContent   = safeNum(t.total_days);
   kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
-  kpiHePay.textContent = t.he_pay_hhmm || "00:00";
-  kpiTxt.textContent = t.txt_hhmm || "00:00";
-  kpiBen.textContent = money(t.total_beneficios);
+  kpiHePay.textContent  = t.he_pay_hhmm || "00:00";
+
+  // TXT (Bolson) = TXT por cap
+  kpiTxt.textContent    = mt.txt_from_cap_hhmm || "00:00";
+
+  kpiBen.textContent    = money(t.total_beneficios);
 }
 
 function renderTables(q) {
