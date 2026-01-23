@@ -4,43 +4,19 @@
   <meta charset="UTF-8" />
   <title>RH Biométrico | Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- SheetJS for reading Excel files -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" 
-          integrity="sha384-PXjVTXDzOXmL8ZhDKJJPOG6KhSxPZJNnQ3MfF/VpT6D5lhNiPqLbCJJZl3I+kPZv" 
-          crossorigin="anonymous"></script>
-  <!-- html2pdf.js for generating PDFs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" 
-          integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" 
-          crossorigin="anonymous"></script>
-  <!-- Fallback: Use unpkg CDN if primary CDN fails -->
-  <script>
-    window.addEventListener('load', function() {
-      if (typeof XLSX === 'undefined') {
-        console.warn('Primary SheetJS CDN failed, trying unpkg...');
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/xlsx@0.20.1/dist/xlsx.full.min.js';
-        script.crossOrigin = 'anonymous';
-        document.head.appendChild(script);
-      }
-      if (typeof html2pdf === 'undefined') {
-        console.warn('Primary html2pdf CDN failed, trying unpkg...');
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
-        script.crossOrigin = 'anonymous';
-        document.head.appendChild(script);
-      }
-    });
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
 
   <h2>RH Biométrico – Dashboard Histórico</h2>
-  <p>Consultas por empleado, rango de fechas, analítica (asistencia, HE/TXT, beneficios) y exportación PDF.</p>
+  <p>Consultas por empleado y rango de fechas (asistencia, HE/TXT, beneficios) consumiendo tu backend Apps Script.</p>
 
   <div class="filters">
-    <label>Archivo Excel:
-      <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+    <label>Token:
+      <input type="password" id="token" placeholder="Pegar token aquí" style="min-width:320px;">
     </label>
+
+    <button id="btnCargarEmpleados">Cargar empleados</button>
   </div>
 
   <div class="filters">
@@ -59,7 +35,7 @@
     </label>
 
     <button id="btnBuscar">Buscar</button>
-    <button id="btnPDF">Exportar PDF</button>
+    <button id="btnPDF">Generar PDF (Drive)</button>
   </div>
 
   <div id="status" class="status"></div>
