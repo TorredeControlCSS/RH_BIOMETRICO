@@ -5,9 +5,13 @@
   <title>RH Biométrico | Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <!-- SheetJS for reading Excel files -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" 
+          integrity="sha384-PXjVTXDzOXmL8ZhDKJJPOG6KhSxPZJNnQ3MfF/VpT6D5lhNiPqLbCJJZl3I+kPZv" 
+          crossorigin="anonymous"></script>
   <!-- html2pdf.js for generating PDFs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" 
+          integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" 
+          crossorigin="anonymous"></script>
   <!-- Fallback: Use unpkg CDN if primary CDN fails -->
   <script>
     window.addEventListener('load', function() {
@@ -15,12 +19,14 @@
         console.warn('Primary SheetJS CDN failed, trying unpkg...');
         var script = document.createElement('script');
         script.src = 'https://unpkg.com/xlsx@0.20.1/dist/xlsx.full.min.js';
+        script.crossOrigin = 'anonymous';
         document.head.appendChild(script);
       }
       if (typeof html2pdf === 'undefined') {
         console.warn('Primary html2pdf CDN failed, trying unpkg...');
         var script = document.createElement('script');
         script.src = 'https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
+        script.crossOrigin = 'anonymous';
         document.head.appendChild(script);
       }
     });

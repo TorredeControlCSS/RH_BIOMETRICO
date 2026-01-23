@@ -245,7 +245,11 @@ function processAllData() {
     
     // Handle Excel date serial numbers
     if (typeof eventDate === 'number') {
-      eventDate = XLSX.SSF.format('yyyy-mm-dd', eventDate);
+      // Convert Excel serial date to JavaScript Date
+      // Excel dates are days since 1900-01-01 (with leap year bug)
+      const excelEpoch = new Date(1899, 11, 30);
+      const jsDate = new Date(excelEpoch.getTime() + eventDate * 86400000);
+      eventDate = jsDate.toISOString().split('T')[0];
     } else if (eventDate) {
       // Try to parse and format
       const d = new Date(eventDate);
