@@ -7,7 +7,7 @@
  *******************************************************/
 
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
-const API_TOKEN   = "RH_DINALOG";
+const API_TOKEN   = "RH_DINALOG"; // Puedes acortarlo, pero reduce seguridad
 
 // =====================
 // UI refs
@@ -21,7 +21,7 @@ const btnBuscar = document.getElementById("btnBuscar");
 const btnPdf = document.getElementById("btnPdf");
 const btnLimpiar = document.getElementById("btnLimpiar");
 
-// KPI
+// KPIs
 const kpiEvents = document.getElementById("kpiEvents");
 const kpiDays = document.getElementById("kpiDays");
 const kpiHeCalc = document.getElementById("kpiHeCalc");
@@ -40,9 +40,8 @@ const headCYCLES = document.getElementById("headCYCLES");
 const bodyCYCLES = document.getElementById("bodyCYCLES");
 
 // Charts
-let chartDayType = null;
+let chartCycles = null;
 let chartBenefits = null;
-let chartTxtCycle = null;
 
 // =====================
 // Init
@@ -54,7 +53,7 @@ async function init() {
   initTabs();
   initTheme();
 
-  buildCycles(12); // últimos 12 ciclos
+  buildCycles(12);
   attachHandlers();
 
   setStatus("Cargando empleados...", "muted");
@@ -66,20 +65,12 @@ async function init() {
 // Handlers
 // =====================
 function attachHandlers() {
-  btnBuscar.addEventListener("click", async () => {
-    await runQuery();
-  });
-
-  btnPdf.addEventListener("click", async () => {
-    await runPdf();
-  });
-
-  btnLimpiar.addEventListener("click", () => {
-    clearUI();
-  });
+  btnBuscar.addEventListener("click", async () => runQuery());
+  btnPdf.addEventListener("click", async () => runPdf());
+  btnLimpiar.addEventListener("click", () => clearUI());
 
   elCycle.addEventListener("change", () => {
-    const v = elCycle.value; // "YYYY-MM-DD|YYYY-MM-DD"
+    const v = elCycle.value;
     if (!v) return;
     const [from, to] = v.split("|");
     elFrom.value = from;
@@ -122,14 +113,8 @@ async function runQuery() {
   const from = (elFrom.value || "").trim();
   const to = (elTo.value || "").trim();
 
-  if (!from || !to) {
-    setStatus("Debe indicar Desde y Hasta.", "danger");
-    return;
-  }
-  if (to < from) {
-    setStatus("Rango inválido: 'Hasta' no puede ser menor que 'Desde'.", "danger");
-    return;
-  }
+  if (!from || !to) return setStatus("Debe indicar Desde y Hasta.", "danger");
+  if (to < from) return setStatus("Rango inválido: 'Hasta' no puede ser menor que 'Desde'.", "danger");
 
   btnBuscar.disabled = true;
   btnPdf.disabled = true;
@@ -137,12 +122,7 @@ async function runQuery() {
   try {
     setStatus("Consultando datos...", "muted");
 
-    const q = await apiGet({
-      action: "query",
-      employee,
-      from,
-      to
-    });
+    const q = await apiGet({ action: "query", employee, from, to });
 
     renderKPIs(q);
     renderTables(q);
@@ -163,20 +143,12 @@ async function runPdf() {
   const from = (elFrom.value || "").trim();
   const to = (elTo.value || "").trim();
 
-  if (!from || !to) {
-    setStatus("Debe indicar Desde y Hasta.", "danger");
-    return;
-  }
+  if (!from || !to) return setStatus("Debe indicar Desde y Hasta.", "danger");
 
   btnPdf.disabled = true;
   try {
     setStatus("Generando PDF...", "muted");
-    const r = await apiGet({
-      action: "pdf",
-      employee,
-      from,
-      to
-    });
+    const r = await apiGet({ action: "pdf", employee, from, to });
 
     if (r.downloadUrl) {
       window.open(r.downloadUrl, "_blank");
@@ -197,46 +169,51 @@ async function runPdf() {
 // =====================
 function renderKPIs(q) {
   const t = q.totals || {};
-  const m = q.monthly || {};
-  const mt = (m.totals || {});
+  const rm = q.resumen_mensual || {};
+  const rmt = rm.totals || {};
 
   kpiEvents.textContent = safeNum(t.total_events);
   kpiDays.textContent   = safeNum(t.total_days);
+
+  // Total HE calculada (rango)
   kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
-  kpiHePay.textContent  = t.he_pay_hhmm || "00:00";
 
-  // TXT (Bolson) = TXT por cap (por ciclo)
-  kpiTxt.textContent    = mt.txt_from_cap_hhmm || "00:00";
+  // HE pagable cap 40h por ciclo (rango)
+  kpiHePay.textContent  = rmt.total_he_paid_capped_hhmm || "00:00";
 
+  // TXT total (rango)
+  kpiTxt.textContent    = rmt.total_txt_hhmm || "00:00";
+
+  // Beneficios (rango)
   kpiBen.textContent    = money(t.total_beneficios);
 }
 
 function renderTables(q) {
-  // Asistencia
+  // Asistencia diaria
   const asistenciaCols = ["full_name","date","weekday","day_type","marks_count","first_in","last_out","work_span_hhmm","audit_flag","issues"];
   buildTable(headAsistencia, bodyAsistencia, asistenciaCols, q.asistencia || []);
 
-  // HE/TXT (detalle diario)
-  const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"];
+  // HE diario (solo “cálculo diario”, el cap por ciclo está en Resumen Mensual)
+  const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","rule_applied","catalog_match"];
   buildTable(headHE, bodyHE, heCols, q.he_txt || []);
 
   // Beneficios
   const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
   buildTable(headBEN, bodyBEN, benCols, q.beneficios || []);
 
-  // Ciclos (resumen por ciclo + cap 40h + TXT por cap)
-  const cycRows = (q.monthly && Array.isArray(q.monthly.rows)) ? q.monthly.rows : [];
-  const cycCols = [
+  // Resumen por ciclo (cap 40h + TXT)
+  const rm = q.resumen_mensual || {};
+  const rows = rm.rows || [];
+  const cyclesCols = [
     "cycle",
     "full_name",
     "he_calc_total_hhmm",
     "he_paid_capped_hhmm",
-    "txt_from_cap_hhmm",
-    "he_amount_paid_capped",
+    "txt_total_hhmm",
     "alim_total",
-    "transp_total"
+    "tr_total"
   ];
-  buildTable(headCYCLES, bodyCYCLES, cycCols, cycRows);
+  buildTable(headCYCLES, bodyCYCLES, cyclesCols, rows);
 }
 
 function buildTable(headEl, bodyEl, cols, rows) {
@@ -248,39 +225,44 @@ function buildTable(headEl, bodyEl, cols, rows) {
 }
 
 function renderCharts(q) {
-  const heRows = q.he_txt || [];
-  const benRows = q.beneficios || [];
+  // 1) Horas por ciclo (HE calc / HE pag cap / TXT)
+  const rm = q.resumen_mensual || {};
+  const rows = rm.rows || [];
 
+  const labels = rows.map(r => String(r.cycle || ""));
+  const heCalc = rows.map(r => hhmmToHours(r.he_calc_total_hhmm));
+  const hePayC = rows.map(r => hhmmToHours(r.he_paid_capped_hhmm));
+  const txtTot = rows.map(r => hhmmToHours(r.txt_total_hhmm));
+
+  const ctxC = document.getElementById("chartCycles");
+  if (chartCycles) chartCycles.destroy();
+  chartCycles = new Chart(ctxC, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "HE Calc (h)", data: heCalc },
+        { label: "HE Pag (cap) (h)", data: hePayC },
+        { label: "TXT (h)", data: txtTot }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // 2) Beneficios por tipo de día
+  const benRows = q.beneficios || [];
   const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
   const sum = (arr, fn) => arr.reduce((a,x)=>a + (fn(x)||0), 0);
-
-  const heCalcBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_calc_hhmm)));
-  const hePayBy  = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_payable_hhmm)));
-  const txtDailyBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.txt_hhmm)));
 
   const alimBy   = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.alim_b)));
   const transpBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.transp_b)));
 
-  // Chart 1 - Horas por tipo de día (TXT diario, NO el bolson por cap)
-  const ctx1 = document.getElementById("chartDayType");
-  if (chartDayType) chartDayType.destroy();
-  chartDayType = new Chart(ctx1, {
-    type: "bar",
-    data: {
-      labels: dayTypes,
-      datasets: [
-        { label: "HE Calc (h)", data: heCalcBy },
-        { label: "HE Pag (h)", data: hePayBy },
-        { label: "TXT diario (h)", data: txtDailyBy }
-      ]
-    },
-    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
-  });
-
-  // Chart 2 - Beneficios
-  const ctx2 = document.getElementById("chartBenefits");
+  const ctxB = document.getElementById("chartBenefits");
   if (chartBenefits) chartBenefits.destroy();
-  chartBenefits = new Chart(ctx2, {
+  chartBenefits = new Chart(ctxB, {
     type: "bar",
     data: {
       labels: dayTypes,
@@ -289,25 +271,10 @@ function renderCharts(q) {
         { label: "Transporte", data: transpBy }
       ]
     },
-    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
-  });
-
-  // Chart 3 - TXT por ciclo (cap 40h)
-  const cycRows = (q.monthly && Array.isArray(q.monthly.rows)) ? q.monthly.rows : [];
-  const cycLabels = cycRows.map(r => String(r.cycle || ""));
-  const txtCapHours = cycRows.map(r => hhmmToHours(r.txt_from_cap_hhmm));
-
-  const ctx3 = document.getElementById("chartTxtCycle");
-  if (chartTxtCycle) chartTxtCycle.destroy();
-  chartTxtCycle = new Chart(ctx3, {
-    type: "bar",
-    data: {
-      labels: cycLabels,
-      datasets: [
-        { label: "TXT (cap) h", data: txtCapHours }
-      ]
-    },
-    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
   });
 }
 
@@ -320,19 +287,16 @@ function clearUI() {
   kpiHeCalc.textContent = "00:00";
   kpiHePay.textContent = "00:00";
   kpiTxt.textContent = "00:00";
-  kpiBen.textContent = "$0.00";
+  kpiBen.textContent = "USD 0.00";
 
   headAsistencia.innerHTML = ""; bodyAsistencia.innerHTML = "";
   headHE.innerHTML = ""; bodyHE.innerHTML = "";
   headBEN.innerHTML = ""; bodyBEN.innerHTML = "";
   headCYCLES.innerHTML = ""; bodyCYCLES.innerHTML = "";
 
-  if (chartDayType) chartDayType.destroy();
+  if (chartCycles) chartCycles.destroy();
   if (chartBenefits) chartBenefits.destroy();
-  if (chartTxtCycle) chartTxtCycle.destroy();
-  chartDayType = null;
-  chartBenefits = null;
-  chartTxtCycle = null;
+  chartCycles = null; chartBenefits = null;
 
   setStatus("Listo.", "ok");
 }
@@ -345,18 +309,22 @@ function setStatus(msg, cls) {
 
 function initTabs() {
   const tabs = document.querySelectorAll(".tab");
+  const show = (key) => {
+    document.getElementById("tab-asistencia").style.display = (key === "asistencia") ? "block" : "none";
+    document.getElementById("tab-he").style.display = (key === "he") ? "block" : "none";
+    document.getElementById("tab-ben").style.display = (key === "ben") ? "block" : "none";
+    document.getElementById("tab-cycles").style.display = (key === "cycles") ? "block" : "none";
+  };
+
   tabs.forEach(t => {
     t.addEventListener("click", () => {
       tabs.forEach(x => x.classList.remove("active"));
       t.classList.add("active");
-
-      const key = t.getAttribute("data-tab");
-      document.getElementById("tab-asistencia").style.display = (key === "asistencia") ? "block" : "none";
-      document.getElementById("tab-he").style.display = (key === "he") ? "block" : "none";
-      document.getElementById("tab-ben").style.display = (key === "ben") ? "block" : "none";
-      document.getElementById("tab-cycles").style.display = (key === "cycles") ? "block" : "none";
+      show(t.getAttribute("data-tab"));
     });
   });
+
+  show("asistencia");
 }
 
 function initDateTimeTicker() {
@@ -375,16 +343,11 @@ function initDateTimeTicker() {
 function initTheme() {
   const sel = document.getElementById("themeMode");
   const apply = (mode) => {
-    if (mode === "dark") {
-      document.body.style.background = "#0b1220";
-      document.body.style.color = "#e5e7eb";
-    } else {
-      document.body.style.background = "#fff";
-      document.body.style.color = "#111";
-    }
+    document.body.style.background = (mode === "dark") ? "#0b1220" : "#fff";
+    document.body.style.color = (mode === "dark") ? "#e5e7eb" : "#111";
   };
   sel.addEventListener("change", () => apply(sel.value));
-  apply("light");
+  apply(sel.value || "light");
 }
 
 // =====================
@@ -458,8 +421,9 @@ function money(n) {
   return v.toLocaleString("es-PA", { style:"currency", currency:"USD" });
 }
 
+// Convierte "HH:MM" a horas (float)
 function hhmmToHours(hhmm) {
-  const s = String(hhmm || "00:00");
+  const s = String(hhmm || "00:00").trim();
   const parts = s.split(":");
   if (parts.length < 2) return 0;
   const h = Number(parts[0]) || 0;
