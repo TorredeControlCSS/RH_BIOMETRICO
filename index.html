@@ -16,3 +16,56 @@
       <input type="password" id="token" placeholder="Pegar token aquí" style="min-width:320px;">
     </label>
 
+    <button id="btnCargarEmpleados">Cargar empleados</button>
+  </div>
+
+  <div class="filters">
+    <label>Empleado:
+      <select id="employee">
+        <option value="TODOS">TODOS</option>
+      </select>
+    </label>
+
+    <label>Desde:
+      <input type="date" id="from">
+    </label>
+
+    <label>Hasta:
+      <input type="date" id="to">
+    </label>
+
+    <button id="btnBuscar">Buscar</button>
+    <button id="btnPDF">Generar PDF (Drive)</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="kpis" id="kpis">
+    Eventos: 0 | Días: 0 | HE Calc: 00:00 | HE Pag: 00:00 | TXT: 00:00 | Beneficios Total: 0
+  </div>
+
+  <h3>Asistencia diaria</h3>
+  <table class="results">
+    <thead><tr id="headAsistencia"></tr></thead>
+    <tbody id="bodyAsistencia"></tbody>
+  </table>
+
+  <h3>Horas Extra + TXT</h3>
+  <table class="results">
+    <thead><tr id="headHE"></tr></thead>
+    <tbody id="bodyHE"></tbody>
+  </table>
+
+  <h3>Beneficios (Alimentación + Transporte)</h3>
+  <table class="results">
+    <thead><tr id="headBEN"></tr></thead>
+    <tbody id="bodyBEN"></tbody>
+  </table>
+
+  <footer style="margin-top:14px;">
+    RH Biométrico – Torre de Control CSS / DINALOG
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
