@@ -7,7 +7,7 @@
  *******************************************************/
 
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
-const API_TOKEN   = "RH_DINALOG"; // Puedes reducirlo, pero baja la seguridad
+const API_TOKEN   = "RH_DINALOG";
 
 // =====================
 // UI refs
@@ -36,10 +36,13 @@ const headHE = document.getElementById("headHE");
 const bodyHE = document.getElementById("bodyHE");
 const headBEN = document.getElementById("headBEN");
 const bodyBEN = document.getElementById("bodyBEN");
+const headCYCLES = document.getElementById("headCYCLES");
+const bodyCYCLES = document.getElementById("bodyCYCLES");
 
 // Charts
 let chartDayType = null;
 let chartBenefits = null;
+let chartTxtCycle = null;
 
 // =====================
 // Init
@@ -175,7 +178,6 @@ async function runPdf() {
       to
     });
 
-    // Abre descarga en nueva pestaña
     if (r.downloadUrl) {
       window.open(r.downloadUrl, "_blank");
       setStatus("PDF generado.", "ok");
@@ -203,7 +205,7 @@ function renderKPIs(q) {
   kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
   kpiHePay.textContent  = t.he_pay_hhmm || "00:00";
 
-  // TXT (Bolson) = TXT por cap
+  // TXT (Bolson) = TXT por cap (por ciclo)
   kpiTxt.textContent    = mt.txt_from_cap_hhmm || "00:00";
 
   kpiBen.textContent    = money(t.total_beneficios);
@@ -214,13 +216,27 @@ function renderTables(q) {
   const asistenciaCols = ["full_name","date","weekday","day_type","marks_count","first_in","last_out","work_span_hhmm","audit_flag","issues"];
   buildTable(headAsistencia, bodyAsistencia, asistenciaCols, q.asistencia || []);
 
-  // HE/TXT
+  // HE/TXT (detalle diario)
   const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"];
   buildTable(headHE, bodyHE, heCols, q.he_txt || []);
 
   // Beneficios
   const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
   buildTable(headBEN, bodyBEN, benCols, q.beneficios || []);
+
+  // Ciclos (resumen por ciclo + cap 40h + TXT por cap)
+  const cycRows = (q.monthly && Array.isArray(q.monthly.rows)) ? q.monthly.rows : [];
+  const cycCols = [
+    "cycle",
+    "full_name",
+    "he_calc_total_hhmm",
+    "he_paid_capped_hhmm",
+    "txt_from_cap_hhmm",
+    "he_amount_paid_capped",
+    "alim_total",
+    "transp_total"
+  ];
+  buildTable(headCYCLES, bodyCYCLES, cycCols, cycRows);
 }
 
 function buildTable(headEl, bodyEl, cols, rows) {
@@ -232,23 +248,20 @@ function buildTable(headEl, bodyEl, cols, rows) {
 }
 
 function renderCharts(q) {
-  // Resúmenes por tipo de día: LABORABLE / FIN_DE_SEMANA / FERIADO
   const heRows = q.he_txt || [];
   const benRows = q.beneficios || [];
 
   const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
-
   const sum = (arr, fn) => arr.reduce((a,x)=>a + (fn(x)||0), 0);
 
   const heCalcBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_calc_hhmm)));
   const hePayBy  = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_payable_hhmm)));
-  const txtBy    = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.txt_hhmm)));
+  const txtDailyBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.txt_hhmm)));
 
-  // Beneficios por tipo de día
   const alimBy   = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.alim_b)));
   const transpBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.transp_b)));
 
-  // Chart 1
+  // Chart 1 - Horas por tipo de día (TXT diario, NO el bolson por cap)
   const ctx1 = document.getElementById("chartDayType");
   if (chartDayType) chartDayType.destroy();
   chartDayType = new Chart(ctx1, {
@@ -258,16 +271,13 @@ function renderCharts(q) {
       datasets: [
         { label: "HE Calc (h)", data: heCalcBy },
         { label: "HE Pag (h)", data: hePayBy },
-        { label: "TXT (h)", data: txtBy }
+        { label: "TXT diario (h)", data: txtDailyBy }
       ]
     },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
   });
 
-  // Chart 2
+  // Chart 2 - Beneficios
   const ctx2 = document.getElementById("chartBenefits");
   if (chartBenefits) chartBenefits.destroy();
   chartBenefits = new Chart(ctx2, {
@@ -279,10 +289,25 @@ function renderCharts(q) {
         { label: "Transporte", data: transpBy }
       ]
     },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
+  });
+
+  // Chart 3 - TXT por ciclo (cap 40h)
+  const cycRows = (q.monthly && Array.isArray(q.monthly.rows)) ? q.monthly.rows : [];
+  const cycLabels = cycRows.map(r => String(r.cycle || ""));
+  const txtCapHours = cycRows.map(r => hhmmToHours(r.txt_from_cap_hhmm));
+
+  const ctx3 = document.getElementById("chartTxtCycle");
+  if (chartTxtCycle) chartTxtCycle.destroy();
+  chartTxtCycle = new Chart(ctx3, {
+    type: "bar",
+    data: {
+      labels: cycLabels,
+      datasets: [
+        { label: "TXT (cap) h", data: txtCapHours }
+      ]
+    },
+    options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
   });
 }
 
@@ -300,10 +325,14 @@ function clearUI() {
   headAsistencia.innerHTML = ""; bodyAsistencia.innerHTML = "";
   headHE.innerHTML = ""; bodyHE.innerHTML = "";
   headBEN.innerHTML = ""; bodyBEN.innerHTML = "";
+  headCYCLES.innerHTML = ""; bodyCYCLES.innerHTML = "";
 
   if (chartDayType) chartDayType.destroy();
   if (chartBenefits) chartBenefits.destroy();
-  chartDayType = null; chartBenefits = null;
+  if (chartTxtCycle) chartTxtCycle.destroy();
+  chartDayType = null;
+  chartBenefits = null;
+  chartTxtCycle = null;
 
   setStatus("Listo.", "ok");
 }
@@ -325,6 +354,7 @@ function initTabs() {
       document.getElementById("tab-asistencia").style.display = (key === "asistencia") ? "block" : "none";
       document.getElementById("tab-he").style.display = (key === "he") ? "block" : "none";
       document.getElementById("tab-ben").style.display = (key === "ben") ? "block" : "none";
+      document.getElementById("tab-cycles").style.display = (key === "cycles") ? "block" : "none";
     });
   });
 }
@@ -333,7 +363,10 @@ function initDateTimeTicker() {
   const el = document.getElementById("currentDateTime");
   const tick = () => {
     const d = new Date();
-    el.textContent = d.toLocaleString("es-PA", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+    el.textContent = d.toLocaleString("es-PA", {
+      year:"numeric", month:"2-digit", day:"2-digit",
+      hour:"2-digit", minute:"2-digit"
+    });
   };
   tick();
   setInterval(tick, 15000);
@@ -342,8 +375,13 @@ function initDateTimeTicker() {
 function initTheme() {
   const sel = document.getElementById("themeMode");
   const apply = (mode) => {
-    document.body.style.background = (mode === "dark") ? "#0b1220" : "#fff";
-    document.body.style.color = (mode === "dark") ? "#e5e7eb" : "#111";
+    if (mode === "dark") {
+      document.body.style.background = "#0b1220";
+      document.body.style.color = "#e5e7eb";
+    } else {
+      document.body.style.background = "#fff";
+      document.body.style.color = "#111";
+    }
   };
   sel.addEventListener("change", () => apply(sel.value));
   apply("light");
@@ -356,7 +394,6 @@ function buildCycles(n = 12) {
   elCycle.innerHTML = "";
 
   const now = new Date();
-  // Construye ciclos retrocediendo mes a mes
   for (let i = 0; i < n; i++) {
     const start = cycleStartDate(addMonths(now, -i));
     const end = cycleEndDate(start);
@@ -370,24 +407,20 @@ function buildCycles(n = 12) {
     elCycle.appendChild(opt);
   }
 
-  // Por defecto: ciclo actual
   const [from0, to0] = elCycle.value.split("|");
   elFrom.value = from0;
   elTo.value = to0;
 }
 
 function cycleStartDate(d) {
-  // Si hoy es >= 16, el ciclo inicia el 16 de este mes; si no, el 16 del mes anterior.
   const year = d.getFullYear();
   const month = d.getMonth();
   const day = d.getDate();
-
   if (day >= 16) return new Date(year, month, 16);
   return new Date(year, month - 1, 16);
 }
 
 function cycleEndDate(start) {
-  // Termina el 15 del mes siguiente
   return new Date(start.getFullYear(), start.getMonth() + 1, 15);
 }
 
