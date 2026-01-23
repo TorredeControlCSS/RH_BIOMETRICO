@@ -1,208 +1,433 @@
 /*******************************************************
- * RH BIOMÉTRICO – FRONTEND (GitHub Pages)
- * Consume Apps Script Web App:
+ * RH BIOMÉTRICO — FRONTEND DASHBOARD (GitHub Pages)
+ * Consume WebApp GAS:
  *  ?action=meta&token=...
  *  ?action=query&token=...&employee=...&from=YYYY-MM-DD&to=YYYY-MM-DD
  *  ?action=pdf&token=...&employee=...&from=YYYY-MM-DD&to=YYYY-MM-DD
  *******************************************************/
 
-const API_BASE =
-  "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
+const API_TOKEN   = "RH_DINALOG"; // Puedes reducirlo, pero baja la seguridad
 
-const qs = (id) => document.getElementById(id);
+// =====================
+// UI refs
+// =====================
+const elEmployee = document.getElementById("employee");
+const elCycle = document.getElementById("cycleSelect");
+const elFrom = document.getElementById("from");
+const elTo = document.getElementById("to");
+const elStatus = document.getElementById("status");
+const btnBuscar = document.getElementById("btnBuscar");
+const btnPdf = document.getElementById("btnPdf");
+const btnLimpiar = document.getElementById("btnLimpiar");
 
-function setStatus(msg) {
-  qs("status").textContent = msg || "";
+// KPI
+const kpiEvents = document.getElementById("kpiEvents");
+const kpiDays = document.getElementById("kpiDays");
+const kpiHeCalc = document.getElementById("kpiHeCalc");
+const kpiHePay = document.getElementById("kpiHePay");
+const kpiTxt = document.getElementById("kpiTxt");
+const kpiBen = document.getElementById("kpiBen");
+
+// Tables
+const headAsistencia = document.getElementById("headAsistencia");
+const bodyAsistencia = document.getElementById("bodyAsistencia");
+const headHE = document.getElementById("headHE");
+const bodyHE = document.getElementById("bodyHE");
+const headBEN = document.getElementById("headBEN");
+const bodyBEN = document.getElementById("bodyBEN");
+
+// Charts
+let chartDayType = null;
+let chartBenefits = null;
+
+// =====================
+// Init
+// =====================
+init();
+
+async function init() {
+  initDateTimeTicker();
+  initTabs();
+  initTheme();
+
+  buildCycles(12); // últimos 12 ciclos
+  attachHandlers();
+
+  setStatus("Cargando empleados...", "muted");
+  await loadEmployees();
+  setStatus("Listo.", "ok");
 }
 
-function setKpis(totals) {
-  const t = totals || {};
-  qs("kpis").textContent =
-    `Eventos: ${t.total_events || 0} | Días: ${t.total_days || 0} | ` +
-    `HE Calc: ${t.he_calc_hhmm || "00:00"} | HE Pag: ${t.he_pay_hhmm || "00:00"} | ` +
-    `TXT: ${t.txt_hhmm || "00:00"} | Beneficios Total: ${t.total_beneficios || 0}`;
-}
-
-function clearTable(headId, bodyId) {
-  qs(headId).innerHTML = "";
-  qs(bodyId).innerHTML = "";
-}
-
-function renderTable(headId, bodyId, rows, columns) {
-  clearTable(headId, bodyId);
-  if (!rows || !rows.length) return;
-
-  // Header
-  for (const c of columns) {
-    const th = document.createElement("th");
-    th.textContent = c;
-    qs(headId).appendChild(th);
-  }
-
-  // Body
-  for (const r of rows) {
-    const tr = document.createElement("tr");
-    for (const c of columns) {
-      const td = document.createElement("td");
-      const v = r[c];
-      td.textContent = (v === undefined || v === null) ? "" : String(v);
-      tr.appendChild(td);
-    }
-    qs(bodyId).appendChild(tr);
-  }
-}
-
-function getTokenOrThrow() {
-  const token = (qs("token").value || "").trim();
-  if (!token) throw new Error("Falta el token. Pégalo en el campo Token.");
-  return token;
-}
-
-function validateDates(from, to) {
-  // Permitimos vacío; pero si ambos existen, validamos orden
-  if (from && !/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error("Fecha 'Desde' inválida.");
-  if (to && !/^\d{4}-\d{2}-\d{2}$/.test(to)) throw new Error("Fecha 'Hasta' inválida.");
-  if (from && to && from > to) throw new Error("'Desde' no puede ser mayor que 'Hasta'.");
-}
-
-async function fetchJson(paramsObj) {
-  const url = new URL(API_BASE);
-  const p = new URLSearchParams(paramsObj);
-  url.search = p.toString();
-
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    headers: { "Accept": "application/json" },
-    cache: "no-store"
+// =====================
+// Handlers
+// =====================
+function attachHandlers() {
+  btnBuscar.addEventListener("click", async () => {
+    await runQuery();
   });
 
-  // Apps Script a veces devuelve 200 con texto; intentamos parse robusto
-  const text = await res.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    throw new Error("Respuesta no es JSON. Revisa despliegue de la Web App y permisos.");
-  }
+  btnPdf.addEventListener("click", async () => {
+    await runPdf();
+  });
 
+  btnLimpiar.addEventListener("click", () => {
+    clearUI();
+  });
+
+  elCycle.addEventListener("change", () => {
+    const v = elCycle.value; // "YYYY-MM-DD|YYYY-MM-DD"
+    if (!v) return;
+    const [from, to] = v.split("|");
+    elFrom.value = from;
+    elTo.value = to;
+  });
+}
+
+// =====================
+// API
+// =====================
+async function apiGet(params) {
+  const url = new URL(WEB_APP_URL);
+  params.token = API_TOKEN;
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v ?? "")));
+
+  const resp = await fetch(url.toString(), { method: "GET" });
+  const data = await resp.json();
   if (!data || data.ok !== true) {
-    const msg = (data && data.error) ? data.error : "Error desconocido en backend.";
+    const msg = (data && data.error) ? data.error : "Error desconocido en API";
     throw new Error(msg);
   }
-
   return data;
 }
 
-async function cargarEmpleados() {
-  try {
-    setStatus("Cargando empleados...");
-    setKpis({});
-    clearAllTables();
+async function loadEmployees() {
+  const data = await apiGet({ action: "meta" });
+  const employees = data.employees || ["TODOS"];
 
-    const token = getTokenOrThrow();
-    const data = await fetchJson({ action: "meta", token });
+  elEmployee.innerHTML = "";
+  employees.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    elEmployee.appendChild(opt);
+  });
+}
 
-    const sel = qs("employee");
-    sel.innerHTML = "";
-    for (const name of (data.employees || ["TODOS"])) {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
-    }
+async function runQuery() {
+  const employee = (elEmployee.value || "TODOS").trim();
+  const from = (elFrom.value || "").trim();
+  const to = (elTo.value || "").trim();
 
-    setStatus(`Empleados cargados: ${(data.employees || []).length}`);
-  } catch (err) {
-    setStatus("Error: " + (err && err.message ? err.message : String(err)));
+  if (!from || !to) {
+    setStatus("Debe indicar Desde y Hasta.", "danger");
+    return;
   }
-}
+  if (to < from) {
+    setStatus("Rango inválido: 'Hasta' no puede ser menor que 'Desde'.", "danger");
+    return;
+  }
 
-function clearAllTables() {
-  clearTable("headAsistencia", "bodyAsistencia");
-  clearTable("headHE", "bodyHE");
-  clearTable("headBEN", "bodyBEN");
-}
+  btnBuscar.disabled = true;
+  btnPdf.disabled = true;
 
-async function buscar() {
   try {
-    setStatus("Consultando backend...");
-    setKpis({});
-    clearAllTables();
+    setStatus("Consultando datos...", "muted");
 
-    const token = getTokenOrThrow();
-    const employee = (qs("employee").value || "TODOS").trim();
-    const from = (qs("from").value || "").trim();
-    const to = (qs("to").value || "").trim();
-    validateDates(from, to);
-
-    const data = await fetchJson({
+    const q = await apiGet({
       action: "query",
-      token,
       employee,
       from,
       to
     });
 
-    setKpis(data.totals);
+    renderKPIs(q.totals || {});
+    renderTables(q);
+    renderCharts(q);
 
-    // Render Asistencia
-    const asistenciaCols = [
-      "full_name","date","weekday","day_type","marks_count",
-      "first_in","last_out","work_span_hhmm","audit_flag","issues"
-    ];
-    renderTable("headAsistencia", "bodyAsistencia", data.asistencia || [], asistenciaCols);
-
-    // Render HE/TXT
-    const heCols = [
-      "full_name","date","day_type","first_in","last_out",
-      "he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"
-    ];
-    renderTable("headHE", "bodyHE", data.he_txt || [], heCols);
-
-    // Render Beneficios
-    const benCols = [
-      "full_name","date","day_type",
-      "alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"
-    ];
-    renderTable("headBEN", "bodyBEN", data.beneficios || [], benCols);
-
-    setStatus("");
-  } catch (err) {
-    setStatus("Error: " + (err && err.message ? err.message : String(err)));
+    setStatus("Consulta completada.", "ok");
+  } catch (e) {
+    console.error(e);
+    setStatus("Error: " + e.message, "danger");
+  } finally {
+    btnBuscar.disabled = false;
+    btnPdf.disabled = false;
   }
 }
 
-async function generarPdf() {
+async function runPdf() {
+  const employee = (elEmployee.value || "TODOS").trim();
+  const from = (elFrom.value || "").trim();
+  const to = (elTo.value || "").trim();
+
+  if (!from || !to) {
+    setStatus("Debe indicar Desde y Hasta.", "danger");
+    return;
+  }
+
+  btnPdf.disabled = true;
   try {
-    setStatus("Generando PDF en Drive...");
-    const token = getTokenOrThrow();
-
-    const employee = (qs("employee").value || "TODOS").trim();
-    const from = (qs("from").value || "").trim();
-    const to = (qs("to").value || "").trim();
-    validateDates(from, to);
-
-    const data = await fetchJson({
+    setStatus("Generando PDF...", "muted");
+    const r = await apiGet({
       action: "pdf",
-      token,
       employee,
       from,
       to
     });
 
-    setStatus("PDF generado. Abriendo enlace...");
-    // Abre el downloadUrl
-    if (data.downloadUrl) window.open(data.downloadUrl, "_blank");
-    else setStatus("PDF generado, pero backend no devolvió downloadUrl.");
-  } catch (err) {
-    setStatus("Error: " + (err && err.message ? err.message : String(err)));
+    // Abre descarga en nueva pestaña
+    if (r.downloadUrl) {
+      window.open(r.downloadUrl, "_blank");
+      setStatus("PDF generado.", "ok");
+    } else {
+      setStatus("PDF generado, pero no se recibió URL.", "danger");
+    }
+  } catch (e) {
+    console.error(e);
+    setStatus("Error PDF: " + e.message, "danger");
+  } finally {
+    btnPdf.disabled = false;
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  qs("btnCargarEmpleados").onclick = cargarEmpleados;
-  qs("btnBuscar").onclick = buscar;
-  qs("btnPDF").onclick = generarPdf;
+// =====================
+// Render
+// =====================
+function renderKPIs(t) {
+  kpiEvents.textContent = safeNum(t.total_events);
+  kpiDays.textContent = safeNum(t.total_days);
+  kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
+  kpiHePay.textContent = t.he_pay_hhmm || "00:00";
+  kpiTxt.textContent = t.txt_hhmm || "00:00";
+  kpiBen.textContent = money(t.total_beneficios);
+}
 
-  setStatus("Listo. Pega el token y presiona 'Cargar empleados'.");
-});
+function renderTables(q) {
+  // Asistencia
+  const asistenciaCols = ["full_name","date","weekday","day_type","marks_count","first_in","last_out","work_span_hhmm","audit_flag","issues"];
+  buildTable(headAsistencia, bodyAsistencia, asistenciaCols, q.asistencia || []);
+
+  // HE/TXT
+  const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"];
+  buildTable(headHE, bodyHE, heCols, q.he_txt || []);
+
+  // Beneficios
+  const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
+  buildTable(headBEN, bodyBEN, benCols, q.beneficios || []);
+}
+
+function buildTable(headEl, bodyEl, cols, rows) {
+  headEl.innerHTML = cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+  bodyEl.innerHTML = rows.map(r => {
+    const tds = cols.map(c => `<td>${escapeHtml(r[c])}</td>`).join("");
+    return `<tr>${tds}</tr>`;
+  }).join("");
+}
+
+function renderCharts(q) {
+  // Resúmenes por tipo de día: LABORABLE / FIN_DE_SEMANA / FERIADO
+  const heRows = q.he_txt || [];
+  const benRows = q.beneficios || [];
+
+  const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
+
+  const sum = (arr, fn) => arr.reduce((a,x)=>a + (fn(x)||0), 0);
+
+  const heCalcBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_calc_hhmm)));
+  const hePayBy  = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_payable_hhmm)));
+  const txtBy    = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.txt_hhmm)));
+
+  // Beneficios por tipo de día
+  const alimBy   = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.alim_b)));
+  const transpBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => toNum(r.transp_b)));
+
+  // Chart 1
+  const ctx1 = document.getElementById("chartDayType");
+  if (chartDayType) chartDayType.destroy();
+  chartDayType = new Chart(ctx1, {
+    type: "bar",
+    data: {
+      labels: dayTypes,
+      datasets: [
+        { label: "HE Calc (h)", data: heCalcBy },
+        { label: "HE Pag (h)", data: hePayBy },
+        { label: "TXT (h)", data: txtBy }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // Chart 2
+  const ctx2 = document.getElementById("chartBenefits");
+  if (chartBenefits) chartBenefits.destroy();
+  chartBenefits = new Chart(ctx2, {
+    type: "bar",
+    data: {
+      labels: dayTypes,
+      datasets: [
+        { label: "Alimentación", data: alimBy },
+        { label: "Transporte", data: transpBy }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+// =====================
+// UI utilities
+// =====================
+function clearUI() {
+  kpiEvents.textContent = "0";
+  kpiDays.textContent = "0";
+  kpiHeCalc.textContent = "00:00";
+  kpiHePay.textContent = "00:00";
+  kpiTxt.textContent = "00:00";
+  kpiBen.textContent = "$0.00";
+
+  headAsistencia.innerHTML = ""; bodyAsistencia.innerHTML = "";
+  headHE.innerHTML = ""; bodyHE.innerHTML = "";
+  headBEN.innerHTML = ""; bodyBEN.innerHTML = "";
+
+  if (chartDayType) chartDayType.destroy();
+  if (chartBenefits) chartBenefits.destroy();
+  chartDayType = null; chartBenefits = null;
+
+  setStatus("Listo.", "ok");
+}
+
+function setStatus(msg, cls) {
+  elStatus.className = "status";
+  if (cls) elStatus.classList.add(cls);
+  elStatus.textContent = msg;
+}
+
+function initTabs() {
+  const tabs = document.querySelectorAll(".tab");
+  tabs.forEach(t => {
+    t.addEventListener("click", () => {
+      tabs.forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+
+      const key = t.getAttribute("data-tab");
+      document.getElementById("tab-asistencia").style.display = (key === "asistencia") ? "block" : "none";
+      document.getElementById("tab-he").style.display = (key === "he") ? "block" : "none";
+      document.getElementById("tab-ben").style.display = (key === "ben") ? "block" : "none";
+    });
+  });
+}
+
+function initDateTimeTicker() {
+  const el = document.getElementById("currentDateTime");
+  const tick = () => {
+    const d = new Date();
+    el.textContent = d.toLocaleString("es-PA", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  };
+  tick();
+  setInterval(tick, 15000);
+}
+
+function initTheme() {
+  const sel = document.getElementById("themeMode");
+  const apply = (mode) => {
+    document.body.style.background = (mode === "dark") ? "#0b1220" : "#fff";
+    document.body.style.color = (mode === "dark") ? "#e5e7eb" : "#111";
+  };
+  sel.addEventListener("change", () => apply(sel.value));
+  apply("light");
+}
+
+// =====================
+// Ciclos 16 → 15
+// =====================
+function buildCycles(n = 12) {
+  elCycle.innerHTML = "";
+
+  const now = new Date();
+  // Construye ciclos retrocediendo mes a mes
+  for (let i = 0; i < n; i++) {
+    const start = cycleStartDate(addMonths(now, -i));
+    const end = cycleEndDate(start);
+
+    const from = ymd(start);
+    const to = ymd(end);
+
+    const opt = document.createElement("option");
+    opt.value = `${from}|${to}`;
+    opt.textContent = `${from} → ${to} (Ciclo)`;
+    elCycle.appendChild(opt);
+  }
+
+  // Por defecto: ciclo actual
+  const [from0, to0] = elCycle.value.split("|");
+  elFrom.value = from0;
+  elTo.value = to0;
+}
+
+function cycleStartDate(d) {
+  // Si hoy es >= 16, el ciclo inicia el 16 de este mes; si no, el 16 del mes anterior.
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+
+  if (day >= 16) return new Date(year, month, 16);
+  return new Date(year, month - 1, 16);
+}
+
+function cycleEndDate(start) {
+  // Termina el 15 del mes siguiente
+  return new Date(start.getFullYear(), start.getMonth() + 1, 15);
+}
+
+function addMonths(d, m) {
+  return new Date(d.getFullYear(), d.getMonth() + m, d.getDate());
+}
+
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+// =====================
+// Helpers
+// =====================
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function safeNum(n) {
+  const x = Number(n);
+  return Number.isFinite(x) ? String(x) : "0";
+}
+
+function money(n) {
+  const x = Number(n);
+  const v = Number.isFinite(x) ? x : 0;
+  return v.toLocaleString("es-PA", { style:"currency", currency:"USD" });
+}
+
+function hhmmToHours(hhmm) {
+  const s = String(hhmm || "00:00");
+  const parts = s.split(":");
+  if (parts.length < 2) return 0;
+  const h = Number(parts[0]) || 0;
+  const m = Number(parts[1]) || 0;
+  return h + (m/60);
+}
+
+function toNum(v) {
+  const x = Number(String(v ?? "0").replaceAll(",",""));
+  return Number.isFinite(x) ? x : 0;
+}
