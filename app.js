@@ -5,7 +5,7 @@
  *******************************************************/
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
-const TOKEN = "RH_CSS_BIOMETRICO_2025_DINALOG_PRIVATE_TOKEN"; // puedes acortarlo si quieres, pero mantén algo difícil de adivinar
+const TOKEN = "RH_DINALOG"; // puedes acortarlo si quieres, pero mantén algo difícil de adivinar
 
 let chartDayType = null;
 let chartBenefits = null;
