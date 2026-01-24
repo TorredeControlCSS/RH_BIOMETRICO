@@ -222,8 +222,7 @@ async function doPdf() {
 // =====================
 function renderKPIs(q) {
   const t = q.totals || {};
-  const mt = (q.resumen_mensual_totales || {});
-
+  
   el.kpiEvents.textContent = safeNum(t.total_events);
   el.kpiDays.textContent   = safeNum(t.total_days);
   el.kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
@@ -242,7 +241,7 @@ function renderTables(q) {
 
   // HE/TXT (diario – TXT suele venir 00:00 porque el TXT real es por CAP)
   const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"];
-  buildTable(el.headHE, el.bodyHE, heCols, q.he_txt || []);
+  buildTable(el.headHE, el.bodyHE, heCols, q.he_daily || []); // Antes decía q.he_txt
 
   // Beneficios
   const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
@@ -258,15 +257,15 @@ function renderTables(q) {
     "he_amount_paid_capped",
     "alim_total",
     "transp_total",
-    "benefits_total_usd"
+    "beneficios_total_usd"
   ];
-  buildTable(el.headCYC, el.bodyCYC, cycCols, q.resumen_mensual || []);
+  buildTable(el.headCYC, el.bodyCYC, cycCols, q.resumen_ciclo || []);
 }
 
 function renderCharts(q) {
-  const heRows = q.he_txt || [];
+  const heRows = q.he_daily || [];
   const benRows = q.beneficios || [];
-  const monthlyRows = q.resumen_mensual || [];
+  const monthlyRows = q.resumen_ciclo || [];
 
   const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
   const sum = (arr, fn) => arr.reduce((a, r) => a + fn(r), 0);
