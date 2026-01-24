@@ -391,14 +391,62 @@ function clearUI() {
 // =====================
 document.addEventListener("DOMContentLoaded", async () => {
   initTabs();
+  
+  // 1. Llenamos el combo de ciclos
+  populateCycles(); 
+  
   await loadMeta();
 
   el.btnQuery.addEventListener("click", doQuery);
   el.btnPdf.addEventListener("click", doPdf);
   el.btnClear.addEventListener("click", clearUI);
 
-  // Si cambias el ciclo manualmente, solo mostramos label (tu lógica de ciclos la decides luego)
+  // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
-    // placeholder: si luego quieres que ciclo setee from/to automáticamente, lo conectamos aquí
+    const val = el.cycle.value;
+    if (val === "manual") {
+      // Si elige manual, no borramos las fechas, dejamos que el usuario edite
+      return;
+    }
+    // Si elige un ciclo, separamos el value "YYYY-MM-DD|YYYY-MM-DD"
+    const [dFrom, dTo] = val.split("|");
+    el.from.value = dFrom;
+    el.to.value = dTo;
   });
+  
+  // (Opcional) Si el usuario toca las fechas manualmente, regresamos el combo a "manual"
+  const setManual = () => { el.cycle.value = "manual"; };
+  el.from.addEventListener("input", setManual);
+  el.to.addEventListener("input", setManual);
 });
+// =====================
+// Lógica de Ciclos
+// =====================
+function populateCycles() {
+  const sel = el.cycle;
+  // Limpiamos y dejamos la opción manual
+  sel.innerHTML = '<option value="manual">Rango manual</option>';
+
+  const now = new Date();
+  // Generamos los últimos 18 ciclos hacia atrás
+  for (let i = 0; i < 18; i++) {
+    // Fin del ciclo: día 15 del mes actual (restando i meses)
+    const endDate = new Date(now.getFullYear(), now.getMonth() - i, 15);
+    
+    // Inicio del ciclo: día 16 del mes anterior
+    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 16);
+
+    // Formato para el VALUE (YYYY-MM-DD)
+    const sStr = startDate.toISOString().split("T")[0];
+    const eStr = endDate.toISOString().split("T")[0];
+
+    // Formato para la ETIQUETA (Ej: 16 Dic 2025 → 15 Ene 2026)
+    const opts = { month: 'short', year: 'numeric', day: 'numeric' };
+    const label = `${startDate.toLocaleDateString('es-ES', opts)} → ${endDate.toLocaleDateString('es-ES', opts)}`;
+
+    const opt = document.createElement("option");
+    opt.value = `${sStr}|${eStr}`; // Guardamos las fechas separadas por |
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
+}
