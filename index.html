@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>DINALOG — RH Biométrico</title>
+  <link rel="icon" href="./favicon.ico?v=1"/>
+  <link rel="shortcut icon" href="./favicon.ico?v=1"/>
+  <title>DINALOG — RH Biométrico (HE / TXT / Alimentación)</title>
 
   <style>
-    body{font-family:Arial, sans-serif; margin:0; background:#fff; color:#111;}
+    body{font-family:Arial, sans-serif; margin:0; background:#fff;}
     .topbar{
       background: linear-gradient(90deg,#0b1f3a,#133a74);
       color:#fff; padding:12px 14px; display:flex; align-items:center; gap:12px;
@@ -28,49 +30,44 @@
 
     .page{padding:18px;}
     .grid{display:grid;grid-template-columns:420px 1fr;gap:12px;align-items:start;}
-    @media (max-width:980px){ .grid{grid-template-columns:1fr;} }
-
-    .card{border:1px solid #ddd;border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);background:#fff;}
+    .card{border:1px solid #ddd;border-radius:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);background:#fff;}
     h1{font-size:18px;margin:0 0 8px 0;}
     h2{font-size:14px;margin:0 0 8px 0;}
     label{display:block;font-size:12px;margin-top:6px;}
     select,input{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;}
     button{padding:9px 12px;border:1px solid #333;border-radius:10px;background:#fff;cursor:pointer;}
     button:disabled{opacity:.5;cursor:not-allowed;}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    .row > *{flex:1 1 auto;}
-
     .kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
-    @media (max-width:980px){ .kpi{grid-template-columns:repeat(2,1fr);} }
-    .kpi .box{border:1px solid #e5e5e5;border-radius:12px;padding:10px;}
-    .kpi .label{font-size:12px;color:#666;}
+    .kpi .box{border:1px solid #e5e5e5;border-radius:10px;padding:10px;}
     .kpi .value{font-size:16px;font-weight:700;margin-top:6px;}
-
     .muted{color:#666;font-size:12px;}
-    .status{margin-top:10px;font-size:12px;}
-    .status.ok{color:#0a7a2f;}
-    .status.danger{color:#b00020;}
-    .status.muted{color:#666;}
-
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
     .tab{border:1px solid #ddd;border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer;user-select:none;background:#fff;}
     .tab.active{border-color:#333;font-weight:700;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
 
     table{border-collapse:collapse;width:100%;font-size:12px;}
     th,td{border:1px solid #ddd;padding:6px;vertical-align:top;}
     th{background:#f7f7f7;position:sticky;top:0;z-index:1;}
-    .scroll{max-height:62vh;overflow:auto;border:1px solid #ddd;border-radius:12px;}
+    .scroll{max-height:62vh;overflow:auto;border:1px solid #ddd;border-radius:10px;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .row > *{flex:1 1 auto;}
+    .right{text-align:right;}
+    .danger{color:#b00020;}
+    .ok{color:#0a7a2f;}
 
-    /* Botones */
     .btn-main { background: #0b1f3a; color: white; border: none; font-weight:700;}
     .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
 
-    /* Charts grid */
-    .charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    @media (max-width:980px){ .charts{grid-template-columns:1fr;} }
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr;}
+      .kpi{grid-template-columns:repeat(2,1fr);}
+      .charts-grid{grid-template-columns:1fr;}
+    }
   </style>
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
@@ -80,12 +77,12 @@
     <div class="title">
       <div class="title-main">DINALOG — RH Biométrico (HORAS EXTRAS / TXT / ALIMENTACIÓN) — CEDIS PANAMÁ</div>
       <div class="title-sub">
-        <span id="currentDateTime">Cargando fecha...</span>
-        <span style="opacity:.8;margin-left:8px;">| Dashboard Recursos Humanos · v1.0</span>
+        <span id="currentDateTime">Dashboard Recursos Humanos · v1.0</span>
       </div>
     </div>
     <div class="top-actions">
       <select id="themeMode" class="theme-select" title="Tema">
+        <option value="auto">Sistema</option>
         <option value="light">Claro</option>
         <option value="dark">Oscuro</option>
       </select>
@@ -94,22 +91,19 @@
 
   <div class="page">
     <div class="grid">
-
-      <!-- LEFT: Consulta -->
+      <!-- LEFT -->
       <div class="card">
         <h1>Consulta</h1>
-        <div class="muted">
-          Fuente: WebApp (Google Apps Script) → <code>?action=meta</code>, <code>?action=query</code>, <code>?action=pdf</code>.
-        </div>
+        <div class="muted">Fuente: WebApp (Google Apps Script) → action=meta, action=query, action=pdf.</div>
 
         <label>Empleado</label>
         <select id="employee"></select>
 
         <label>Ciclo (16 → 15)</label>
-        <select id="cycleSelect"></select>
-        <div class="muted" style="margin-top:6px;">
-          Al seleccionar ciclo se ajusta automáticamente Desde/Hasta.
-        </div>
+        <select id="cycle">
+          <option value="manual">Rango manual</option>
+        </select>
+        <div class="muted">El TXT y el CAP 40h se calculan por cierre de ciclo (16→15).</div>
 
         <div class="row" style="margin-top:8px;">
           <div>
@@ -123,117 +117,110 @@
         </div>
 
         <div class="row" style="margin-top:10px;">
-          <button id="btnBuscar" class="btn-main">Consultar</button>
-          <button id="btnPdf" class="btn-secondary">Generar PDF</button>
-        </div>
-        <div class="row" style="margin-top:8px;">
-          <button id="btnLimpiar" class="btn-secondary">Limpiar</button>
+          <button id="btnQuery" class="btn-main">Consultar</button>
+          <button id="btnPdf">Generar PDF</button>
         </div>
 
-        <div id="status" class="status muted">Listo.</div>
+        <div style="margin-top:8px;">
+          <button id="btnClear" class="btn-secondary" style="width:100%;">Limpiar</button>
+        </div>
+
+        <div id="status" class="muted" style="margin-top:10px;"></div>
       </div>
 
-      <!-- RIGHT: KPIs + Charts + Detail -->
-      <div>
-        <div class="card">
-          <h2>KPIs del rango</h2>
-          <div class="kpi">
-            <div class="box">
-              <div class="label">Eventos</div>
-              <div class="value" id="kpiEvents">0</div>
-            </div>
-            <div class="box">
-              <div class="label">Días</div>
-              <div class="value" id="kpiDays">0</div>
-            </div>
-            <div class="box">
-              <div class="label">HE Calculadas</div>
-              <div class="value" id="kpiHeCalc">00:00</div>
-            </div>
-            <div class="box">
-              <div class="label">HE Pagables (cap 40h/ciclo)</div>
-              <div class="value" id="kpiHePay">00:00</div>
-            </div>
-            <div class="box">
-              <div class="label">TXT (Bolson)</div>
-              <div class="value" id="kpiTxt">00:00</div>
-            </div>
-            <div class="box">
-              <div class="label">Beneficios</div>
-              <div class="value" id="kpiBen">USD 0.00</div>
-            </div>
+      <!-- RIGHT -->
+      <div class="card">
+        <h1>KPIs del rango</h1>
+        <div class="kpi">
+          <div class="box"><div class="muted">Eventos</div><div class="value" id="kpiEvents">0</div></div>
+          <div class="box"><div class="muted">Días</div><div class="value" id="kpiDays">0</div></div>
+          <div class="box"><div class="muted">HE Calculadas</div><div class="value" id="kpiHeCalc">00:00</div></div>
+          <div class="box"><div class="muted">HE Pagadas (cap 40h)</div><div class="value" id="kpiHePay">00:00</div></div>
+          <div class="box"><div class="muted">TXT (Bolsón)</div><div class="value" id="kpiTxt">00:00</div></div>
+          <div class="box"><div class="muted">Beneficios</div><div class="value" id="kpiBen">USD 0.00</div></div>
+        </div>
+
+        <h1 style="margin-top:14px;">Gráficos</h1>
+        <div class="charts-grid">
+          <div class="card" style="box-shadow:none;">
+            <div class="muted">Horas por tipo de día (HE Calc / HE Pagable)</div>
+            <canvas id="chartDayType"></canvas>
+          </div>
+
+          <div class="card" style="box-shadow:none;">
+            <div class="muted">Beneficios por tipo de día (Alimentación / Transporte)</div>
+            <canvas id="chartBenefits"></canvas>
           </div>
         </div>
 
-        <div class="card" style="margin-top:12px;">
-          <h2>Gráficos</h2>
-          <div class="charts">
-            <div class="card">
-              <div class="muted" style="margin-bottom:8px;">Horas por ciclo (HE calc / HE pag cap / TXT)</div>
-              <canvas id="chartCycles" height="120"></canvas>
-            </div>
-
-            <div class="card">
-              <div class="muted" style="margin-bottom:8px;">Beneficios por tipo de día (Alimentación / Transporte)</div>
-              <canvas id="chartBenefits" height="120"></canvas>
-            </div>
-          </div>
+        <div class="card" style="margin-top:12px; box-shadow:none;">
+          <div class="muted">Cierre por ciclo (CAP 40h): HE pagadas vs TXT</div>
+          <canvas id="chartCycles"></canvas>
         </div>
 
         <div class="card" style="margin-top:12px;">
-          <h2>Detalle</h2>
+          <h1>Detalle</h1>
           <div class="tabs">
-            <div class="tab active" data-tab="asistencia">Asistencia</div>
-            <div class="tab" data-tab="he">HE + TXT</div>
-            <div class="tab" data-tab="ben">Beneficios</div>
-            <div class="tab" data-tab="cycles">Ciclos</div>
+            <div class="tab active" data-tab="tab-asi">Asistencia</div>
+            <div class="tab" data-tab="tab-he">HE + TXT</div>
+            <div class="tab" data-tab="tab-ben">Beneficios</div>
+            <div class="tab" data-tab="tab-cycles">Resumen ciclo</div>
           </div>
 
-          <div id="tab-asistencia" style="margin-top:10px;">
+          <div id="tab-asi" class="tab-content active" style="margin-top:10px;">
             <div class="scroll">
               <table>
-                <thead><tr id="headAsistencia"></tr></thead>
+                <thead id="headAsistencia"></thead>
                 <tbody id="bodyAsistencia"></tbody>
               </table>
             </div>
           </div>
 
-          <div id="tab-he" style="margin-top:10px; display:none;">
+          <div id="tab-he" class="tab-content" style="margin-top:10px;">
             <div class="scroll">
               <table>
-                <thead><tr id="headHE"></tr></thead>
+                <thead id="headHE"></thead>
                 <tbody id="bodyHE"></tbody>
               </table>
             </div>
           </div>
 
-          <div id="tab-ben" style="margin-top:10px; display:none;">
+          <div id="tab-ben" class="tab-content" style="margin-top:10px;">
             <div class="scroll">
               <table>
-                <thead><tr id="headBEN"></tr></thead>
+                <thead id="headBEN"></thead>
                 <tbody id="bodyBEN"></tbody>
               </table>
             </div>
           </div>
 
-          <div id="tab-cycles" style="margin-top:10px; display:none;">
+          <div id="tab-cycles" class="tab-content" style="margin-top:10px;">
             <div class="scroll">
               <table>
-                <thead><tr id="headCYCLES"></tr></thead>
-                <tbody id="bodyCYCLES"></tbody>
+                <thead id="headCYC"></thead>
+                <tbody id="bodyCYC"></tbody>
               </table>
-            </div>
-            <div class="muted" style="margin-top:8px;">
-              Nota: HE Pagables aplica cap de 40h por ciclo (16→15). Excedentes y/o NO aplica → TXT.
             </div>
           </div>
 
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
 
-  <script src="./app.js?v=1"></script>
+  <script>
+    // Fecha/hora en header (simple)
+    (function(){
+      const el = document.getElementById("currentDateTime");
+      function tick(){
+        const d = new Date();
+        el.textContent = d.toLocaleString("es-PA", { dateStyle:"short", timeStyle:"short" }) + "  | Dashboard Recursos Humanos · v1.0";
+      }
+      tick(); setInterval(tick, 10000);
+    })();
+  </script>
+
+  <script src="./app.js?v=9"></script>
 </body>
 </html>
