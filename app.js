@@ -270,9 +270,11 @@ function renderCharts(q) {
   const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
   const sum = (arr, fn) => arr.reduce((a, r) => a + fn(r), 0);
 
-  // Chart 1: por tipo de día (HE Calc / HE Pagable antes del CAP)
+  // Chart 1: CORREGIDO (Quitamos he_payable_hhmm que da error)
   const heCalcBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_calc_hhmm)));
-  const hePayBy  = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_payable_hhmm)));
+  
+  // Como el backend no manda 'he_payable' diario, ponemos 0 para que no falle.
+  const hePayBy  = dayTypes.map(dt => 0); 
 
   const ctx1 = document.getElementById("chartDayType").getContext("2d");
   if (chartDayType) chartDayType.destroy();
@@ -282,7 +284,8 @@ function renderCharts(q) {
       labels: dayTypes,
       datasets: [
         { label: "HE Calc (h)", data: heCalcBy },
-        { label: "HE Pagable (h)", data: hePayBy },
+        // Puedes quitar este dataset si quieres, o dejarlo en 0
+        { label: "HE Pagable (h)", data: hePayBy }, 
       ]
     },
     options: {
@@ -292,7 +295,7 @@ function renderCharts(q) {
     }
   });
 
-  // Chart 2: beneficios por tipo de día
+  // Chart 2: beneficios (IGUAL QUE ANTES)
   const alimBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => Number(r.alim_b || 0)));
   const transpBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => Number(r.transp_b || 0)));
 
@@ -314,8 +317,7 @@ function renderCharts(q) {
     }
   });
 
-  // Chart 3: cierre por ciclo (CAP 40h): HE pagadas vs TXT (bolsón)
-  // Si employee=TODOS, agregamos por ciclo
+  // Chart 3: CORREGIDO (Escala controlada por el HTML)
   const byCycle = new Map();
   for (const r of monthlyRows) {
     const c = String(r.cycle || "");
@@ -348,7 +350,7 @@ function renderCharts(q) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // <--- AGREGAR ESTA LÍNEA
+      maintainAspectRatio: false, // <--- ESTO ES CLAVE
       plugins: { legend: { position: "top" } },
       scales: {
         x: { stacked: true },
