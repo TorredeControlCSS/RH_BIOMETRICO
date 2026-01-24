@@ -228,8 +228,8 @@ function renderKPIs(q) {
   el.kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
 
   // HE pagadas y TXT se determinan por CAP 40h por ciclo (16→15), no por día.
-  el.kpiHePay.textContent  = mt.he_paid_capped_hhmm || "00:00";
-  el.kpiTxt.textContent    = mt.txt_total_hhmm || "00:00";
+  el.kpiHePay.textContent  = t.he_paid_capped_hhmm || "00:00";
+  el.kpiTxt.textContent    = t.txt_total_hhmm || "00:00";
 
   el.kpiBen.textContent    = money(t.total_beneficios);
 }
