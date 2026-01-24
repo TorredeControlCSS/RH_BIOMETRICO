@@ -348,6 +348,7 @@ function renderCharts(q) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false, // <--- AGREGAR ESTA LÍNEA
       plugins: { legend: { position: "top" } },
       scales: {
         x: { stacked: true },
