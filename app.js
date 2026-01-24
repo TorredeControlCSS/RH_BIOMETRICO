@@ -18,6 +18,7 @@ const el = {
   to: document.getElementById("to"),
   btnQuery: document.getElementById("btnQuery"),
   btnPdf: document.getElementById("btnPdf"),
+  btnPdfManager: document.getElementById("btnPdfManager"), // <--- NUEVO
   btnClear: document.getElementById("btnClear"),
   status: document.getElementById("status"),
 
@@ -400,6 +401,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   el.btnQuery.addEventListener("click", doQuery);
   el.btnPdf.addEventListener("click", doPdf);
   el.btnClear.addEventListener("click", clearUI);
+  el.btnPdfManager.addEventListener("click", doPdfManager);
 
   // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
@@ -448,5 +450,26 @@ function populateCycles() {
     opt.value = `${sStr}|${eStr}`; // Guardamos las fechas separadas por |
     opt.textContent = label;
     sel.appendChild(opt);
+  }
+}
+async function doPdfManager() {
+  // ... validaciones de employee, from, to igual que antes ...
+  const employee = el.employee.value || "TODOS";
+  const from = el.from.value;
+  const to = el.to.value;
+  if (!from || !to) { setStatus("Selecciona fechas.","danger"); return; }
+
+  el.btnPdfManager.disabled = true;
+  try {
+    setStatus("Generando Reporte Gerencial...", "");
+    // Agregamos &type=manager a la URL
+    const url = qs({ action: "pdf", token: TOKEN, employee, from, to, type: "manager" });
+    const j = await fetchJSON(url);
+    window.open(j.downloadUrl, "_blank");
+    setStatus("PDF Gerencial listo.", "ok");
+  } catch (e) {
+    setStatus("Error: " + e.message, "danger");
+  } finally {
+    el.btnPdfManager.disabled = false;
   }
 }
