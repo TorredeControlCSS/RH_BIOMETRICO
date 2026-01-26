@@ -360,7 +360,7 @@ function clearUI() {
 }
 
 /* ======================================================
-   GENERADOR DE PDF (FRONT-END) - VERSIÓN FINAL CONSOLIDADA
+   GENERADOR DE PDF (FRONT-END) - CON HIGHLIGHTER Y FUENTE GRANDE
    ====================================================== */
 function printReport(type) {
   if (!currentData || !currentData.ok) {
@@ -382,7 +382,7 @@ function printReport(type) {
   const rowsHe = (q.he_daily || []);
   const rowsBen = (q.beneficios || []);
 
-  // --- 1. CÁLCULO DE TOTALES (SUMAS) ---
+  // --- 1. CÁLCULO DE TOTALES ---
   let sumHeMoney = 0;
   let sumBen = 0;
   let sumAlim = 0;
@@ -395,23 +395,55 @@ function printReport(type) {
     sumTransp  += Number(r.transp_total) || 0;
   });
 
-  // Total General (Nuevo KPI)
   let totalGeneral = sumHeMoney + sumBen;
 
-  // --- 2. CONFIGURACIÓN DEL GRÁFICO (MÁS GRANDE) ---
+  // --- 2. CONFIGURACIÓN DEL GRÁFICO ---
   const chartUrl = `https://quickchart.io/chart?w=500&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
-  const table = (title, cols, rows, labels) => {
+  // --- 3. HELPER DE TABLA CON "STYLER" (Highlighter) ---
+  const table = (title, cols, rows, labels, rowStyler = null) => {
     if (!rows.length) return "";
     const th = cols.map((c, i) => `<th>${labels[i]}</th>`).join("");
+    
     const body = rows.map((r, i) => {
       const td = cols.map(c => `<td>${esc(r[c])}</td>`).join("");
-      return `<tr class="${i%2===0?'even':'odd'}">${td}</tr>`;
+      
+      // Estilo base (zebra simple)
+      let style = i % 2 === 0 ? 'background-color:#fff;' : 'background-color:#fcfcfc;';
+      
+      // APLICAR HIGHLIGHTER SI EXISTE
+      if (rowStyler) {
+        const customColor = rowStyler(r);
+        if (customColor) style = `background-color: ${customColor}; font-weight:bold; color:#000;`;
+      }
+      
+      return `<tr style="${style}">${td}</tr>`;
     }).join("");
+    
     return `<div class="section-title">${title}</div><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
-  // --- 3. CONSTRUCCIÓN DEL HTML ---
+  // --- 4. DEFINICIÓN DE REGLAS DE COLORES ---
+  // Asistencia: Fines de semana (Azul), Errores (Rojo)
+  const styleAsist = (r) => {
+    if (r.audit_flag && r.audit_flag !== 'OK') return '#ffebee'; // Rojo suave (Error)
+    if (r.day_type !== 'LABORABLE') return '#e3f2fd'; // Azul suave (Fin de semana)
+    return null;
+  };
+  
+  // HE: Si hay horas calculadas (Naranja suave)
+  const styleHE = (r) => {
+    if (r.he_calc_hhmm && r.he_calc_hhmm !== '00:00') return '#fff3e0'; 
+    return null;
+  };
+
+  // Beneficios: Si hay dinero > 0 (Verde suave)
+  const styleBen = (r) => {
+    if (Number(r.benefits_b) > 0) return '#e8f5e9';
+    return null;
+  };
+
+  // --- 5. CONSTRUCCIÓN DEL HTML ---
   let html = `
   <!DOCTYPE html>
   <html>
@@ -419,32 +451,33 @@ function printReport(type) {
     <title>Reporte_${p.employee}</title>
     <style>
       @page { size: landscape; margin: 10mm; }
-      body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10px; color: #333; margin: 0; -webkit-print-color-adjust: exact; }
+      /* AUMENTO DE FUENTE GENERAL (11px) */
+      body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #333; margin: 0; -webkit-print-color-adjust: exact; }
       
       .header { background-color: #0b1f3a; color: white; padding: 15px; display: flex; align-items: center; border-bottom: 4px solid #bf9000; }
       .logo { width: 50px; height: 50px; margin-right: 15px; background: white; border-radius: 4px; padding: 2px; object-fit: contain; }
       .header-titles { flex: 1; }
-      .main-title { font-size: 18px; font-weight: bold; text-transform: uppercase; }
-      .sub-title { font-size: 11px; opacity: 0.9; }
-      .meta-info { text-align: right; font-size: 10px; color: #eee; }
+      .main-title { font-size: 20px; font-weight: bold; text-transform: uppercase; } /* Título más grande */
+      .sub-title { font-size: 12px; opacity: 0.9; }
+      .meta-info { text-align: right; font-size: 11px; color: #eee; }
 
-      .rules-box { background: #f4f6f9; border-left: 5px solid #0b1f3a; padding: 10px; margin: 15px 0; font-size: 9px; display: flex; justify-content: space-between; }
-      .rules-title { font-weight: bold; color: #0b1f3a; margin-bottom: 2px; text-transform: uppercase; }
+      .rules-box { background: #f4f6f9; border-left: 5px solid #0b1f3a; padding: 12px; margin: 15px 0; font-size: 10px; display: flex; justify-content: space-between; }
+      .rules-title { font-weight: bold; color: #0b1f3a; margin-bottom: 4px; text-transform: uppercase; font-size: 11px; }
 
-      /* Ajuste de tarjetas para que quepan todas */
       .kpi-container { display: flex; gap: 8px; margin-bottom: 20px; }
-      .kpi-card { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 8px 4px; text-align: center; background: white; }
-      .kpi-label { font-size: 7px; color: #666; font-weight: 700; text-transform: uppercase; margin-bottom:4px; }
-      .kpi-val { font-size: 13px; font-weight: bold; color: #0b1f3a; }
+      .kpi-card { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 10px 5px; text-align: center; background: white; }
+      .kpi-label { font-size: 8px; color: #666; font-weight: 700; text-transform: uppercase; margin-bottom:4px; }
+      .kpi-val { font-size: 14px; font-weight: bold; color: #0b1f3a; }
       .highlight { color: #0a7a2f; }
 
-      .section-title { font-size: 11px; font-weight: bold; color: #0b1f3a; margin-top: 20px; border-bottom: 2px solid #ccc; }
-      table { width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 5px; }
-      th { background: #0b1f3a; color: white; padding: 5px; text-align: left; }
-      td { padding: 4px 5px; border-bottom: 1px solid #eee; }
-      tr.even { background-color: #f9f9f9; }
+      .section-title { font-size: 12px; font-weight: bold; color: #0b1f3a; margin-top: 25px; border-bottom: 2px solid #ccc; padding-bottom: 2px; }
       
-      .footer { margin-top: 30px; font-size: 8px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
+      /* AUMENTO DE FUENTE TABLAS (10px) y CELDAS MAS ESPACIOSAS */
+      table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 8px; }
+      th { background: #0b1f3a; color: white; padding: 6px 8px; text-align: left; }
+      td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+      
+      .footer { margin-top: 30px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
       .pagebreak { page-break-before: always; }
       
       @media print { .no-print { display: none; } }
@@ -464,7 +497,7 @@ function printReport(type) {
       </div>
     </div>
 
-    <!-- TEXTO DE REGLAS EXACTO PROPORCIONADO POR EL USUARIO -->
+    <!-- REGLAS DE NEGOCIO -->
     <div class="rules-box">
       <div>
         <div class="rules-title">Reglas de Pago Aplicadas</div>
@@ -489,7 +522,6 @@ function printReport(type) {
       <div class="kpi-card" style="border-color:#0a7a2f"><div class="kpi-label highlight">Monto HE</div><div class="kpi-val highlight">${fmtMoney(sumHeMoney)}</div></div>
       <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
       
-      <!-- NUEVA TARJETA DE TOTAL -->
       <div class="kpi-card" style="border: 2px solid #bf9000; background-color: #fffcf0;">
         <div class="kpi-label" style="color:#bfa000;">TOTAL A PAGAR</div>
         <div class="kpi-val" style="font-size:15px; color:#000;">${fmtMoney(totalGeneral)}</div>
@@ -499,14 +531,14 @@ function printReport(type) {
     ${ sumBen > 0 ? `
     <div style="text-align:center; margin-bottom:15px; border:1px solid #eee; padding:15px; border-radius:5px;">
        <div style="font-size:10px; font-weight:bold; margin-bottom:8px; color:#555; text-transform:uppercase;">Distribución de Beneficios (Alimentación vs Transporte)</div>
-       <!-- GRÁFICO MÁS GRANDE (250px) -->
        <img src="${chartUrl}" style="max-height:250px; width:auto;">
     </div>` : '' }
 
     ${table("Consolidado de Nómina por Ciclo",
       ["cycle","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total"],
       rowsCiclo,
-      ["Ciclo","HE Calc","HE Pagada","TXT","Monto HE ($)","Alim ($)","Transp ($)","Total Ben ($)"]
+      ["Ciclo","HE Calc","HE Pagada","TXT","Monto HE ($)","Alim ($)","Transp ($)","Total Ben ($)"],
+      null // Sin estilo especial en esta tabla
     )}
   `;
 
@@ -518,21 +550,24 @@ function printReport(type) {
       ${table("Registro de Asistencia",
         ["date","weekday","first_in","last_out","work_span_hhmm","marks_count","audit_flag","issues"],
         rowsAsistencia,
-        ["Fecha","Día","Entrada","Salida","H. Trab","Marcas","Estado","Obs"]
+        ["Fecha","Día","Entrada","Salida","H. Trab","Marcas","Estado","Obs"],
+        styleAsist // <--- APLICA COLOR AZUL/ROJO
       )}
       
       <div class="pagebreak"></div>
       ${table("Cálculo Diario HE",
         ["date","day_type","he_calc_hhmm","audit_flag"],
         rowsHe,
-        ["Fecha","Tipo Día","HE Calc","Estado"]
+        ["Fecha","Tipo Día","HE Calc","Estado"],
+        styleHE // <--- APLICA COLOR NARANJA
       )}
       
       <div style="margin-top:20px"></div>
       ${table("Beneficios Diarios",
         ["date","alim_b","transp_b","benefits_b","benefits_rule"],
         rowsBen,
-        ["Fecha","Alim","Transp","Total","Regla"]
+        ["Fecha","Alim","Transp","Total","Regla"],
+        styleBen // <--- APLICA COLOR VERDE
       )}
       <div class="footer">Reporte Detallado de Auditoría</div></body></html>
     `;
