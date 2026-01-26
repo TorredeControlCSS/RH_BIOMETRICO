@@ -249,7 +249,7 @@ function renderTables(q) {
   const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
   buildTable(el.headBEN, el.bodyBEN, benCols, q.beneficios || []);
 
-  const cycCols = ["cycle","full_name","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total_usd"];
+  const cycCols = ["cycle","full_name","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total"];
   buildTable(el.headCYC, el.bodyCYC, cycCols, q.resumen_ciclo || []);
 }
 
