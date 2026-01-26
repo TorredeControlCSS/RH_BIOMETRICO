@@ -32,6 +32,7 @@ const el = {
   kpiTxt: document.getElementById("kpiTxt"),
   kpiHeAmount: document.getElementById("kpiHeAmount"), // Nuevo KPI Monto
   kpiBen: document.getElementById("kpiBen"),
+  kpiTotalGeneral: document.getElementById("kpiTotalGeneral"), // <--- AGREGAR ESTA LÍNEA
 
   // Tables
   headAsistencia: document.getElementById("headAsistencia"),
@@ -218,16 +219,24 @@ async function doQuery() {
 function renderKPIs(q) {
   const t = q.totals || {};
   
+  // 1. KPIs de tiempo y conteo
   el.kpiEvents.textContent = safeNum(t.total_events);
   el.kpiDays.textContent   = safeNum(t.total_days);
   el.kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
   el.kpiHePay.textContent  = t.he_paid_capped_hhmm || "00:00";
   el.kpiTxt.textContent    = t.txt_total_hhmm || "00:00";
   
-  // Nuevo KPI Monto (Verificamos que el elemento exista en el HTML antes de escribir)
-  if(el.kpiHeAmount) el.kpiHeAmount.textContent = money(t.he_amount_paid_capped || 0);
+  // 2. Obtener valores numéricos para sumar
+  const valHE = Number(t.he_amount_paid_capped) || 0;
+  const valBen = Number(t.total_beneficios) || 0;
+  
+  // 3. Mostrar KPIs de dinero individuales
+  if(el.kpiHeAmount) el.kpiHeAmount.textContent = money(valHE);
+  el.kpiBen.textContent = money(valBen);
 
-  el.kpiBen.textContent    = money(t.total_beneficios);
+  // 4. Calcular y mostrar el GRAN TOTAL (Nuevo)
+  const granTotal = valHE + valBen;
+  if(el.kpiTotalGeneral) el.kpiTotalGeneral.textContent = money(granTotal);
 }
 
 function renderTables(q) {
@@ -335,21 +344,28 @@ function renderCharts(q) {
 // =====================
 function clearUI() {
   currentData = null; // Limpiamos la variable global
-  lastQueryData = null; // (Legacy)
-
+  
+  // Limpiamos KPIs numéricos
   el.kpiEvents.textContent = "0";
   el.kpiDays.textContent = "0";
   el.kpiHeCalc.textContent = "00:00";
   el.kpiHePay.textContent = "00:00";
   el.kpiTxt.textContent = "00:00";
+  
+  // Limpiamos KPIs de dinero
   if(el.kpiHeAmount) el.kpiHeAmount.textContent = "USD 0.00";
   el.kpiBen.textContent = "USD 0.00";
+  
+  // --- ESTA ES LA LÍNEA NUEVA QUE LIMPIA EL TOTAL ---
+  if(el.kpiTotalGeneral) el.kpiTotalGeneral.textContent = "USD 0.00";
 
+  // Limpiamos tablas
   el.headAsistencia.innerHTML = ""; el.bodyAsistencia.innerHTML = "";
   el.headHE.innerHTML = ""; el.bodyHE.innerHTML = "";
   el.headBEN.innerHTML = ""; el.bodyBEN.innerHTML = "";
   el.headCYC.innerHTML = ""; el.bodyCYC.innerHTML = "";
 
+  // Destruimos gráficos
   if (chartDayType) chartDayType.destroy();
   if (chartBenefits) chartBenefits.destroy();
   if (chartCycles) chartCycles.destroy();
