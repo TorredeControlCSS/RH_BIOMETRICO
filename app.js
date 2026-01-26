@@ -671,7 +671,7 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
     .doQuery(params);
 });
 
-  // --- ZONA DE REPORTES DIRECTOR (CORREGIDA Y MEJORADA) ---
+   // --- ZONA DE REPORTES DIRECTOR (CORREGIDA) ---
 
   // 1. Botón "Este Ciclo" (Usa la data en pantalla)
   const btnCycle = document.getElementById("btnDirectorCycle");
@@ -681,12 +681,12 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
         alert("Primero realiza una consulta para ver un ciclo.");
         return;
       }
-      // Pasamos true para indicar que es reporte de UN ciclo (detalle profundo)
+      // true = reporte de un solo ciclo
       printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo", true);
     });
   }
 
-  // 2. Botón "Histórico" (Usa fetchJSON, NO google.script.run)
+  // 2. Botón "Histórico" (Usa fetchJSON)
   const btnHistory = document.getElementById("btnDirectorHistory");
   if (btnHistory) {
     btnHistory.addEventListener("click", async () => {
@@ -695,7 +695,6 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
       btnHistory.disabled = true;
 
       try {
-        // USAMOS LA MISMA TÉCNICA QUE LA CONSULTA NORMAL
         const url = qs({ 
           action: "query", 
           token: TOKEN, 
@@ -704,8 +703,8 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
           to: "2026-12-31" 
         });
         
-        const historyData = await fetchJSON(url); // <--- ESTA ES LA CORRECCIÓN CLAVE
-        
+        const historyData = await fetchJSON(url);
+        // false = reporte histórico (evolutivo)
         printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)", false);
         
       } catch (e) {
@@ -716,11 +715,12 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
       }
     });
   }
-}); // <--- FIN DEL DOMContentLoaded
+
+}); // <--- AQUÍ CIERRA EL DOMContentLoaded. NO BORRAR ESTA LLAVE.
 
 
 /* ======================================================
-   NUEVO MOTOR DE REPORTE GERENCIAL (DETALLADO Y SIN ERRORES)
+   FUNCIÓN DE REPORTE GERENCIAL (FUERA DEL DOMContentLoaded)
    ====================================================== */
 function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   const q = dataSource;
@@ -729,7 +729,7 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
 
   if (rawRows.length === 0) { alert("No hay datos para generar el reporte."); return; }
 
-  // 1. Procesar Datos y Totales
+  // 1. Procesar Datos
   const mapEmpleados = new Map();
   const mapCiclos = new Map();
   
@@ -744,18 +744,15 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     const transp = Number(r.transp_total) || 0;
     const subtotal = he + alim + transp;
 
-    // Sumas globales
     totalHE += he;
     totalAlim += alim;
     totalTransp += transp;
     granTotal += subtotal;
 
-    // Mapas para rankings y gráficos
     mapEmpleados.set(r.full_name, (mapEmpleados.get(r.full_name) || 0) + subtotal);
     mapCiclos.set(r.cycle, (mapCiclos.get(r.cycle) || 0) + subtotal);
   });
 
-  // Ordenamientos
   const ranking = Array.from(mapEmpleados.entries())
     .map(([k, v]) => ({ nombre: k, total: v }))
     .sort((a, b) => b.total - a.total);
@@ -764,13 +761,10 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     .map(([k, v]) => ({ ciclo: k, total: v }))
     .sort((a, b) => a.ciclo.localeCompare(b.ciclo));
 
-  // 2. Lógica del Gráfico (Inteligente)
-  // Si es 1 ciclo -> Pastel de Distribución de Gasto (HE vs Beneficios)
-  // Si es Histórico -> Barras de Evolución Temporal
+  // 2. Configurar Gráfico
   let chartConfig;
-  
   if (isSingleCycle || tendencias.length === 1) {
-    // GRÁFICO DE DONA (DISTRIBUCIÓN DEL GASTO)
+    // Dona (Distribución)
     chartConfig = {
       type: 'doughnut',
       data: {
@@ -789,11 +783,11 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
       }
     };
   } else {
-    // GRÁFICO DE BARRAS (EVOLUCIÓN)
+    // Barras (Evolución)
     chartConfig = {
       type: 'bar',
       data: {
-        labels: tendencias.map(t => t.ciclo.substring(5)), // MM-DD
+        labels: tendencias.map(t => t.ciclo.substring(5)),
         datasets: [{
           label: 'Gasto Total ($)',
           data: tendencias.map(t => t.total),
@@ -810,7 +804,6 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     };
   }
 
-  // Generamos la URL segura usando JSON.stringify para evitar errores de sintaxis
   const chartUrl = `https://quickchart.io/chart?w=500&h=250&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
 
   // 3. HTML
@@ -842,21 +835,12 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     </div>
   </div>
 
-  <!-- TARJETAS PRINCIPALES -->
   <div class="kpi-row">
-    <div class="kpi" style="background:#2c3e50">
-      <div class="lbl">Colaboradores</div><div class="val">${ranking.length}</div>
-    </div>
-    <div class="kpi" style="background:#2c3e50">
-      <div class="lbl">Ciclos Procesados</div><div class="val">${tendencias.length}</div>
-    </div>
-    <div class="kpi" style="background:#bf9000; color:black;">
-      <div class="lbl" style="color:black;font-weight:bold;">GRAN TOTAL A PAGAR</div>
-      <div class="val" style="font-size:28px;">${fmtMoney(granTotal)}</div>
-    </div>
+    <div class="kpi" style="background:#2c3e50"><div class="lbl">Colaboradores</div><div class="val">${ranking.length}</div></div>
+    <div class="kpi" style="background:#2c3e50"><div class="lbl">Ciclos Procesados</div><div class="val">${tendencias.length}</div></div>
+    <div class="kpi" style="background:#bf9000; color:black;"><div class="lbl" style="color:black;font-weight:bold;">GRAN TOTAL A PAGAR</div><div class="val" style="font-size:28px;">${fmtMoney(granTotal)}</div></div>
   </div>
 
-  <!-- DESGLOSE FINANCIERO -->
   <div class="kpi-row" style="margin-top:0;">
     <div class="kpi-sm"><div class="lbl" style="color:#0b1f3a;">Total Horas Extras</div><div class="val" style="color:#0b1f3a;">${fmtMoney(totalHE)}</div></div>
     <div class="kpi-sm"><div class="lbl" style="color:#d35400;">Total Alimentación</div><div class="val" style="color:#d35400;">${fmtMoney(totalAlim)}</div></div>
@@ -864,35 +848,23 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   </div>
 
   <div style="display:flex;gap:30px; margin-top:20px;">
-    
-    <!-- ZONA GRÁFICA -->
     <div style="flex:1; text-align:center; border:1px solid #eee; padding:15px; border-radius:10px;">
       <h3 style="margin-top:0;color:#555;">Análisis Visual</h3>
       <img src="${chartUrl}" style="max-width:100%; max-height:280px;">
-      <div style="font-size:10px;color:#999;margin-top:10px;">
-        ${isSingleCycle ? 'Muestra cómo se divide el presupuesto en este ciclo.' : 'Muestra la evolución del gasto total ciclo a ciclo.'}
-      </div>
     </div>
-
-    <!-- ZONA RANKING -->
     <div style="flex:1;">
-      <h3 style="margin-top:0;color:#0b1f3a;border-bottom:2px solid #ccc;padding-bottom:5px;">Top 10 Colaboradores (Mayor Costo)</h3>
+      <h3 style="margin-top:0;color:#0b1f3a;border-bottom:2px solid #ccc;padding-bottom:5px;">Top 10 Colaboradores</h3>
       <table>
         <thead><tr><th>#</th><th>Colaborador</th><th>Total ($)</th></tr></thead>
         <tbody>
-          ${ranking.slice(0, 10).map((e, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${e.nombre}</td>
-              <td style="font-weight:bold;">${fmtMoney(e.total)}</td>
-            </tr>`).join('')}
+          ${ranking.slice(0, 10).map((e, i) => `<tr><td>${i + 1}</td><td>${e.nombre}</td><td style="font-weight:bold;">${fmtMoney(e.total)}</td></tr>`).join('')}
         </tbody>
       </table>
     </div>
   </div>
 
   <div style="margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px;">
-    Documento oficial para toma de decisiones - Dirección Nacional DINALOG
+    Documento oficial - DINALOG
   </div>
   </body></html>`;
 
