@@ -593,6 +593,42 @@ document.addEventListener("DOMContentLoaded", async () => {
   const setManual = () => { el.cycle.value = "manual"; };
   el.from.addEventListener("input", setManual);
   el.to.addEventListener("input", setManual);
+    // --- ZONA DE REPORTES DIRECTOR (AGREGAR AQUÍ) ---
+  
+  // 1. Botón "Este Ciclo"
+  const btnCycle = document.getElementById("btnDirectorCycle");
+  if (btnCycle) {
+    btnCycle.addEventListener("click", () => {
+      if (!currentData || !currentData.ok) {
+        alert("Primero realiza una consulta (Consultar) para ver un ciclo.");
+        return;
+      }
+      printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo");
+    });
+  }
+
+  // 2. Botón "Histórico"
+  const btnHistory = document.getElementById("btnDirectorHistory");
+  if (btnHistory) {
+    btnHistory.addEventListener("click", () => {
+      const originalText = btnHistory.innerText;
+      btnHistory.innerText = "⏳ Recopilando Data...";
+
+      const params = { employee: "TODOS", from: "2024-01-01", to: "2026-12-31" };
+
+      google.script.run
+        .withSuccessHandler(data => {
+          const historyData = JSON.parse(data);
+          btnHistory.innerText = originalText;
+          printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)");
+        })
+        .withFailureHandler(err => {
+          alert("Error: " + err);
+          btnHistory.innerText = originalText;
+        })
+        .doQuery(params);
+    });
+  }
 });
 /* ======================================================
    LÓGICA DE REPORTES GERENCIALES (DUAL: CICLO vs HISTÓRICO)
