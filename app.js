@@ -21,7 +21,6 @@ const el = {
   to: document.getElementById("to"),
   btnQuery: document.getElementById("btnQuery"),
   btnPdf: document.getElementById("btnPdf"),
-  btnPdfManager: document.getElementById("btnPdfManager"), 
   btnClear: document.getElementById("btnClear"),
   status: document.getElementById("status"),
 
@@ -581,8 +580,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Eventos de PDF (Usan la nueva función printReport)
   el.btnPdf.addEventListener("click", () => printReport('detail'));
-  el.btnPdfManager.addEventListener("click", () => printReport('manager'));
-
+ 
   // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
     const val = el.cycle.value;
@@ -596,3 +594,178 @@ document.addEventListener("DOMContentLoaded", async () => {
   el.from.addEventListener("input", setManual);
   el.to.addEventListener("input", setManual);
 });
+/* ======================================================
+   LÓGICA DE REPORTES GERENCIALES (DUAL: CICLO vs HISTÓRICO)
+   ====================================================== */
+
+// 1. BOTÓN "ESTE CICLO": Usa la data que ya tienes en pantalla
+document.getElementById("btnDirectorCycle").addEventListener("click", () => {
+  if (!currentData || !currentData.ok) {
+    alert("Primero realiza una consulta (Consultar) para ver un ciclo.");
+    return;
+  }
+  // Llamamos al reporte pasando la data actual
+  printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo");
+});
+
+// 2. BOTÓN "HISTÓRICO": Fuerza una búsqueda de todo el rango 2024-2026
+document.getElementById("btnDirectorHistory").addEventListener("click", () => {
+  const btn = document.getElementById("btnDirectorHistory");
+  const originalText = btn.innerText;
+  btn.innerText = "⏳ Recopilando Data...";
+
+  // Definimos un rango amplio para traer TODO
+  const params = {
+    employee: "TODOS", 
+    from: "2024-01-01", 
+    to: "2026-12-31" 
+  };
+
+  google.script.run
+    .withSuccessHandler(data => {
+      const historyData = JSON.parse(data);
+      btn.innerText = originalText;
+      // Llamamos al reporte con la data NUEVA (Histórica)
+      printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)");
+    })
+    .withFailureHandler(err => {
+      alert("Error al cargar histórico: " + err);
+      btn.innerText = originalText;
+    })
+    .doQuery(params);
+});
+
+
+/* ======================================================
+   MOTOR DE REPORTE GERENCIAL (FUNCIONA PARA AMBOS CASOS)
+   ====================================================== */
+function printDirectorDashboard(dataSource, reportTitle) {
+  const q = dataSource;
+  const p = q.params || {};
+  const rawRows = q.resumen_ciclo || [];
+
+  if (rawRows.length === 0) {
+    alert("No hay datos para generar el reporte.");
+    return;
+  }
+
+  // --- A. PROCESAMIENTO DE DATOS ---
+  const mapEmpleados = new Map();
+  const mapCiclos = new Map();
+  let granTotal = 0;
+
+  rawRows.forEach(r => {
+    const nombre = r.full_name;
+    const ciclo = r.cycle; 
+    const totalRow = (Number(r.he_amount_paid_capped) || 0) + (Number(r.beneficios_total) || 0);
+
+    // Suma por Empleado
+    mapEmpleados.set(nombre, (mapEmpleados.get(nombre) || 0) + totalRow);
+    // Suma por Ciclo (Para gráfico de barras)
+    mapCiclos.set(ciclo, (mapCiclos.get(ciclo) || 0) + totalRow);
+    
+    granTotal += totalRow;
+  });
+
+  // Ordenar Data
+  const ranking = Array.from(mapEmpleados.entries())
+    .map(([k, v]) => ({ nombre: k, total: v }))
+    .sort((a, b) => b.total - a.total);
+
+  const tendencias = Array.from(mapCiclos.entries())
+    .map(([k, v]) => ({ ciclo: k, total: v }))
+    .sort((a, b) => a.ciclo.localeCompare(b.ciclo));
+
+  // --- B. PREPARAR GRÁFICO (EVOLUCIÓN) ---
+  // Si es un solo ciclo, saldrá una sola barra (correcto). Si es histórico, saldrán muchas.
+  const labelsCiclos = tendencias.map(t => t.ciclo.substring(5)); // Solo MM-DD
+  const dataCiclos = tendencias.map(t => t.total);
+  
+  const chartTrendUrl = `https://quickchart.io/chart?w=600&h=250&c={type:'bar',data:{labels:[${labelsCiclos.map(l=>`'${l}'`)}],datasets:[{label:'Gasto ($)',data:[${dataCiclos}],backgroundColor:'#0b1f3a'}]},options:{plugins:{legend:{display:false},datalabels:{display:true,color:'white',anchor:'end',align:'start'}}}}`;
+
+  // --- C. LOGO Y TEXTOS ---
+  const relativeLogoPath = "./icons/icon-512.png";
+  const LOGO_URL = new URL(relativeLogoPath, window.location.href).href;
+  const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2);
+  const now = new Date().toLocaleDateString();
+
+  // --- D. HTML ---
+  let html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Director_Dashboard</title>
+    <style>
+      @page { size: landscape; margin: 10mm; }
+      body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; }
+      .header { background-color: #0b1f3a; color: white; padding: 15px; display: flex; align-items: center; border-bottom: 5px solid #bf9000; }
+      .logo { width: 50px; height: 50px; margin-right: 15px; background: white; border-radius: 5px; }
+      .main-title { font-size: 22px; font-weight: bold; text-transform: uppercase; }
+      
+      .kpi-row { display: flex; gap: 10px; margin: 20px 0; }
+      .kpi-card { flex: 1; padding: 15px; border-radius: 6px; text-align: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+      .kpi-val { font-size: 24px; font-weight: bold; margin-top:5px; }
+      
+      .charts-row { display: flex; gap: 20px; margin-bottom: 20px; }
+      .chart-box { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; }
+      
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { background: #0b1f3a; color: white; padding: 8px; text-align: left; }
+      td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+      tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img src="${LOGO_URL}" class="logo">
+      <div>
+        <div class="main-title">${reportTitle}</div>
+        <div style="font-size:12px; opacity:0.8;">Generado el: ${now} | Ciclos en reporte: ${tendencias.length}</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi-card" style="background:#2c3e50;">
+        <div style="font-size:10px; text-transform:uppercase;">Ciclos</div>
+        <div class="kpi-val">${tendencias.length}</div>
+      </div>
+      <div class="kpi-card" style="background:#2980b9;">
+        <div style="font-size:10px; text-transform:uppercase;">Colaboradores</div>
+        <div class="kpi-val">${ranking.length}</div>
+      </div>
+      <div class="kpi-card" style="background:#bf9000; color:black;">
+        <div style="font-size:10px; text-transform:uppercase; font-weight:bold;">TOTAL A PAGAR (NÓMINA)</div>
+        <div class="kpi-val">${fmtMoney(granTotal)}</div>
+      </div>
+    </div>
+
+    <!-- GRAFICOS Y TABLAS -->
+    <div class="charts-row">
+      <div class="chart-box" style="flex:2;">
+        <h4 style="margin:0 0 10px 0; color:#0b1f3a;">Tendencia de Gasto (Evolución)</h4>
+        <img src="${chartTrendUrl}" style="max-width:100%; max-height:220px;">
+      </div>
+      <div class="chart-box" style="flex:1;">
+        <h4 style="margin:0 0 10px 0; color:#0b1f3a;">Top 8 Colaboradores (Mayor Costo)</h4>
+        <table>
+          <thead><tr><th>Nombre</th><th>Total ($)</th></tr></thead>
+          <tbody>
+            ${ranking.slice(0, 8).map(e => `<tr><td>${e.nombre}</td><td style="font-weight:bold;">${fmtMoney(e.total)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div style="text-align:center; color:#999; font-size:9px; margin-top:20px;">
+       Informe Oficial - Dirección Nacional DINALOG
+    </div>
+  </body>
+  </html>
+  `;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => { win.focus(); win.print(); }, 1000);
+}
