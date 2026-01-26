@@ -398,7 +398,7 @@ function printReport(type) {
   let totalGeneral = sumHeMoney + sumBen;
 
   // --- 2. CONFIGURACIÓN DEL GRÁFICO ---
-  const chartUrl = `https://quickchart.io/chart?w=500&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
+  const chartUrl = `https://quickchart.io/chart?w=400&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
   // --- 3. HELPER DE TABLA CON "STYLER" (Highlighter) ---
   const table = (title, cols, rows, labels, rowStyler = null) => {
