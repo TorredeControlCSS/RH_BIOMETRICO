@@ -360,32 +360,47 @@ function clearUI() {
 }
 
 /* ======================================================
-   GENERADOR DE PDF (FRONT-END) - FUNCIÓN FINAL
+   GENERADOR DE PDF (FRONT-END) - VERSIÓN CORREGIDA (SUMAS)
    ====================================================== */
 function printReport(type) {
-  // Verificamos si hay datos cargados en memoria
   if (!currentData || !currentData.ok) {
-    alert("Primero debes realizar una consulta (Consultar) para poder generar el PDF.");
+    alert("Primero debes realizar una consulta (Consultar) para generar el PDF.");
     return;
   }
 
   const q = currentData;
-  const t = q.totals || {};
   const p = q.params || {};
+  const t = q.totals || {}; // Usamos esto para horas, pero para dinero recalculamos abajo para seguridad
 
-  // LOGO: Ruta relativa porque estamos en el navegador
+  // LOGO
   const LOGO_URL = "./icons/icon-512.png"; 
 
-  // Helpers internos para el PDF
+  // Helpers
   const esc = s => String(s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  
-  // Chart (QuickChart)
-  const chartUrl = `https://quickchart.io/chart?c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${t.total_alim_total||0},${t.total_transp_total||0}]}]},options:{plugins:{legend:{position:'right'}}}}`;
+  const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2); // Formato seguro: $ 0.00
 
+  // DATOS
+  const rowsCiclo = (q.resumen_ciclo || []);
   const rowsAsistencia = (q.asistencia || []);
   const rowsHe = (q.he_daily || []);
   const rowsBen = (q.beneficios || []);
-  const rowsCiclo = (q.resumen_ciclo || []);
+
+  // --- CALCULO DE TOTALES EN VIVO (Para asegurar que cuadren con la tabla) ---
+  let sumHeMoney = 0;
+  let sumBen = 0;
+  let sumAlim = 0;
+  let sumTransp = 0;
+
+  rowsCiclo.forEach(r => {
+    sumHeMoney += Number(r.he_amount_paid_capped) || 0;
+    sumBen     += Number(r.beneficios_total) || 0;
+    sumAlim    += Number(r.alim_total) || 0;
+    sumTransp  += Number(r.transp_total) || 0;
+  });
+  // -------------------------------------------------------------------------
+
+  // Gráfico de Pastel (QuickChart) con los totales calculados
+  const chartUrl = `https://quickchart.io/chart?c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white'}}}}`;
 
   const table = (title, cols, rows, labels) => {
     if (!rows.length) return "";
@@ -397,7 +412,7 @@ function printReport(type) {
     return `<div class="section-title">${title}</div><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
-  // HTML DEL REPORTE
+  // HTML
   let html = `
   <!DOCTYPE html>
   <html>
@@ -407,7 +422,6 @@ function printReport(type) {
       @page { size: landscape; margin: 10mm; }
       body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10px; color: #333; margin: 0; -webkit-print-color-adjust: exact; }
       
-      /* HEADER */
       .header { background-color: #0b1f3a; color: white; padding: 15px; display: flex; align-items: center; border-bottom: 4px solid #bf9000; }
       .logo { width: 50px; height: 50px; margin-right: 15px; background: white; border-radius: 4px; padding: 2px; object-fit: contain; }
       .header-titles { flex: 1; }
@@ -415,18 +429,14 @@ function printReport(type) {
       .sub-title { font-size: 11px; opacity: 0.9; }
       .meta-info { text-align: right; font-size: 10px; color: #eee; }
 
-      /* RULES */
       .rules-box { background: #f4f6f9; border-left: 5px solid #0b1f3a; padding: 10px; margin: 15px 0; font-size: 9px; display: flex; justify-content: space-between; }
-      .rules-title { font-weight: bold; color: #0b1f3a; text-transform: uppercase; }
-
-      /* KPIS */
+      
       .kpi-container { display: flex; gap: 10px; margin-bottom: 20px; }
       .kpi-card { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 8px; text-align: center; background: white; }
       .kpi-label { font-size: 8px; color: #666; font-weight: 700; text-transform: uppercase; }
       .kpi-val { font-size: 14px; font-weight: bold; color: #0b1f3a; }
       .highlight { color: #0a7a2f; }
 
-      /* TABLES */
       .section-title { font-size: 11px; font-weight: bold; color: #0b1f3a; margin-top: 20px; border-bottom: 2px solid #ccc; }
       table { width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 5px; }
       th { background: #0b1f3a; color: white; padding: 5px; text-align: left; }
@@ -455,8 +465,8 @@ function printReport(type) {
 
     <div class="rules-box">
       <div>
-        <div class="rules-title">Reglas de Pago</div>
-        <div>1. Laborables: HE > 15:30 (Salida ≥ 16:30). | 2. Fines Semana: HE desde Entrada. | 3. Cap 40h/ciclo.</div>
+        <b>REGLAS DE PAGO:</b>
+        1. Laborables: HE > 15:30 (Salida ≥ 16:30). | 2. Fines Semana: HE desde Entrada. | 3. Cap 40h/ciclo.
       </div>
       <div style="align-self:center;"><b>ESTATUS: AUDITABLE</b></div>
     </div>
@@ -465,14 +475,18 @@ function printReport(type) {
       <div class="kpi-card"><div class="kpi-label">HE Calc</div><div class="kpi-val">${esc(t.he_calc_hhmm)}</div></div>
       <div class="kpi-card"><div class="kpi-label">HE Pagadas</div><div class="kpi-val">${esc(t.he_paid_capped_hhmm)}</div></div>
       <div class="kpi-card"><div class="kpi-label">TXT Bolsón</div><div class="kpi-val">${esc(t.txt_total_hhmm)}</div></div>
-      <div class="kpi-card" style="border-color:#0a7a2f"><div class="kpi-label highlight">Monto HE</div><div class="kpi-val highlight">$${esc(t.he_amount_paid_capped)}</div></div>
-      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios</div><div class="kpi-val">$${esc(t.total_beneficios_total)}</div></div>
+      
+      <!-- USAMOS LAS VARIABLES SUMADAS A MANO -->
+      <div class="kpi-card" style="border-color:#0a7a2f"><div class="kpi-label highlight">Monto HE</div><div class="kpi-val highlight">${fmtMoney(sumHeMoney)}</div></div>
+      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios (Alim+Transp)</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
     </div>
     
-    <!-- Gráfico solo si hay beneficios -->
-    <div style="text-align:center; margin-bottom:10px;">
-       <img src="${chartUrl}" style="max-height:100px;">
-    </div>
+    <!-- Gráfico (visible solo si hay beneficios) -->
+    ${ sumBen > 0 ? `
+    <div style="text-align:center; margin-bottom:15px; border:1px solid #eee; padding:10px; border-radius:5px;">
+       <div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#555;">DISTRIBUCIÓN DE BENEFICIOS</div>
+       <img src="${chartUrl}" style="max-height:120px;">
+    </div>` : '' }
 
     ${table("Consolidado de Nómina por Ciclo",
       ["cycle","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total"],
@@ -515,7 +529,7 @@ function printReport(type) {
   setTimeout(() => {
     win.focus();
     win.print();
-  }, 800);
+  }, 1000);
 }
 
 // =====================
