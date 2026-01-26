@@ -658,13 +658,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 }); // <--- CIERRE FINAL DEL DOMContentLoaded. NO BORRAR.
 
-
 /* ======================================================
-   FUNCIÓN DE REPORTE GERENCIAL (CORREGIDA: DECIMALES FIJOS)
+   FUNCIÓN DE REPORTE GERENCIAL (FECHAS REALES + DECIMALES)
    ====================================================== */
 function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   const q = dataSource;
-  const p = q.params || {};
   const rawRows = q.resumen_ciclo || [];
 
   if (rawRows.length === 0) { alert("No hay datos para generar el reporte."); return; }
@@ -701,16 +699,38 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     .map(([k, v]) => ({ ciclo: k, total: v }))
     .sort((a, b) => a.ciclo.localeCompare(b.ciclo));
 
+  // --- LÓGICA DE FECHAS REALES (NO LAS DE BÚSQUEDA) ---
+  let rangeTitle = "Consolidado";
+  if (tendencias.length > 0) {
+    // Ordenamos ciclos texto para obtener min y max
+    // Ciclo formato: "YYYY-MM-DD_a_YYYY-MM-DD"
+    const cycles = tendencias.map(t => t.ciclo).sort();
+    const firstCycle = cycles[0];
+    const lastCycle = cycles[cycles.length - 1];
+    
+    // Extraemos: Inicio del primer ciclo y Fin del último ciclo
+    const startObj = firstCycle.split("_a_")[0];
+    const endObj   = lastCycle.split("_a_")[1];
+    
+    if (startObj && endObj) {
+        rangeTitle = `Periodo Data: ${startObj} al ${endObj}`;
+    } else {
+        // Fallback si el formato no coincide
+        const p = q.params || {};
+        rangeTitle = `Periodo Solicitado: ${p.from} al ${p.to}`;
+    }
+  }
+
   // --- ARREGLO DECIMALES ---
-  // Redondeamos los totales a 2 decimales para el gráfico
   const safeHE = Number(totalHE.toFixed(2));
   const safeAlim = Number(totalAlim.toFixed(2));
   const safeTransp = Number(totalTransp.toFixed(2));
 
   // 2. Configurar Gráfico
   let chartConfig;
+  
   if (isSingleCycle || tendencias.length === 1) {
-    // Dona (Distribución)
+    // Dona
     chartConfig = {
       type: 'doughnut',
       data: {
@@ -722,12 +742,8 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
       },
       options: {
         plugins: {
-          // Javascript dentro de QuickChart para formatear
           datalabels: { 
-            display: true, 
-            color: 'white', 
-            font: {weight:'bold'}, 
-            // Usamos una función simple para formatear a dinero
+            display: true, color: 'white', font: {weight:'bold'}, 
             formatter: (val) => { return '$' + Number(val).toFixed(2); }
           },
           legend: { position: 'right' },
@@ -736,14 +752,15 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
       }
     };
   } else {
-    // Barras (Evolución)
+    // Barras
     chartConfig = {
       type: 'bar',
       data: {
-        labels: tendencias.map(t => t.ciclo.substring(5)),
+        // Limpiamos el label del ciclo para que no sea tan largo en el eje X
+        labels: tendencias.map(t => t.ciclo.replace(/^\d{4}-/,'').replace('_a_',' a ').replace(/^\d{4}-/,'')),
         datasets: [{
           label: 'Gasto Total ($)',
-          data: tendencias.map(t => Number(t.total.toFixed(2))), // Redondear data
+          data: tendencias.map(t => Number(t.total.toFixed(2))),
           backgroundColor: '#0b1f3a'
         }]
       },
@@ -751,11 +768,8 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
         plugins: {
           legend: { display: false },
           datalabels: { 
-            display: true, 
-            color: 'white', 
-            anchor: 'end', 
-            align: 'start', 
-            formatter: (val) => { return '$' + Number(val).toFixed(2); } 
+            display: true, color: 'white', anchor: 'end', align: 'start',
+            formatter: (val) => { return '$' + Number(val).toFixed(2); }
           },
           title: { display: true, text: 'Tendencia por Ciclo' }
         }
@@ -763,11 +777,8 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     };
   }
 
-  // IMPORTANTE: Convertimos las funciones a string para que QuickChart las entienda
   const chartJson = JSON.stringify(chartConfig, (key, value) => {
-    if (typeof value === 'function') {
-      return value.toString();
-    }
+    if (typeof value === 'function') { return value.toString(); }
     return value;
   });
 
@@ -777,7 +788,6 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   const LOGO_URL = new URL("./icons/icon-512.png", window.location.href).href;
   const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2);
   const now = new Date().toLocaleDateString();
-  const rangeTitle = p.from && p.to ? `Periodo: ${p.from} al ${p.to}` : "Consolidado Histórico";
 
   let html = `<!DOCTYPE html><html><head><title>Director_Report</title>
   <style>
