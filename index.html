@@ -7,84 +7,69 @@
   <link rel="shortcut icon" href="./favicon.ico?v=1"/>
   <title>DINALOG — RH Biométrico (HE / TXT / Alimentación)</title>
 
-  <style>
-    /* RESET BÁSICO */
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f4f6f9; color: #333; }
-    * { box-sizing: border-box; }
-
-    /* TOPBAR (Header) */
-    .topbar {
-      background: linear-gradient(90deg, #0b1f3a, #133a74);
-      color: #fff; padding: 12px 16px; 
-      display: flex; align-items: center; gap: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      position: sticky; top: 0; z-index: 1000;
+ <style>
+    body{font-family:Arial, sans-serif; margin:0; background:#fff;}
+    .topbar{
+      background: linear-gradient(90deg,#0b1f3a,#133a74);
+      color:#fff; padding:12px 14px; display:flex; align-items:center; gap:12px;
+      box-shadow:0 2px 10px rgba(0,0,0,.2);
+      position:sticky; top:0; z-index:9999; width:100%; box-sizing:border-box;
     }
-    .topbar img { width: 36px; height: 36px; object-fit: contain; }
-    .topbar .title { flex: 1; display: flex; flex-direction: column; line-height: 1.2; overflow: hidden; }
-    .topbar .title-main { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .topbar .title-sub { font-size: 11px; color: #cbd5e1; }
-    .topbar .top-actions select { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 5px; border-radius: 6px; }
-    .topbar .top-actions select option { background: #0b1f3a; color: #fff; }
+    .topbar img{width:40px;height:40px;object-fit:contain;flex-shrink:0;background:transparent;}
+    .topbar .title{flex:1 1 auto;min-width:200px;display:flex;flex-direction:column;line-height:1.2;}
+    .topbar .title-main{font-size:16px;font-weight:700;letter-spacing:.3px;color:#fff;}
+    .topbar .title-sub{font-size:12px;font-weight:400;color:#cbd5e1;margin-top:2px;}
+    .topbar .top-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
+    .topbar .theme-select{padding:6px 8px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:#fff;min-width:110px;}
+    .topbar .theme-select option{background:#0b1f3a;color:#fff;}
+    @media (max-width:720px){
+      .topbar{flex-direction:column;align-items:center;text-align:center;position:static;}
+      .topbar .top-actions{width:100%;justify-content:center;margin-top:8px;}
+      .topbar .theme-select{width:100%;max-width:220px;}
+    }
 
-    /* LAYOUT GENERAL (GRID) */
-    .page { padding: 15px; max-width: 1400px; margin: 0 auto; }
-    .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
-
-    /* TARJETAS */
-    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .page{padding:18px;}
+    .grid{display:grid;grid-template-columns:420px 1fr;gap:12px;align-items:start;}
+    .card{border:1px solid #ddd;border-radius:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);background:#fff;}
+    h1{font-size:18px;margin:0 0 8px 0;}
+    h2{font-size:14px;margin:0 0 8px 0;}
+    label{display:block;font-size:12px;margin-top:6px;}
+    select,input{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;}
+    button{padding:9px 12px;border:1px solid #333;border-radius:10px;background:#fff;cursor:pointer;}
+    button:disabled{opacity:.5;cursor:not-allowed;}
     
-    /* TIPOGRAFÍA Y FORMULARIOS */
-    h1 { font-size: 16px; margin: 0 0 10px 0; color: #0b1f3a; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-    label { display: block; font-size: 11px; font-weight: 600; color: #555; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; }
-    select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; background: #fff; }
-    .muted { color: #666; font-size: 11px; line-height: 1.4; }
-
-    /* BOTONES */
-    button { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
-    button:active { transform: scale(0.98); }
-    .btn-main { background: #0b1f3a; color: white; width: 100%; margin-bottom: 5px; }
-    .btn-action { background: #e2e8f0; color: #333; border: 1px solid #cbd5e1; flex: 1; }
-    .btn-secondary { background: #fff; color: #666; border: 1px solid #ccc; }
-
-    /* KPIS (TARJETAS DE NÚMEROS) */
-    .kpi { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-    .kpi .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; }
-    .kpi .value { font-size: 18px; font-weight: 800; color: #0b1f3a; margin-top: 5px; }
-
-    /* TABLAS Y TABS */
-    .tabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; }
-    .tab { white-space: nowrap; padding: 6px 12px; border-radius: 20px; background: #f1f5f9; font-size: 12px; color: #64748b; border: 1px solid transparent; cursor: pointer; }
-    .tab.active { background: #0b1f3a; color: white; font-weight: 600; }
+    .kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+    .kpi .box{border:1px solid #e5e5e5;border-radius:10px;padding:10px;}
+    .kpi .value{font-size:16px;font-weight:700;margin-top:6px;}
     
-    .scroll { max-height: 300px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; }
-    th { background: #f1f5f9; color: #475569; padding: 8px; text-align: left; position: sticky; top: 0; }
-    td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
+    .muted{color:#666;font-size:12px;}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+    .tab{border:1px solid #ddd;border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer;user-select:none;background:#fff;}
+    .tab.active{border-color:#333;font-weight:700;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
 
-    /* GRÁFICOS */
-    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+    table{border-collapse:collapse;width:100%;font-size:12px;}
+    th,td{border:1px solid #ddd;padding:6px;vertical-align:top;}
+    th{background:#f7f7f7;position:sticky;top:0;z-index:1;}
+    
+    /* CAMBIO: Altura reducida para que quepa mejor arriba */
+    .scroll{max-height:300px; overflow:auto; border:1px solid #ddd; border-radius:10px;}
+    
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .row > *{flex:1 1 auto;}
+    .right{text-align:right;}
+    .danger{color:#b00020;}
+    .ok{color:#0a7a2f;}
 
-    /* =========================================
-       RESPONSIVE (MÓVIL) - AQUÍ ESTÁ LA MAGIA
-       ========================================= */
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: 1fr; } /* Pila vertical */
-      
-      /* Botones más grandes para dedos */
-      .row { flex-direction: column; align-items: stretch; }
-      .row > * { width: 100%; margin-bottom: 5px; }
-      #btnQuery, #btnPdf, #btnDirectorCycle, #btnDirectorHistory { width: 100%; margin: 5px 0; padding: 12px; }
-      
-      /* KPIs en 2 columnas en vez de 6 */
-      .kpi { grid-template-columns: repeat(2, 1fr); }
-      
-      /* Gráficos uno debajo de otro */
-      .charts-grid { grid-template-columns: 1fr; }
-      
-      /* Ajuste header */
-      .topbar { flex-wrap: wrap; }
-      .topbar .title-main { font-size: 13px; white-space: normal; }
+    .btn-main { background: #0b1f3a; color: white; border: none; font-weight:700;}
+    .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
+
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr;}
+      .kpi{grid-template-columns:repeat(2,1fr);}
+      .charts-grid{grid-template-columns:1fr;}
     }
   </style>
 
