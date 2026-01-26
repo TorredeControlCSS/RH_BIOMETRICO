@@ -116,10 +116,21 @@
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px;">
+        <div class="row" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <!-- ZONA OPERATIVA (ANALISTA) -->
           <button id="btnQuery" class="btn-main">Consultar</button>
-          <button id="btnPdf">Generar PDF Individual</button>
-          <button id="btnPdfManager" style="background:#0a7a2f; color:white; border:none;">PDF Gerencial</button> <!-- NUEVO -->
+          <button id="btnPdf" class="btn-action">PDF Individual</button>
+          
+          <!-- SEPARADOR VISUAL -->
+          <div style="width:1px; height:25px; background:#ccc; margin:0 5px;"></div>
+
+          <!-- ZONA ESTRATÉGICA (DIRECTOR) -->
+          <button id="btnDirectorCycle" class="btn-action" style="background-color:#0b1f3a; color:white; border:none;">
+            📊 Director (Ciclo)
+          </button>
+          <button id="btnDirectorHistory" class="btn-action" style="background-color:#c0392b; color:white; border:none;">
+            📈 Director (Histórico)
+          </button>
         </div>
 
         <div style="margin-top:8px;">
