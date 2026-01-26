@@ -360,7 +360,7 @@ function clearUI() {
 }
 
 /* ======================================================
-   GENERADOR DE PDF (FRONT-END) - VERSIÓN CORREGIDA (SUMAS)
+   GENERADOR DE PDF (FRONT-END) - VERSIÓN FINAL CONSOLIDADA
    ====================================================== */
 function printReport(type) {
   if (!currentData || !currentData.ok) {
@@ -370,22 +370,19 @@ function printReport(type) {
 
   const q = currentData;
   const p = q.params || {};
-  const t = q.totals || {}; // Usamos esto para horas, pero para dinero recalculamos abajo para seguridad
+  const t = q.totals || {}; 
 
-  // LOGO
   const LOGO_URL = "./icons/icon-512.png"; 
 
-  // Helpers
   const esc = s => String(s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2); // Formato seguro: $ 0.00
+  const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2);
 
-  // DATOS
   const rowsCiclo = (q.resumen_ciclo || []);
   const rowsAsistencia = (q.asistencia || []);
   const rowsHe = (q.he_daily || []);
   const rowsBen = (q.beneficios || []);
 
-  // --- CALCULO DE TOTALES EN VIVO (Para asegurar que cuadren con la tabla) ---
+  // --- 1. CÁLCULO DE TOTALES (SUMAS) ---
   let sumHeMoney = 0;
   let sumBen = 0;
   let sumAlim = 0;
@@ -397,11 +394,11 @@ function printReport(type) {
     sumAlim    += Number(r.alim_total) || 0;
     sumTransp  += Number(r.transp_total) || 0;
   });
-    // --- NUEVO CÁLCULO: TOTAL GENERAL ---
-  let totalGeneral = sumHeMoney + sumBen;
-  // -------------------------------------------------------------------------
 
-  // Gráfico de Pastel (QuickChart) con los totales calculados
+  // Total General (Nuevo KPI)
+  let totalGeneral = sumHeMoney + sumBen;
+
+  // --- 2. CONFIGURACIÓN DEL GRÁFICO (MÁS GRANDE) ---
   const chartUrl = `https://quickchart.io/chart?w=500&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
   const table = (title, cols, rows, labels) => {
@@ -414,7 +411,7 @@ function printReport(type) {
     return `<div class="section-title">${title}</div><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
-  // HTML
+  // --- 3. CONSTRUCCIÓN DEL HTML ---
   let html = `
   <!DOCTYPE html>
   <html>
@@ -432,11 +429,13 @@ function printReport(type) {
       .meta-info { text-align: right; font-size: 10px; color: #eee; }
 
       .rules-box { background: #f4f6f9; border-left: 5px solid #0b1f3a; padding: 10px; margin: 15px 0; font-size: 9px; display: flex; justify-content: space-between; }
-      
-      .kpi-container { display: flex; gap: 10px; margin-bottom: 20px; }
-      .kpi-card { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 8px; text-align: center; background: white; }
-      .kpi-label { font-size: 8px; color: #666; font-weight: 700; text-transform: uppercase; }
-      .kpi-val { font-size: 14px; font-weight: bold; color: #0b1f3a; }
+      .rules-title { font-weight: bold; color: #0b1f3a; margin-bottom: 2px; text-transform: uppercase; }
+
+      /* Ajuste de tarjetas para que quepan todas */
+      .kpi-container { display: flex; gap: 8px; margin-bottom: 20px; }
+      .kpi-card { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 8px 4px; text-align: center; background: white; }
+      .kpi-label { font-size: 7px; color: #666; font-weight: 700; text-transform: uppercase; margin-bottom:4px; }
+      .kpi-val { font-size: 13px; font-weight: bold; color: #0b1f3a; }
       .highlight { color: #0a7a2f; }
 
       .section-title { font-size: 11px; font-weight: bold; color: #0b1f3a; margin-top: 20px; border-bottom: 2px solid #ccc; }
@@ -465,6 +464,7 @@ function printReport(type) {
       </div>
     </div>
 
+    <!-- TEXTO DE REGLAS EXACTO PROPORCIONADO POR EL USUARIO -->
     <div class="rules-box">
       <div>
         <div class="rules-title">Reglas de Pago Aplicadas</div>
@@ -480,26 +480,27 @@ function printReport(type) {
         <b>ESTATUS: AUDITABLE</b>
       </div>
     </div>
-      <div style="text-align:right; align-self:center;">
-        <b>ESTATUS: AUDITABLE</b>
-      </div>
-    </div>
 
     <div class="kpi-container">
       <div class="kpi-card"><div class="kpi-label">HE Calc</div><div class="kpi-val">${esc(t.he_calc_hhmm)}</div></div>
       <div class="kpi-card"><div class="kpi-label">HE Pagadas</div><div class="kpi-val">${esc(t.he_paid_capped_hhmm)}</div></div>
       <div class="kpi-card"><div class="kpi-label">TXT Bolsón</div><div class="kpi-val">${esc(t.txt_total_hhmm)}</div></div>
       
-      <!-- USAMOS LAS VARIABLES SUMADAS A MANO -->
       <div class="kpi-card" style="border-color:#0a7a2f"><div class="kpi-label highlight">Monto HE</div><div class="kpi-val highlight">${fmtMoney(sumHeMoney)}</div></div>
-      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios (Alim+Transp)</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
+      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
+      
+      <!-- NUEVA TARJETA DE TOTAL -->
+      <div class="kpi-card" style="border: 2px solid #bf9000; background-color: #fffcf0;">
+        <div class="kpi-label" style="color:#bfa000;">TOTAL A PAGAR</div>
+        <div class="kpi-val" style="font-size:15px; color:#000;">${fmtMoney(totalGeneral)}</div>
+      </div>
     </div>
     
-    <!-- Gráfico (visible solo si hay beneficios) -->
     ${ sumBen > 0 ? `
-    <div style="text-align:center; margin-bottom:15px; border:1px solid #eee; padding:10px; border-radius:5px;">
-       <div style="font-size:9px; font-weight:bold; margin-bottom:5px; color:#555;">DISTRIBUCIÓN DE BENEFICIOS</div>
-       <img src="${chartUrl}" style="max-height:120px;">
+    <div style="text-align:center; margin-bottom:15px; border:1px solid #eee; padding:15px; border-radius:5px;">
+       <div style="font-size:10px; font-weight:bold; margin-bottom:8px; color:#555; text-transform:uppercase;">Distribución de Beneficios (Alimentación vs Transporte)</div>
+       <!-- GRÁFICO MÁS GRANDE (250px) -->
+       <img src="${chartUrl}" style="max-height:250px; width:auto;">
     </div>` : '' }
 
     ${table("Consolidado de Nómina por Ciclo",
