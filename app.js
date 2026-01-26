@@ -360,7 +360,7 @@ function clearUI() {
 }
 
 /* ======================================================
-   GENERADOR DE PDF (FRONT-END) - CON HIGHLIGHTER Y FUENTE GRANDE
+   GENERADOR DE PDF (FRONT-END) - GRÁFICO 3 VARIABLES + DETALLE HE
    ====================================================== */
 function printReport(type) {
   if (!currentData || !currentData.ok) {
@@ -372,7 +372,9 @@ function printReport(type) {
   const p = q.params || {};
   const t = q.totals || {}; 
 
-  const LOGO_URL = "./icons/icon-512.png"; 
+  // --- LOGO (Ruta Absoluta) ---
+  const relativeLogoPath = "./icons/icon-512.png";
+  const LOGO_URL = new URL(relativeLogoPath, window.location.href).href;
 
   const esc = s => String(s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
   const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2);
@@ -382,7 +384,7 @@ function printReport(type) {
   const rowsHe = (q.he_daily || []);
   const rowsBen = (q.beneficios || []);
 
-  // --- 1. CÁLCULO DE TOTALES ---
+  // --- CÁLCULOS ---
   let sumHeMoney = 0;
   let sumBen = 0;
   let sumAlim = 0;
@@ -397,53 +399,36 @@ function printReport(type) {
 
   let totalGeneral = sumHeMoney + sumBen;
 
-  // --- 2. CONFIGURACIÓN DEL GRÁFICO ---
-  const chartUrl = `https://quickchart.io/chart?w=400&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
+  // --- GRÁFICO DE 3 VARIABLES (HE + ALIM + TRANSP) ---
+  // Nota: Si sumHeMoney es 0, no se ver�� su rebanada, lo cual es correcto.
+  const chartUrl = `https://quickchart.io/chart?w=400&h=300&c={type:'pie',data:{labels:['Horas Extras ($)','Alimentación','Transporte'],datasets:[{data:[${sumHeMoney},${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
-  // --- 3. HELPER DE TABLA CON "STYLER" (Highlighter) ---
+  // --- HELPER TABLA ---
   const table = (title, cols, rows, labels, rowStyler = null) => {
     if (!rows.length) return "";
     const th = cols.map((c, i) => `<th>${labels[i]}</th>`).join("");
-    
     const body = rows.map((r, i) => {
       const td = cols.map(c => `<td>${esc(r[c])}</td>`).join("");
-      
-      // Estilo base (zebra simple)
       let style = i % 2 === 0 ? 'background-color:#fff;' : 'background-color:#fcfcfc;';
-      
-      // APLICAR HIGHLIGHTER SI EXISTE
       if (rowStyler) {
         const customColor = rowStyler(r);
         if (customColor) style = `background-color: ${customColor}; font-weight:bold; color:#000;`;
       }
-      
       return `<tr style="${style}">${td}</tr>`;
     }).join("");
-    
     return `<div class="section-title">${title}</div><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
-  // --- 4. DEFINICIÓN DE REGLAS DE COLORES ---
-  // Asistencia: Fines de semana (Azul), Errores (Rojo)
+  // --- COLORES ---
   const styleAsist = (r) => {
-    if (r.audit_flag && r.audit_flag !== 'OK') return '#ffebee'; // Rojo suave (Error)
-    if (r.day_type !== 'LABORABLE') return '#e3f2fd'; // Azul suave (Fin de semana)
+    if (r.audit_flag && r.audit_flag !== 'OK') return '#ffebee'; 
+    if (r.day_type !== 'LABORABLE') return '#e3f2fd'; 
     return null;
   };
-  
-  // HE: Si hay horas calculadas (Naranja suave)
-  const styleHE = (r) => {
-    if (r.he_calc_hhmm && r.he_calc_hhmm !== '00:00') return '#fff3e0'; 
-    return null;
-  };
+  const styleHE = (r) => (r.he_calc_hhmm && r.he_calc_hhmm !== '00:00') ? '#fff3e0' : null;
+  const styleBen = (r) => (Number(r.benefits_b) > 0) ? '#e8f5e9' : null;
 
-  // Beneficios: Si hay dinero > 0 (Verde suave)
-  const styleBen = (r) => {
-    if (Number(r.benefits_b) > 0) return '#e8f5e9';
-    return null;
-  };
-
-  // --- 5. CONSTRUCCIÓN DEL HTML ---
+  // --- HTML ---
   let html = `
   <!DOCTYPE html>
   <html>
@@ -451,13 +436,12 @@ function printReport(type) {
     <title>Reporte_${p.employee}</title>
     <style>
       @page { size: landscape; margin: 10mm; }
-      /* AUMENTO DE FUENTE GENERAL (11px) */
       body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #333; margin: 0; -webkit-print-color-adjust: exact; }
       
       .header { background-color: #0b1f3a; color: white; padding: 15px; display: flex; align-items: center; border-bottom: 4px solid #bf9000; }
       .logo { width: 50px; height: 50px; margin-right: 15px; background: white; border-radius: 4px; padding: 2px; object-fit: contain; }
       .header-titles { flex: 1; }
-      .main-title { font-size: 20px; font-weight: bold; text-transform: uppercase; } /* Título más grande */
+      .main-title { font-size: 20px; font-weight: bold; text-transform: uppercase; }
       .sub-title { font-size: 12px; opacity: 0.9; }
       .meta-info { text-align: right; font-size: 11px; color: #eee; }
 
@@ -472,14 +456,12 @@ function printReport(type) {
 
       .section-title { font-size: 12px; font-weight: bold; color: #0b1f3a; margin-top: 25px; border-bottom: 2px solid #ccc; padding-bottom: 2px; }
       
-      /* AUMENTO DE FUENTE TABLAS (10px) y CELDAS MAS ESPACIOSAS */
       table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 8px; }
       th { background: #0b1f3a; color: white; padding: 6px 8px; text-align: left; }
       td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
       
       .footer { margin-top: 30px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
       .pagebreak { page-break-before: always; }
-      
       @media print { .no-print { display: none; } }
     </style>
   </head>
@@ -497,7 +479,6 @@ function printReport(type) {
       </div>
     </div>
 
-    <!-- REGLAS DE NEGOCIO -->
     <div class="rules-box">
       <div>
         <div class="rules-title">Reglas de Pago Aplicadas</div>
@@ -520,7 +501,8 @@ function printReport(type) {
       <div class="kpi-card"><div class="kpi-label">TXT Bolsón</div><div class="kpi-val">${esc(t.txt_total_hhmm)}</div></div>
       
       <div class="kpi-card" style="border-color:#0a7a2f"><div class="kpi-label highlight">Monto HE</div><div class="kpi-val highlight">${fmtMoney(sumHeMoney)}</div></div>
-      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
+      <!-- CAMBIO DE ETIQUETA -->
+      <div class="kpi-card" style="background:#f0f8ff"><div class="kpi-label">Beneficios (Alim+Transp)</div><div class="kpi-val">${fmtMoney(sumBen)}</div></div>
       
       <div class="kpi-card" style="border: 2px solid #bf9000; background-color: #fffcf0;">
         <div class="kpi-label" style="color:#bfa000;">TOTAL A PAGAR</div>
@@ -528,9 +510,9 @@ function printReport(type) {
       </div>
     </div>
     
-    ${ sumBen > 0 ? `
+    ${ totalGeneral > 0 ? `
     <div style="text-align:center; margin-bottom:15px; border:1px solid #eee; padding:15px; border-radius:5px;">
-       <div style="font-size:10px; font-weight:bold; margin-bottom:8px; color:#555; text-transform:uppercase;">Distribución de Beneficios (Alimentación vs Transporte)</div>
+       <div style="font-size:10px; font-weight:bold; margin-bottom:8px; color:#555; text-transform:uppercase;">Distribución Total del Pago (HE + Beneficios)</div>
        <img src="${chartUrl}" style="max-height:250px; width:auto;">
     </div>` : '' }
 
@@ -538,7 +520,7 @@ function printReport(type) {
       ["cycle","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total"],
       rowsCiclo,
       ["Ciclo","HE Calc","HE Pagada","TXT","Monto HE ($)","Alim ($)","Transp ($)","Total Ben ($)"],
-      null // Sin estilo especial en esta tabla
+      null
     )}
   `;
 
@@ -551,15 +533,16 @@ function printReport(type) {
         ["date","weekday","first_in","last_out","work_span_hhmm","marks_count","audit_flag","issues"],
         rowsAsistencia,
         ["Fecha","Día","Entrada","Salida","H. Trab","Marcas","Estado","Obs"],
-        styleAsist // <--- APLICA COLOR AZUL/ROJO
+        styleAsist
       )}
       
       <div class="pagebreak"></div>
-      ${table("Cálculo Diario HE",
-        ["date","day_type","he_calc_hhmm","audit_flag"],
+      <!-- TABLA HE CON COLUMNAS DE TIEMPO AGREGADAS (Entrada y Salida) -->
+      ${table("Cálculo Diario HE (Detalle de Horarios)",
+        ["date","day_type","first_in","last_out","he_calc_hhmm","audit_flag"],
         rowsHe,
-        ["Fecha","Tipo Día","HE Calc","Estado"],
-        styleHE // <--- APLICA COLOR NARANJA
+        ["Fecha","Tipo Día","Marca Entrada","Marca Salida","HE Calc","Estado"],
+        styleHE
       )}
       
       <div style="margin-top:20px"></div>
@@ -567,7 +550,7 @@ function printReport(type) {
         ["date","alim_b","transp_b","benefits_b","benefits_rule"],
         rowsBen,
         ["Fecha","Alim","Transp","Total","Regla"],
-        styleBen // <--- APLICA COLOR VERDE
+        styleBen
       )}
       <div class="footer">Reporte Detallado de Auditoría</div></body></html>
     `;
