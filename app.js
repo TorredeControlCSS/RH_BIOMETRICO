@@ -401,7 +401,7 @@ function printReport(type) {
 
   // --- GRÁFICO DE 3 VARIABLES (HE + ALIM + TRANSP) ---
   // Nota: Si sumHeMoney es 0, no se ver�� su rebanada, lo cual es correcto.
-  const chartUrl = `https://quickchart.io/chart?w=400&h=300&c={type:'pie',data:{labels:['Horas Extras ($)','Alimentación','Transporte'],datasets:[{data:[${sumHeMoney},${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
+  const chartUrl = `https://quickchart.io/chart?w=300&h=300&c={type:'pie',data:{labels:['Horas Extras ($)','Alimentación','Transporte'],datasets:[{data:[${sumHeMoney},${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
   // --- HELPER TABLA ---
   const table = (title, cols, rows, labels, rowStyler = null) => {
@@ -470,7 +470,7 @@ function printReport(type) {
       <img src="${LOGO_URL}" class="logo">
       <div class="header-titles">
         <div class="main-title">Reporte de Gestión Biométrica</div>
-        <div class="sub-title">Torre de Control CSS — DINALOG — CEDIS Panamá</div>
+        <div class="sub-title">Recursos Humanos CSS — DINALOG — CEDIS Panamá</div>
       </div>
       <div class="meta-info">
         <div><b>Colaborador:</b> ${esc(p.employee)}</div>
