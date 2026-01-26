@@ -466,7 +466,7 @@ function printReport(type) {
     <div class="rules-box">
       <div>
         <b>REGLAS DE PAGO:</b>
-        1. Laborables: HE > 15:30 (Salida ≥ 16:30). | 2. Fines Semana: HE desde Entrada. | 3. Cap 40h/ciclo.
+        1. Laborables: HE desde 15:30 (si salida ≥ 16:30). | 2. Fines de Semana/Feriados: HE desde Entrada (Min. 07:00). | 3. Cierre Ciclo: Cap 40h pagadas. Excedente pasa a TXT (Bolsón).
       </div>
       <div style="align-self:center;"><b>ESTATUS: AUDITABLE</b></div>
     </div>
