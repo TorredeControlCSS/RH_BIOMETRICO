@@ -470,7 +470,7 @@ function printReport(type) {
         <div>2. <b>Fines de Semana:</b> HE inician desde hora de Entrada.</div>
         <div>3. <b>Cierre de Ciclo:</b> Cap de <b>40 horas</b> pagadas. Excedente pasa a TXT (Bolsón).</div>
         <div style="margin-top:4px; border-top:1px dashed #ccc; padding-top:2px;">
-           4. <b>Alimentación ($8.00):</b> Aplica en Dias Laborables si <b>Salida ≥ 19:00</b>. Fines de Semana según asistencia.
+           4. <b>Alimentación ($8.00):</b> Aplica en Dias Laborables si <b>Salida ≥ 19:00</b>. Fines de Semana según asistencia minimo 4 horas trabajadas.
            <br>5. <b>Transporte:</b> Monto variable según Tabla. Aplica si <b>Salida ≥ 18:00</b>.
         </div>
       </div>
