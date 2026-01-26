@@ -397,10 +397,12 @@ function printReport(type) {
     sumAlim    += Number(r.alim_total) || 0;
     sumTransp  += Number(r.transp_total) || 0;
   });
+    // --- NUEVO CÁLCULO: TOTAL GENERAL ---
+  let totalGeneral = sumHeMoney + sumBen;
   // -------------------------------------------------------------------------
 
   // Gráfico de Pastel (QuickChart) con los totales calculados
-  const chartUrl = `https://quickchart.io/chart?c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white'}}}}`;
+  const chartUrl = `https://quickchart.io/chart?w=500&h=300&c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${sumAlim},${sumTransp}]}]},options:{plugins:{legend:{position:'right'},datalabels:{display:true,color:'white',font:{size:14,weight:'bold'}}}}}`;
 
   const table = (title, cols, rows, labels) => {
     if (!rows.length) return "";
