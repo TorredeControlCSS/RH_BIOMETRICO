@@ -1,15 +1,18 @@
 /*******************************************************
  * RH BIOMÉTRICO – FRONTEND (GitHub Pages)
- * - Consume WebApp GAS: action=meta | action=query | action=pdf
+ * - Consume WebApp GAS: action=meta | action=query
  * - Dash ejecutivo con KPIs, charts y tablas
+ * - PDF Generation: Frontend (Browser-based)
  *******************************************************/
 
 const API_URL = "https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec";
-const TOKEN = "RH_DINALOG"; // puedes acortarlo si quieres, pero mantén algo difícil de adivinar
+const TOKEN = "RH_DINALOG"; 
 
+// VARIABLES GLOBALES
 let chartDayType = null;
 let chartBenefits = null;
 let chartCycles = null;
+let currentData = null; // Variable crítica para guardar la última consulta
 
 const el = {
   employee: document.getElementById("employee"),
@@ -18,7 +21,7 @@ const el = {
   to: document.getElementById("to"),
   btnQuery: document.getElementById("btnQuery"),
   btnPdf: document.getElementById("btnPdf"),
-  btnPdfManager: document.getElementById("btnPdfManager"), // <--- NUEVO
+  btnPdfManager: document.getElementById("btnPdfManager"), 
   btnClear: document.getElementById("btnClear"),
   status: document.getElementById("status"),
 
@@ -28,6 +31,7 @@ const el = {
   kpiHeCalc: document.getElementById("kpiHeCalc"),
   kpiHePay: document.getElementById("kpiHePay"),
   kpiTxt: document.getElementById("kpiTxt"),
+  kpiHeAmount: document.getElementById("kpiHeAmount"), // Nuevo KPI Monto
   kpiBen: document.getElementById("kpiBen"),
 
   // Tables
@@ -40,8 +44,6 @@ const el = {
   headCYC: document.getElementById("headCYC"),
   bodyCYC: document.getElementById("bodyCYC"),
 };
-
-let lastQueryData = null;
 
 // =====================
 // Util
@@ -129,11 +131,28 @@ function initTabs() {
 }
 
 // =====================
-// Cycles (16→15)
+// Lógica de Ciclos
 // =====================
-function computeCycleLabel(from, to) {
-  if (!from || !to) return "";
-  return `${from} → ${to} (Rango)`;
+function populateCycles() {
+  const sel = el.cycle;
+  sel.innerHTML = '<option value="manual">Rango manual</option>';
+
+  const now = new Date();
+  for (let i = 0; i < 18; i++) {
+    const endDate = new Date(now.getFullYear(), now.getMonth() - i, 15);
+    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 16);
+
+    const sStr = startDate.toISOString().split("T")[0];
+    const eStr = endDate.toISOString().split("T")[0];
+
+    const opts = { month: 'short', year: 'numeric', day: 'numeric' };
+    const label = `${startDate.toLocaleDateString('es-ES', opts)} → ${endDate.toLocaleDateString('es-ES', opts)}`;
+
+    const opt = document.createElement("option");
+    opt.value = `${sStr}|${eStr}`;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
 }
 
 // =====================
@@ -141,22 +160,25 @@ function computeCycleLabel(from, to) {
 // =====================
 async function loadMeta() {
   setStatus("Cargando empleados...", "");
-  const url = qs({ action: "meta", token: TOKEN });
-  const j = await fetchJSON(url);
+  try {
+    const url = qs({ action: "meta", token: TOKEN });
+    const j = await fetchJSON(url);
 
-  el.employee.innerHTML = "";
-  (j.employees || []).forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    el.employee.appendChild(opt);
-  });
-
-  setStatus("Listo.", "ok");
+    el.employee.innerHTML = "";
+    (j.employees || []).forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      el.employee.appendChild(opt);
+    });
+    setStatus("Listo.", "ok");
+  } catch(e) {
+    setStatus("Error cargando empleados: " + e.message, "danger");
+  }
 }
 
 // =====================
-// Query
+// Query (Consulta)
 // =====================
 async function doQuery() {
   const employee = el.employee.value || "TODOS";
@@ -173,7 +195,10 @@ async function doQuery() {
     setStatus("Consultando...", "");
     const url = qs({ action: "query", token: TOKEN, employee, from, to });
     const q = await fetchJSON(url);
-    lastQueryData = q;
+    
+    // --- GUARDA DATOS GLOBALES PARA PDF ---
+    currentData = q; 
+    // --------------------------------------
 
     renderKPIs(q);
     renderCharts(q);
@@ -189,36 +214,6 @@ async function doQuery() {
 }
 
 // =====================
-// PDF
-// =====================
-async function doPdf() {
-  const employee = el.employee.value || "TODOS";
-  const from = el.from.value;
-  const to = el.to.value;
-
-  if (!from || !to) {
-    setStatus("Debes seleccionar Desde y Hasta.", "danger");
-    return;
-  }
-
-  el.btnPdf.disabled = true;
-  try {
-    setStatus("Generando PDF...", "");
-    const url = qs({ action: "pdf", token: TOKEN, employee, from, to });
-    const j = await fetchJSON(url);
-
-    // abre descarga
-    window.open(j.downloadUrl, "_blank");
-    setStatus("PDF generado.", "ok");
-  } catch (e) {
-    console.error(e);
-    setStatus("Error PDF: " + e.message, "danger");
-  } finally {
-    el.btnPdf.disabled = false;
-  }
-}
-
-// =====================
 // Render
 // =====================
 function renderKPIs(q) {
@@ -227,39 +222,26 @@ function renderKPIs(q) {
   el.kpiEvents.textContent = safeNum(t.total_events);
   el.kpiDays.textContent   = safeNum(t.total_days);
   el.kpiHeCalc.textContent = t.he_calc_hhmm || "00:00";
-
-  // HE pagadas y TXT se determinan por CAP 40h por ciclo (16→15), no por día.
   el.kpiHePay.textContent  = t.he_paid_capped_hhmm || "00:00";
   el.kpiTxt.textContent    = t.txt_total_hhmm || "00:00";
+  
+  // Nuevo KPI Monto (Verificamos que el elemento exista en el HTML antes de escribir)
+  if(el.kpiHeAmount) el.kpiHeAmount.textContent = money(t.he_amount_paid_capped || 0);
 
   el.kpiBen.textContent    = money(t.total_beneficios);
 }
 
 function renderTables(q) {
-  // Asistencia
   const asistenciaCols = ["full_name","date","weekday","day_type","marks_count","first_in","last_out","work_span_hhmm","audit_flag","issues"];
   buildTable(el.headAsistencia, el.bodyAsistencia, asistenciaCols, q.asistencia || []);
 
-  // HE/TXT (diario – TXT suele venir 00:00 porque el TXT real es por CAP)
   const heCols = ["full_name","date","day_type","first_in","last_out","he_calc_hhmm","he_payable_hhmm","txt_hhmm","rule_applied","catalog_match"];
-  buildTable(el.headHE, el.bodyHE, heCols, q.he_daily || []); // Antes decía q.he_txt
+  buildTable(el.headHE, el.bodyHE, heCols, q.he_daily || []);
 
-  // Beneficios
   const benCols = ["full_name","date","day_type","alim_b","transp_b","benefits_b","benefits_rule","catalog_match_benef"];
   buildTable(el.headBEN, el.bodyBEN, benCols, q.beneficios || []);
 
-  // Resumen por ciclo (CAP 40h)
-  const cycCols = [
-    "cycle",
-    "full_name",
-    "he_calc_total_hhmm",
-    "he_paid_capped_hhmm",
-    "txt_total_hhmm",
-    "he_amount_paid_capped",
-    "alim_total",
-    "transp_total",
-    "beneficios_total_usd"
-  ];
+  const cycCols = ["cycle","full_name","he_calc_total_hhmm","he_paid_capped_hhmm","txt_total_hhmm","he_amount_paid_capped","alim_total","transp_total","beneficios_total_usd"];
   buildTable(el.headCYC, el.bodyCYC, cycCols, q.resumen_ciclo || []);
 }
 
@@ -267,14 +249,10 @@ function renderCharts(q) {
   const heRows = q.he_daily || [];
   const benRows = q.beneficios || [];
   const monthlyRows = q.resumen_ciclo || [];
-
   const dayTypes = ["LABORABLE","FIN_DE_SEMANA","FERIADO"];
   const sum = (arr, fn) => arr.reduce((a, r) => a + fn(r), 0);
 
-  // Chart 1: CORREGIDO (Quitamos he_payable_hhmm que da error)
   const heCalcBy = dayTypes.map(dt => sum(heRows.filter(r => r.day_type === dt), r => hhmmToHours(r.he_calc_hhmm)));
-  
-  // Como el backend no manda 'he_payable' diario, ponemos 0 para que no falle.
   const hePayBy  = dayTypes.map(dt => 0); 
 
   const ctx1 = document.getElementById("chartDayType").getContext("2d");
@@ -285,7 +263,6 @@ function renderCharts(q) {
       labels: dayTypes,
       datasets: [
         { label: "HE Calc (h)", data: heCalcBy },
-        // Puedes quitar este dataset si quieres, o dejarlo en 0
         { label: "HE Pagable (h)", data: hePayBy }, 
       ]
     },
@@ -296,7 +273,6 @@ function renderCharts(q) {
     }
   });
 
-  // Chart 2: beneficios (IGUAL QUE ANTES)
   const alimBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => Number(r.alim_b || 0)));
   const transpBy = dayTypes.map(dt => sum(benRows.filter(r => r.day_type === dt), r => Number(r.transp_b || 0)));
 
@@ -318,14 +294,11 @@ function renderCharts(q) {
     }
   });
 
-  // Chart 3: CORREGIDO (Escala controlada por el HTML)
   const byCycle = new Map();
   for (const r of monthlyRows) {
     const c = String(r.cycle || "");
     if (!c) continue;
-    if (!byCycle.has(c)) {
-      byCycle.set(c, { hePaid: 0, txt: 0, heCalc: 0 });
-    }
+    if (!byCycle.has(c)) byCycle.set(c, { hePaid: 0, txt: 0, heCalc: 0 });
     const o = byCycle.get(c);
     o.hePaid += hhmmToHours(r.he_paid_capped_hhmm);
     o.txt    += hhmmToHours(r.txt_total_hhmm);
@@ -351,27 +324,26 @@ function renderCharts(q) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // <--- ESTO ES CLAVE
+      maintainAspectRatio: false,
       plugins: { legend: { position: "top" } },
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true, beginAtZero: true }
-      }
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
     }
   });
 }
 
 // =====================
-// Clear
+// Clear UI
 // =====================
 function clearUI() {
-  lastQueryData = null;
+  currentData = null; // Limpiamos la variable global
+  lastQueryData = null; // (Legacy)
 
   el.kpiEvents.textContent = "0";
   el.kpiDays.textContent = "0";
   el.kpiHeCalc.textContent = "00:00";
   el.kpiHePay.textContent = "00:00";
   el.kpiTxt.textContent = "00:00";
+  if(el.kpiHeAmount) el.kpiHeAmount.textContent = "USD 0.00";
   el.kpiBen.textContent = "USD 0.00";
 
   el.headAsistencia.innerHTML = ""; el.bodyAsistencia.innerHTML = "";
@@ -387,128 +359,34 @@ function clearUI() {
   setStatus("", "");
 }
 
-// =====================
-// Init
-// =====================
-document.addEventListener("DOMContentLoaded", async () => {
-  initTabs();
-  
-  // 1. Llenamos el combo de ciclos
-  populateCycles(); 
-  
-  await loadMeta();
-
-  el.btnQuery.addEventListener("click", doQuery);
-  
-  // CAMBIO: Ahora usamos la función local printReport
-  el.btnPdf.addEventListener("click", () => printReport('detail'));
-  
-  el.btnClear.addEventListener("click", clearUI);
-
-  // CAMBIO: Ahora usamos la función local printReport
-  el.btnPdfManager.addEventListener("click", () => printReport('manager'));
-
-  // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
-  el.cycle.addEventListener("change", () => {
-    const val = el.cycle.value;
-    if (val === "manual") {
-      // Si elige manual, no borramos las fechas, dejamos que el usuario edite
-      return;
-    }
-    // Si elige un ciclo, separamos el value "YYYY-MM-DD|YYYY-MM-DD"
-    const [dFrom, dTo] = val.split("|");
-    el.from.value = dFrom;
-    el.to.value = dTo;
-  });
-  
-  // (Opcional) Si el usuario toca las fechas manualmente, regresamos el combo a "manual"
-  const setManual = () => { el.cycle.value = "manual"; };
-  el.from.addEventListener("input", setManual);
-  el.to.addEventListener("input", setManual);
-});
-// =====================
-// Lógica de Ciclos
-// =====================
-function populateCycles() {
-  const sel = el.cycle;
-  // Limpiamos y dejamos la opción manual
-  sel.innerHTML = '<option value="manual">Rango manual</option>';
-
-  const now = new Date();
-  // Generamos los últimos 18 ciclos hacia atrás
-  for (let i = 0; i < 18; i++) {
-    // Fin del ciclo: día 15 del mes actual (restando i meses)
-    const endDate = new Date(now.getFullYear(), now.getMonth() - i, 15);
-    
-    // Inicio del ciclo: día 16 del mes anterior
-    const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 16);
-
-    // Formato para el VALUE (YYYY-MM-DD)
-    const sStr = startDate.toISOString().split("T")[0];
-    const eStr = endDate.toISOString().split("T")[0];
-
-    // Formato para la ETIQUETA (Ej: 16 Dic 2025 → 15 Ene 2026)
-    const opts = { month: 'short', year: 'numeric', day: 'numeric' };
-    const label = `${startDate.toLocaleDateString('es-ES', opts)} → ${endDate.toLocaleDateString('es-ES', opts)}`;
-
-    const opt = document.createElement("option");
-    opt.value = `${sStr}|${eStr}`; // Guardamos las fechas separadas por |
-    opt.textContent = label;
-    sel.appendChild(opt);
-  }
-}
-async function doPdfManager() {
-  // ... validaciones de employee, from, to igual que antes ...
-  const employee = el.employee.value || "TODOS";
-  const from = el.from.value;
-  const to = el.to.value;
-  if (!from || !to) { setStatus("Selecciona fechas.","danger"); return; }
-
-  el.btnPdfManager.disabled = true;
-  try {
-    setStatus("Generando Reporte Gerencial...", "");
-    // Agregamos &type=manager a la URL
-    const url = qs({ action: "pdf", token: TOKEN, employee, from, to, type: "manager" });
-    const j = await fetchJSON(url);
-    window.open(j.downloadUrl, "_blank");
-    setStatus("PDF Gerencial listo.", "ok");
-  } catch (e) {
-    setStatus("Error: " + e.message, "danger");
-  } finally {
-    el.btnPdfManager.disabled = false;
-  }
-}
 /* ======================================================
-   GENERADOR DE PDF (FRONT-END)
+   GENERADOR DE PDF (FRONT-END) - FUNCIÓN FINAL
    ====================================================== */
 function printReport(type) {
   // Verificamos si hay datos cargados en memoria
   if (!currentData || !currentData.ok) {
-    alert("Primero debes realizar una consulta para poder generar el PDF.");
+    alert("Primero debes realizar una consulta (Consultar) para poder generar el PDF.");
     return;
   }
 
-  const q = currentData; // Usamos los datos que ya están en el dashboard
+  const q = currentData;
   const t = q.totals || {};
   const p = q.params || {};
 
-  // LOGO: Ahora sí podemos usar la ruta relativa porque estamos en el navegador
+  // LOGO: Ruta relativa porque estamos en el navegador
   const LOGO_URL = "./icons/icon-512.png"; 
 
-  // Helpers
+  // Helpers internos para el PDF
   const esc = s => String(s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  const money = v => new Intl.NumberFormat("en-US", { style:"currency", currency:"USD" }).format(v || 0);
-
-  // Gráfico de Pastel (QuickChart)
+  
+  // Chart (QuickChart)
   const chartUrl = `https://quickchart.io/chart?c={type:'pie',data:{labels:['Alimentación','Transporte'],datasets:[{data:[${t.total_alim_total||0},${t.total_transp_total||0}]}]},options:{plugins:{legend:{position:'right'}}}}`;
 
-  // Datos
   const rowsAsistencia = (q.asistencia || []);
   const rowsHe = (q.he_daily || []);
   const rowsBen = (q.beneficios || []);
   const rowsCiclo = (q.resumen_ciclo || []);
 
-  // Función para crear tablas
   const table = (title, cols, rows, labels) => {
     if (!rows.length) return "";
     const th = cols.map((c, i) => `<th>${labels[i]}</th>`).join("");
@@ -519,7 +397,7 @@ function printReport(type) {
     return `<div class="section-title">${title}</div><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
   };
 
-  // --- CONSTRUCCIÓN DEL HTML ---
+  // HTML DEL REPORTE
   let html = `
   <!DOCTYPE html>
   <html>
@@ -603,11 +481,9 @@ function printReport(type) {
     )}
   `;
 
-  // --- SI ES GERENCIAL CORTAMOS AQUI ---
   if (type === 'manager') {
     html += `<div class="footer">Reporte Gerencial - Resumen Ejecutivo</div></body></html>`;
   } else {
-    // --- SI ES DETALLE AGREGAMOS LO DEMÁS ---
     html += `
       <div class="pagebreak"></div>
       ${table("Registro de Asistencia",
@@ -633,13 +509,43 @@ function printReport(type) {
     `;
   }
 
-  // ABRIR VENTANA E IMPRIMIR
   const win = window.open("", "_blank");
   win.document.write(html);
   win.document.close();
-  // Esperar un poquito a que cargue el logo y el gráfico
   setTimeout(() => {
     win.focus();
     win.print();
   }, 800);
 }
+
+// =====================
+// Init (EventListeners)
+// =====================
+document.addEventListener("DOMContentLoaded", async () => {
+  initTabs();
+  
+  // 1. Llenamos el combo de ciclos
+  populateCycles(); 
+  
+  await loadMeta();
+
+  el.btnQuery.addEventListener("click", doQuery);
+  el.btnClear.addEventListener("click", clearUI);
+  
+  // Eventos de PDF (Usan la nueva función printReport)
+  el.btnPdf.addEventListener("click", () => printReport('detail'));
+  el.btnPdfManager.addEventListener("click", () => printReport('manager'));
+
+  // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
+  el.cycle.addEventListener("change", () => {
+    const val = el.cycle.value;
+    if (val === "manual") return;
+    const [dFrom, dTo] = val.split("|");
+    el.from.value = dFrom;
+    el.to.value = dTo;
+  });
+  
+  const setManual = () => { el.cycle.value = "manual"; };
+  el.from.addEventListener("input", setManual);
+  el.to.addEventListener("input", setManual);
+});
