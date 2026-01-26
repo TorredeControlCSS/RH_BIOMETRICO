@@ -465,10 +465,22 @@ function printReport(type) {
 
     <div class="rules-box">
       <div>
-        <b>REGLAS DE PAGO:</b>
-        1. Laborables: HE desde 15:30 (si salida ≥ 16:30). | 2. Fines de Semana/Feriados: HE desde Entrada (Min. 07:00). | 3. Cierre Ciclo: Cap 40h pagadas. Excedente pasa a TXT (Bolsón).
+        <div class="rules-title">Reglas de Pago Aplicadas</div>
+        <div>1. <b>Laborables:</b> HE inician 15:30 (Condición: Salida ≥ 16:30).</div>
+        <div>2. <b>Fines de Semana:</b> HE inician desde hora de Entrada.</div>
+        <div>3. <b>Cierre de Ciclo:</b> Cap de <b>40 horas</b> pagadas. Excedente pasa a TXT (Bolsón).</div>
+        <div style="margin-top:4px; border-top:1px dashed #ccc; padding-top:2px;">
+           4. <b>Alimentación ($8.00):</b> Aplica en Dias Laborables si <b>Salida ≥ 19:00</b>. Fines de Semana según asistencia.
+           <br>5. <b>Transporte:</b> Monto variable según Tabla. Aplica si <b>Salida ≥ 18:00</b>.
+        </div>
       </div>
-      <div style="align-self:center;"><b>ESTATUS: AUDITABLE</b></div>
+      <div style="text-align:right; align-self:center;">
+        <b>ESTATUS: AUDITABLE</b>
+      </div>
+    </div>
+      <div style="text-align:right; align-self:center;">
+        <b>ESTATUS: AUDITABLE</b>
+      </div>
     </div>
 
     <div class="kpi-container">
