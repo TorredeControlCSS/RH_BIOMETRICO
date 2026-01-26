@@ -715,10 +715,7 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
       }
     });
   }
-
-}); // <--- AQUÍ CIERRA EL DOMContentLoaded. NO BORRAR ESTA LLAVE.
-
-
+}); // <--- AGREGA ESTA LÍNEA AQUÍ (Cierre del DOMContentLoaded)
 /* ======================================================
    FUNCIÓN DE REPORTE GERENCIAL (FUERA DEL DOMContentLoaded)
    ====================================================== */
