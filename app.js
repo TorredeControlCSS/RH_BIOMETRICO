@@ -671,39 +671,91 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
     .doQuery(params);
 });
 
+  // --- ZONA DE REPORTES DIRECTOR (CORREGIDA Y MEJORADA) ---
+
+  // 1. Botón "Este Ciclo" (Usa la data en pantalla)
+  const btnCycle = document.getElementById("btnDirectorCycle");
+  if (btnCycle) {
+    btnCycle.addEventListener("click", () => {
+      if (!currentData || !currentData.ok) {
+        alert("Primero realiza una consulta para ver un ciclo.");
+        return;
+      }
+      // Pasamos true para indicar que es reporte de UN ciclo (detalle profundo)
+      printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo", true);
+    });
+  }
+
+  // 2. Botón "Histórico" (Usa fetchJSON, NO google.script.run)
+  const btnHistory = document.getElementById("btnDirectorHistory");
+  if (btnHistory) {
+    btnHistory.addEventListener("click", async () => {
+      const originalText = btnHistory.innerText;
+      btnHistory.innerText = "⏳ Descargando Histórico...";
+      btnHistory.disabled = true;
+
+      try {
+        // USAMOS LA MISMA TÉCNICA QUE LA CONSULTA NORMAL
+        const url = qs({ 
+          action: "query", 
+          token: TOKEN, 
+          employee: "TODOS", 
+          from: "2024-01-01", 
+          to: "2026-12-31" 
+        });
+        
+        const historyData = await fetchJSON(url); // <--- ESTA ES LA CORRECCIÓN CLAVE
+        
+        printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)", false);
+        
+      } catch (e) {
+        alert("Error cargando histórico: " + e.message);
+      } finally {
+        btnHistory.innerText = originalText;
+        btnHistory.disabled = false;
+      }
+    });
+  }
+}); // <--- FIN DEL DOMContentLoaded
+
 
 /* ======================================================
-   MOTOR DE REPORTE GERENCIAL (FUNCIONA PARA AMBOS CASOS)
+   NUEVO MOTOR DE REPORTE GERENCIAL (DETALLADO Y SIN ERRORES)
    ====================================================== */
-function printDirectorDashboard(dataSource, reportTitle) {
+function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   const q = dataSource;
   const p = q.params || {};
   const rawRows = q.resumen_ciclo || [];
 
-  if (rawRows.length === 0) {
-    alert("No hay datos para generar el reporte.");
-    return;
-  }
+  if (rawRows.length === 0) { alert("No hay datos para generar el reporte."); return; }
 
-  // --- A. PROCESAMIENTO DE DATOS ---
+  // 1. Procesar Datos y Totales
   const mapEmpleados = new Map();
   const mapCiclos = new Map();
+  
+  let totalHE = 0;
+  let totalAlim = 0;
+  let totalTransp = 0;
   let granTotal = 0;
 
   rawRows.forEach(r => {
-    const nombre = r.full_name;
-    const ciclo = r.cycle; 
-    const totalRow = (Number(r.he_amount_paid_capped) || 0) + (Number(r.beneficios_total) || 0);
+    const he = Number(r.he_amount_paid_capped) || 0;
+    const alim = Number(r.alim_total) || 0;
+    const transp = Number(r.transp_total) || 0;
+    const subtotal = he + alim + transp;
 
-    // Suma por Empleado
-    mapEmpleados.set(nombre, (mapEmpleados.get(nombre) || 0) + totalRow);
-    // Suma por Ciclo (Para gráfico de barras)
-    mapCiclos.set(ciclo, (mapCiclos.get(ciclo) || 0) + totalRow);
-    
-    granTotal += totalRow;
+    // Sumas globales
+    totalHE += he;
+    totalAlim += alim;
+    totalTransp += transp;
+    granTotal += subtotal;
+
+    // Mapas para rankings y gráficos
+    mapEmpleados.set(r.full_name, (mapEmpleados.get(r.full_name) || 0) + subtotal);
+    mapCiclos.set(r.cycle, (mapCiclos.get(r.cycle) || 0) + subtotal);
   });
 
-  // Ordenar Data
+  // Ordenamientos
   const ranking = Array.from(mapEmpleados.entries())
     .map(([k, v]) => ({ nombre: k, total: v }))
     .sort((a, b) => b.total - a.total);
@@ -712,93 +764,137 @@ function printDirectorDashboard(dataSource, reportTitle) {
     .map(([k, v]) => ({ ciclo: k, total: v }))
     .sort((a, b) => a.ciclo.localeCompare(b.ciclo));
 
-  // --- B. PREPARAR GRÁFICO (EVOLUCIÓN) ---
-  // Si es un solo ciclo, saldrá una sola barra (correcto). Si es histórico, saldrán muchas.
-  const labelsCiclos = tendencias.map(t => t.ciclo.substring(5)); // Solo MM-DD
-  const dataCiclos = tendencias.map(t => t.total);
+  // 2. Lógica del Gráfico (Inteligente)
+  // Si es 1 ciclo -> Pastel de Distribución de Gasto (HE vs Beneficios)
+  // Si es Histórico -> Barras de Evolución Temporal
+  let chartConfig;
   
-  const chartTrendUrl = `https://quickchart.io/chart?w=600&h=250&c={type:'bar',data:{labels:[${labelsCiclos.map(l=>`'${l}'`)}],datasets:[{label:'Gasto ($)',data:[${dataCiclos}],backgroundColor:'#0b1f3a'}]},options:{plugins:{legend:{display:false},datalabels:{display:true,color:'white',anchor:'end',align:'start'}}}}`;
+  if (isSingleCycle || tendencias.length === 1) {
+    // GRÁFICO DE DONA (DISTRIBUCIÓN DEL GASTO)
+    chartConfig = {
+      type: 'doughnut',
+      data: {
+        labels: ['Horas Extras', 'Alimentación', 'Transporte'],
+        datasets: [{
+          data: [totalHE, totalAlim, totalTransp],
+          backgroundColor: ['#0b1f3a', '#bf9000', '#2980b9']
+        }]
+      },
+      options: {
+        plugins: {
+          datalabels: { display: true, color: 'white', font: {weight:'bold'}, formatter: (val) => '$'+Math.round(val) },
+          legend: { position: 'right' },
+          title: { display: true, text: 'Distribución del Gasto' }
+        }
+      }
+    };
+  } else {
+    // GRÁFICO DE BARRAS (EVOLUCIÓN)
+    chartConfig = {
+      type: 'bar',
+      data: {
+        labels: tendencias.map(t => t.ciclo.substring(5)), // MM-DD
+        datasets: [{
+          label: 'Gasto Total ($)',
+          data: tendencias.map(t => t.total),
+          backgroundColor: '#0b1f3a'
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          datalabels: { display: true, color: 'white', anchor: 'end', align: 'start', formatter: (val) => '$'+Math.round(val) },
+          title: { display: true, text: 'Tendencia por Ciclo' }
+        }
+      }
+    };
+  }
 
-  // --- C. LOGO Y TEXTOS ---
-  const relativeLogoPath = "./icons/icon-512.png";
-  const LOGO_URL = new URL(relativeLogoPath, window.location.href).href;
+  // Generamos la URL segura usando JSON.stringify para evitar errores de sintaxis
+  const chartUrl = `https://quickchart.io/chart?w=500&h=250&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+
+  // 3. HTML
+  const LOGO_URL = new URL("./icons/icon-512.png", window.location.href).href;
   const fmtMoney = v => "$ " + (Number(v) || 0).toFixed(2);
   const now = new Date().toLocaleDateString();
+  const rangeTitle = p.from && p.to ? `Periodo: ${p.from} al ${p.to}` : "Consolidado Histórico";
 
-  // --- D. HTML ---
-  let html = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>Director_Dashboard</title>
-    <style>
-      @page { size: landscape; margin: 10mm; }
-      body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; }
-      .header { background-color: #0b1f3a; color: white; padding: 15px; display: flex; align-items: center; border-bottom: 5px solid #bf9000; }
-      .logo { width: 50px; height: 50px; margin-right: 15px; background: white; border-radius: 5px; }
-      .main-title { font-size: 22px; font-weight: bold; text-transform: uppercase; }
-      
-      .kpi-row { display: flex; gap: 10px; margin: 20px 0; }
-      .kpi-card { flex: 1; padding: 15px; border-radius: 6px; text-align: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-      .kpi-val { font-size: 24px; font-weight: bold; margin-top:5px; }
-      
-      .charts-row { display: flex; gap: 20px; margin-bottom: 20px; }
-      .chart-box { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; }
-      
-      table { width: 100%; border-collapse: collapse; font-size: 10px; }
-      th { background: #0b1f3a; color: white; padding: 8px; text-align: left; }
-      td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
-      tr:nth-child(even) { background-color: #f9f9f9; }
-    </style>
-  </head>
-  <body>
-    <div class="header">
-      <img src="${LOGO_URL}" class="logo">
-      <div>
-        <div class="main-title">${reportTitle}</div>
-        <div style="font-size:12px; opacity:0.8;">Generado el: ${now} | Ciclos en reporte: ${tendencias.length}</div>
-      </div>
+  let html = `<!DOCTYPE html><html><head><title>Director_Report</title>
+  <style>
+    @page{size:landscape;margin:10mm;} body{font-family:'Segoe UI',sans-serif;color:#333;} 
+    .header{background:#0b1f3a;color:white;padding:20px;display:flex;align-items:center;border-bottom:5px solid #bf9000;}
+    .kpi-row{display:flex;gap:15px;margin:20px 0;} 
+    .kpi{flex:1;padding:15px;text-align:center;color:white;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.2);}
+    .kpi-sm{flex:1;padding:10px;text-align:center;border:1px solid #ccc;border-radius:8px;background:#f9f9f9;}
+    .lbl{font-size:10px;text-transform:uppercase;opacity:0.9;margin-bottom:5px;}
+    .val{font-size:20px;font-weight:bold;}
+    table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;} 
+    th{background:#0b1f3a;color:white;padding:8px;text-align:left;} 
+    td{padding:6px;border-bottom:1px solid #eee;}
+    tr:nth-child(even){background:#f4f6f9;}
+  </style></head><body>
+  
+  <div class="header">
+    <img src="${LOGO_URL}" style="width:60px;margin-right:20px;background:white;padding:5px;border-radius:5px;">
+    <div>
+      <h1 style="margin:0;font-size:24px;text-transform:uppercase;">${reportTitle}</h1>
+      <div style="font-size:14px;opacity:0.8;margin-top:5px;">${rangeTitle} | Generado: ${now}</div>
     </div>
+  </div>
 
-    <!-- KPIs -->
-    <div class="kpi-row">
-      <div class="kpi-card" style="background:#2c3e50;">
-        <div style="font-size:10px; text-transform:uppercase;">Ciclos</div>
-        <div class="kpi-val">${tendencias.length}</div>
-      </div>
-      <div class="kpi-card" style="background:#2980b9;">
-        <div style="font-size:10px; text-transform:uppercase;">Colaboradores</div>
-        <div class="kpi-val">${ranking.length}</div>
-      </div>
-      <div class="kpi-card" style="background:#bf9000; color:black;">
-        <div style="font-size:10px; text-transform:uppercase; font-weight:bold;">TOTAL A PAGAR (NÓMINA)</div>
-        <div class="kpi-val">${fmtMoney(granTotal)}</div>
-      </div>
+  <!-- TARJETAS PRINCIPALES -->
+  <div class="kpi-row">
+    <div class="kpi" style="background:#2c3e50">
+      <div class="lbl">Colaboradores</div><div class="val">${ranking.length}</div>
     </div>
+    <div class="kpi" style="background:#2c3e50">
+      <div class="lbl">Ciclos Procesados</div><div class="val">${tendencias.length}</div>
+    </div>
+    <div class="kpi" style="background:#bf9000; color:black;">
+      <div class="lbl" style="color:black;font-weight:bold;">GRAN TOTAL A PAGAR</div>
+      <div class="val" style="font-size:28px;">${fmtMoney(granTotal)}</div>
+    </div>
+  </div>
 
-    <!-- GRAFICOS Y TABLAS -->
-    <div class="charts-row">
-      <div class="chart-box" style="flex:2;">
-        <h4 style="margin:0 0 10px 0; color:#0b1f3a;">Tendencia de Gasto (Evolución)</h4>
-        <img src="${chartTrendUrl}" style="max-width:100%; max-height:220px;">
-      </div>
-      <div class="chart-box" style="flex:1;">
-        <h4 style="margin:0 0 10px 0; color:#0b1f3a;">Top 8 Colaboradores (Mayor Costo)</h4>
-        <table>
-          <thead><tr><th>Nombre</th><th>Total ($)</th></tr></thead>
-          <tbody>
-            ${ranking.slice(0, 8).map(e => `<tr><td>${e.nombre}</td><td style="font-weight:bold;">${fmtMoney(e.total)}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- DESGLOSE FINANCIERO -->
+  <div class="kpi-row" style="margin-top:0;">
+    <div class="kpi-sm"><div class="lbl" style="color:#0b1f3a;">Total Horas Extras</div><div class="val" style="color:#0b1f3a;">${fmtMoney(totalHE)}</div></div>
+    <div class="kpi-sm"><div class="lbl" style="color:#d35400;">Total Alimentación</div><div class="val" style="color:#d35400;">${fmtMoney(totalAlim)}</div></div>
+    <div class="kpi-sm"><div class="lbl" style="color:#2980b9;">Total Transporte</div><div class="val" style="color:#2980b9;">${fmtMoney(totalTransp)}</div></div>
+  </div>
+
+  <div style="display:flex;gap:30px; margin-top:20px;">
     
-    <div style="text-align:center; color:#999; font-size:9px; margin-top:20px;">
-       Informe Oficial - Dirección Nacional DINALOG
+    <!-- ZONA GRÁFICA -->
+    <div style="flex:1; text-align:center; border:1px solid #eee; padding:15px; border-radius:10px;">
+      <h3 style="margin-top:0;color:#555;">Análisis Visual</h3>
+      <img src="${chartUrl}" style="max-width:100%; max-height:280px;">
+      <div style="font-size:10px;color:#999;margin-top:10px;">
+        ${isSingleCycle ? 'Muestra cómo se divide el presupuesto en este ciclo.' : 'Muestra la evolución del gasto total ciclo a ciclo.'}
+      </div>
     </div>
-  </body>
-  </html>
-  `;
+
+    <!-- ZONA RANKING -->
+    <div style="flex:1;">
+      <h3 style="margin-top:0;color:#0b1f3a;border-bottom:2px solid #ccc;padding-bottom:5px;">Top 10 Colaboradores (Mayor Costo)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Colaborador</th><th>Total ($)</th></tr></thead>
+        <tbody>
+          ${ranking.slice(0, 10).map((e, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${e.nombre}</td>
+              <td style="font-weight:bold;">${fmtMoney(e.total)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="margin-top:30px;text-align:center;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px;">
+    Documento oficial para toma de decisiones - Dirección Nacional DINALOG
+  </div>
+  </body></html>`;
 
   const win = window.open("", "_blank");
   win.document.write(html);
