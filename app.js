@@ -644,7 +644,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 /* ======================================================
-   FUNCIÓN DE REPORTE GERENCIAL (FUERA DEL DOMContentLoaded)
+   FUNCIÓN DE REPORTE GERENCIAL (CORREGIDA: DECIMALES FIJOS)
    ====================================================== */
 function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   const q = dataSource;
@@ -685,6 +685,12 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
     .map(([k, v]) => ({ ciclo: k, total: v }))
     .sort((a, b) => a.ciclo.localeCompare(b.ciclo));
 
+  // --- ARREGLO DECIMALES ---
+  // Redondeamos los totales a 2 decimales para el gráfico
+  const safeHE = Number(totalHE.toFixed(2));
+  const safeAlim = Number(totalAlim.toFixed(2));
+  const safeTransp = Number(totalTransp.toFixed(2));
+
   // 2. Configurar Gráfico
   let chartConfig;
   if (isSingleCycle || tendencias.length === 1) {
@@ -694,13 +700,20 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
       data: {
         labels: ['Horas Extras', 'Alimentación', 'Transporte'],
         datasets: [{
-          data: [totalHE, totalAlim, totalTransp],
+          data: [safeHE, safeAlim, safeTransp],
           backgroundColor: ['#0b1f3a', '#bf9000', '#2980b9']
         }]
       },
       options: {
         plugins: {
-          datalabels: { display: true, color: 'white', font: {weight:'bold'}, formatter: (val) => '$'+Math.round(val) },
+          // Javascript dentro de QuickChart para formatear
+          datalabels: { 
+            display: true, 
+            color: 'white', 
+            font: {weight:'bold'}, 
+            // Usamos una función simple para formatear a dinero
+            formatter: (val) => { return '$' + Number(val).toFixed(2); }
+          },
           legend: { position: 'right' },
           title: { display: true, text: 'Distribución del Gasto' }
         }
@@ -714,21 +727,35 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
         labels: tendencias.map(t => t.ciclo.substring(5)),
         datasets: [{
           label: 'Gasto Total ($)',
-          data: tendencias.map(t => t.total),
+          data: tendencias.map(t => Number(t.total.toFixed(2))), // Redondear data
           backgroundColor: '#0b1f3a'
         }]
       },
       options: {
         plugins: {
           legend: { display: false },
-          datalabels: { display: true, color: 'white', anchor: 'end', align: 'start', formatter: (val) => '$'+Math.round(val) },
+          datalabels: { 
+            display: true, 
+            color: 'white', 
+            anchor: 'end', 
+            align: 'start', 
+            formatter: (val) => { return '$' + Number(val).toFixed(2); } 
+          },
           title: { display: true, text: 'Tendencia por Ciclo' }
         }
       }
     };
   }
 
-  const chartUrl = `https://quickchart.io/chart?w=500&h=250&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+  // IMPORTANTE: Convertimos las funciones a string para que QuickChart las entienda
+  const chartJson = JSON.stringify(chartConfig, (key, value) => {
+    if (typeof value === 'function') {
+      return value.toString();
+    }
+    return value;
+  });
+
+  const chartUrl = `https://quickchart.io/chart?w=500&h=250&c=${encodeURIComponent(chartJson)}`;
 
   // 3. HTML
   const LOGO_URL = new URL("./icons/icon-512.png", window.location.href).href;
