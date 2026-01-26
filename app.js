@@ -581,7 +581,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Eventos de PDF (Usan la nueva función printReport)
   el.btnPdf.addEventListener("click", () => printReport('detail'));
  
-  // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
+   // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
     const val = el.cycle.value;
     if (val === "manual") return;
@@ -593,85 +593,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const setManual = () => { el.cycle.value = "manual"; };
   el.from.addEventListener("input", setManual);
   el.to.addEventListener("input", setManual);
-    // --- ZONA DE REPORTES DIRECTOR (AGREGAR AQUÍ) ---
-  
-  // 1. Botón "Este Ciclo"
-  const btnCycle = document.getElementById("btnDirectorCycle");
-  if (btnCycle) {
-    btnCycle.addEventListener("click", () => {
-      if (!currentData || !currentData.ok) {
-        alert("Primero realiza una consulta (Consultar) para ver un ciclo.");
-        return;
-      }
-      printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo");
-    });
-  }
 
-  // 2. Botón "Histórico"
-  const btnHistory = document.getElementById("btnDirectorHistory");
-  if (btnHistory) {
-    btnHistory.addEventListener("click", () => {
-      const originalText = btnHistory.innerText;
-      btnHistory.innerText = "⏳ Recopilando Data...";
 
-      const params = { employee: "TODOS", from: "2024-01-01", to: "2026-12-31" };
-
-      google.script.run
-        .withSuccessHandler(data => {
-          const historyData = JSON.parse(data);
-          btnHistory.innerText = originalText;
-          printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)");
-        })
-        .withFailureHandler(err => {
-          alert("Error: " + err);
-          btnHistory.innerText = originalText;
-        })
-        .doQuery(params);
-    });
-  }
-});
-/* ======================================================
-   LÓGICA DE REPORTES GERENCIALES (DUAL: CICLO vs HISTÓRICO)
-   ====================================================== */
-
-// 1. BOTÓN "ESTE CICLO": Usa la data que ya tienes en pantalla
-document.getElementById("btnDirectorCycle").addEventListener("click", () => {
-  if (!currentData || !currentData.ok) {
-    alert("Primero realiza una consulta (Consultar) para ver un ciclo.");
-    return;
-  }
-  // Llamamos al reporte pasando la data actual
-  printDirectorDashboard(currentData, "Reporte de Cierre de Ciclo");
-});
-
-// 2. BOTÓN "HISTÓRICO": Fuerza una búsqueda de todo el rango 2024-2026
-document.getElementById("btnDirectorHistory").addEventListener("click", () => {
-  const btn = document.getElementById("btnDirectorHistory");
-  const originalText = btn.innerText;
-  btn.innerText = "⏳ Recopilando Data...";
-
-  // Definimos un rango amplio para traer TODO
-  const params = {
-    employee: "TODOS", 
-    from: "2024-01-01", 
-    to: "2026-12-31" 
-  };
-
-  google.script.run
-    .withSuccessHandler(data => {
-      const historyData = JSON.parse(data);
-      btn.innerText = originalText;
-      // Llamamos al reporte con la data NUEVA (Histórica)
-      printDirectorDashboard(historyData, "Informe Histórico Evolutivo (2024-2026)");
-    })
-    .withFailureHandler(err => {
-      alert("Error al cargar histórico: " + err);
-      btn.innerText = originalText;
-    })
-    .doQuery(params);
-});
-
-   // --- ZONA DE REPORTES DIRECTOR (CORREGIDA) ---
+  // --- ZONA DE REPORTES DIRECTOR (CORREGIDA) ---
 
   // 1. Botón "Este Ciclo" (Usa la data en pantalla)
   const btnCycle = document.getElementById("btnDirectorCycle");
@@ -715,7 +639,10 @@ document.getElementById("btnDirectorHistory").addEventListener("click", () => {
       }
     });
   }
-}); // <--- AGREGA ESTA LÍNEA AQUÍ (Cierre del DOMContentLoaded)
+
+}); // <--- CIERRE FINAL DEL DOMContentLoaded. NO BORRAR.
+
+
 /* ======================================================
    FUNCIÓN DE REPORTE GERENCIAL (FUERA DEL DOMContentLoaded)
    ====================================================== */
