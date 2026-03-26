@@ -22,6 +22,7 @@ const el = {
   btnQuery: document.getElementById("btnQuery"),
   btnPdf: document.getElementById("btnPdf"),
   btnClear: document.getElementById("btnClear"),
+  btnAsistencia: document.getElementById("btnAsistencia"),
   status: document.getElementById("status"),
 
   // KPIs
@@ -849,4 +850,94 @@ function printDirectorDashboard(dataSource, reportTitle, isSingleCycle) {
   win.document.write(html);
   win.document.close();
   setTimeout(() => { win.focus(); win.print(); }, 1000);
+}
+/* ======================================================
+   REPORTE DE ASISTENCIA: TARDANZAS Y AUSENCIAS
+   ====================================================== */
+
+// Vincular el botón
+const btnAsistencia = document.getElementById("btnAsistencia");
+if (btnAsistencia) {
+  btnAsistencia.addEventListener("click", downloadAttendanceReport);
+}
+
+// Función para descargar el reporte
+async function downloadAttendanceReport() {
+  setStatus("Cargando reporte de asistencia...", "");
+  try {
+    const url = qs({ action: "asistencia", token: TOKEN });
+    const res = await fetchJSON(url);
+
+    if (!res.ok || !res.data || res.data.length === 0) {
+      alert("No se registraron datos de asistencia o tardanzas en el sistema.");
+      setStatus("No se encontraron datos de asistencia en el reporte.", "");
+      return;
+    }
+
+    const now = new Date().toLocaleDateString();
+    const filas = res.data;
+
+    let tableRows = "";
+    filas.forEach((row) => {
+      const color = row.estado === "AUSENCIA" ? "#ffebee" : "#fff8dc";
+      const justificacion = row.causal ? row.causal : "(Sin justificación)";
+
+      tableRows += `
+        <tr style="background-color:${color}">
+          <td>${row.fecha}</td>
+          <td>${row.dia}</td>
+          <td>${row.nombre}</td>
+          <td style="font-weight:bold;">${row.estado}</td>
+          <td>${row.hora_llegada || "--"}</td>
+          <td>${row.min_tarde > 0 ? row.min_tarde + " min" : "--"}</td>
+          <td>${justificacion}</td>
+        </tr>
+      `;
+    });
+
+    const reporteHTML = `
+    <html>
+    <head>
+      <title>Reporte de Asistencia</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+      </style>
+    </head>
+    <body>
+      <h1>Reporte de Asistencia y Tardanzas</h1>
+      <p>Fecha de generación: ${now}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Día</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Hora de Llegada</th>
+            <th>Minutos Tarde</th>
+            <th>Justificación</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </body>
+    </html>
+    `;
+
+    // Abrir el informe en una nueva pestaña o ventana del navegador
+    const vent = window.open("", "_blank");
+    vent.document.write(reporteHTML);
+    vent.document.close();
+
+    setStatus("Reporte de asistencia generado con éxito.", "ok");
+  } catch (err) {
+    console.error("Error:", err);
+    setStatus("Error al cargar el reporte: " + err.message, "danger");
+  }
 }
