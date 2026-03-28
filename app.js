@@ -255,6 +255,8 @@ function renderTables(q) {
 }
 
 function renderCharts(q) {
+    if (typeof Chart === "undefined") { setStatus("No se pudo cargar Chart.js (CDN bloqueado).", "danger"); return; }
+  
   const heRows = q.he_daily || [];
   const benRows = q.beneficios || [];
   const monthlyRows = q.resumen_ciclo || [];
@@ -597,7 +599,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Eventos de PDF (Usan la nueva función printReport)
   el.btnPdf.addEventListener("click", () => printReport('detail'));
-    if (el.btnAsistencia) el.btnAsistencia.addEventListener("click", doAsistencia);
+
+  // Reporte Ausencias / Tardanzas
+  if (el.btnAsistencia) el.btnAsistencia.addEventListener("click", doAsistencia);
  
    // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
@@ -953,7 +957,7 @@ async function doAsistencia() {
     return;
   }
 
-  if (el.btnAsistencia) el.btnAsistencia.disabled = true;
+  el.btnAsistencia.disabled = true;
 
   try {
     setStatus("Consultando Ausencias/Tardanzas...", "");
@@ -963,7 +967,7 @@ async function doAsistencia() {
     const cols = ["full_name","date","weekday","day_type","status","first_in","min_tarde","causal"];
     buildTable(el.headAsistencia, el.bodyAsistencia, cols, j.rows || []);
 
-    // Opcional: activar tab Asistencia
+    // Forzar tab Asistencia
     const tabAsi = document.querySelector('.tab[data-tab="tab-asi"]');
     if (tabAsi) tabAsi.click();
 
@@ -972,6 +976,6 @@ async function doAsistencia() {
     console.error(e);
     setStatus("Error: " + e.message, "danger");
   } finally {
-    if (el.btnAsistencia) el.btnAsistencia.disabled = false;
+    el.btnAsistencia.disabled = false;
   }
 }
