@@ -923,12 +923,47 @@ function printAsistenciaPdf(report) {
 
   const p = report.params || {};
   const rows = report.rows || [];
-  const now = new Date().toLocaleDateString();
+  const now = new Date().toLocaleDateString("es-PA");
 
   const esc = s => String(s || "").replace(/[&<>"']/g, m => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
   }[m]));
 
+  // --- LOGO (igual estilo que el otro reporte) ---
+  const LOGO_URL = new URL("./icons/icon-512.png", window.location.href).href;
+
+  // --- KPIs ---
+  const totalAus = rows.filter(r => r.status === "AUSENCIA").length;
+  const totalTar = rows.filter(r => r.status === "TARDANZA").length;
+  const totalInc = rows.length;
+
+  const minutosTardeTotal = rows.reduce((acc, r) => acc + (Number(r.min_tarde) || 0), 0);
+  const minutosTardeProm = totalTar > 0 ? (minutosTardeTotal / totalTar) : 0;
+  const minutosTardeMax = rows.reduce((m, r) => Math.max(m, Number(r.min_tarde) || 0), 0);
+
+  // --- Gráfica (QuickChart) ---
+  const chartConfig = {
+    type: "bar",
+    data: {
+      labels: ["Ausencias", "Tardanzas"],
+      datasets: [{
+        label: "Incidencias",
+        data: [totalAus, totalTar],
+        backgroundColor: ["#c0392b", "#d35400"]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: "Distribución de incidencias" }
+      },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  };
+
+  const chartUrl = `https://quickchart.io/chart?w=700&h=260&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+
+  // --- Tabla ---
   const cols = [
     ["date", "Fecha"],
     ["weekday", "Día"],
@@ -946,36 +981,108 @@ function printAsistenciaPdf(report) {
     return `<tr style="background:${bg}">${tds}</tr>`;
   }).join("");
 
-  const title = `Reporte Ausencias/Tardanzas - ${esc(p.employee || "TODOS")}`;
+  const title = `REPORTE AUSENCIAS / TARDANZAS`;
+  const empLabel = (p.employee && p.employee !== "TODOS") ? p.employee : "TODOS";
 
   const html = `
   <!doctype html>
   <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>${title}</title>
+    <title>Reporte_Asistencia_${esc(empLabel)}</title>
     <style>
-      @page { size: portrait; margin: 12mm; }
-      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
-      h1 { font-size: 16px; margin: 0 0 6px 0; }
-      .meta { font-size: 11px; color: #444; margin-bottom: 12px; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-      th { background: #0b1f3a; color: #fff; }
+      @page { size: landscape; margin: 10mm; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color:#111; margin:0; -webkit-print-color-adjust: exact; }
+
+      .header {
+        background-color:#0b1f3a;
+        color:#fff;
+        padding: 14px 16px;
+        display:flex;
+        align-items:center;
+        border-bottom: 4px solid #bf9000;
+      }
+      .logo { width:50px; height:50px; background:#fff; border-radius:6px; padding:3px; object-fit:contain; margin-right:14px; }
+      .header-titles { flex:1; }
+      .main-title { font-size:18px; font-weight:800; text-transform: uppercase; letter-spacing:.3px; }
+      .sub-title { font-size:11px; opacity:.9; margin-top:2px; }
+      .meta { text-align:right; font-size:11px; line-height:1.35; color:#eaeaea; }
+      .meta b { color:#fff; }
+
+      .kpi-row { display:flex; gap:10px; margin: 14px 0; }
+      .kpi {
+        flex:1;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background:#fff;
+        text-align:center;
+      }
+      .kpi .lbl { font-size:10px; text-transform:uppercase; color:#555; font-weight:700; }
+      .kpi .val { font-size:16px; font-weight:800; margin-top:6px; color:#0b1f3a; }
+      .kpi.red .val { color:#c0392b; }
+      .kpi.orange .val { color:#d35400; }
+
+      .section-title {
+        font-size:12px;
+        font-weight:800;
+        color:#0b1f3a;
+        margin-top: 16px;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 3px;
+      }
+
+      .chart-box {
+        margin-top: 10px;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 12px;
+        background:#fff;
+      }
+
+      table { width:100%; border-collapse:collapse; margin-top:10px; font-size:10px; }
+      th { background:#0b1f3a; color:#fff; padding:6px; text-align:left; }
+      td { border-bottom:1px solid #ddd; padding:6px; vertical-align:top; }
+
+      .footer { margin-top:16px; font-size:9px; color:#777; text-align:center; border-top:1px solid #eee; padding-top:8px; }
     </style>
   </head>
   <body>
-    <h1>${title}</h1>
-    <div class="meta">
-      <div><b>Periodo:</b> ${esc(p.from)} al ${esc(p.to)}</div>
-      <div><b>Generado:</b> ${esc(now)}</div>
-      <div><b>Total incidencias:</b> ${rows.length}</div>
+
+    <div class="header">
+      <img src="${LOGO_URL}" class="logo" alt="Logo">
+      <div class="header-titles">
+        <div class="main-title">${esc(title)}</div>
+        <div class="sub-title">Recursos Humanos CSS — DINALOG — CEDIS Panamá</div>
+      </div>
+      <div class="meta">
+        <div><b>Colaborador:</b> ${esc(empLabel)}</div>
+        <div><b>Periodo:</b> ${esc(p.from)} al ${esc(p.to)}</div>
+        <div>Generado: ${esc(now)}</div>
+      </div>
     </div>
 
+    <div class="kpi-row">
+      <div class="kpi red"><div class="lbl">Ausencias</div><div class="val">${totalAus}</div></div>
+      <div class="kpi orange"><div class="lbl">Tardanzas</div><div class="val">${totalTar}</div></div>
+      <div class="kpi"><div class="lbl">Total incidencias</div><div class="val">${totalInc}</div></div>
+      <div class="kpi"><div class="lbl">Min. tarde (promedio)</div><div class="val">${minutosTardeProm.toFixed(1)}</div></div>
+      <div class="kpi"><div class="lbl">Min. tarde (máximo)</div><div class="val">${minutosTardeMax}</div></div>
+    </div>
+
+    <div class="section-title">Gráfica</div>
+    <div class="chart-box">
+      <img src="${chartUrl}" style="max-width:100%; height:auto;">
+    </div>
+
+    <div class="section-title">Detalle de Incidencias</div>
     <table>
       <thead><tr>${header}</tr></thead>
       <tbody>${body}</tbody>
     </table>
+
+    <div class="footer">Torre de Control CSS - Sistema de Gestión Biométrica.</div>
+
   </body>
   </html>
   `;
@@ -983,5 +1090,5 @@ function printAsistenciaPdf(report) {
   const win = window.open("", "_blank");
   win.document.write(html);
   win.document.close();
-  setTimeout(() => { win.focus(); win.print(); }, 500);
+  setTimeout(() => { win.focus(); win.print(); }, 700);
 }
