@@ -597,6 +597,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Eventos de PDF (Usan la nueva función printReport)
   el.btnPdf.addEventListener("click", () => printReport('detail'));
+    if (el.btnAsistencia) el.btnAsistencia.addEventListener("click", doAsistencia);
  
    // 2. Lógica al cambiar el ciclo: Actualiza fechas automáticamente
   el.cycle.addEventListener("change", () => {
@@ -939,5 +940,38 @@ async function downloadAttendanceReport() {
   } catch (err) {
     console.error("Error:", err);
     setStatus("Error al cargar el reporte: " + err.message, "danger");
+  }
+}
+
+async function doAsistencia() {
+  const employee = el.employee.value || "TODOS";
+  const from = el.from.value;
+  const to = el.to.value;
+
+  if (!from || !to) {
+    setStatus("Para Ausencias/Tardanzas debes seleccionar Desde y Hasta.", "danger");
+    return;
+  }
+
+  if (el.btnAsistencia) el.btnAsistencia.disabled = true;
+
+  try {
+    setStatus("Consultando Ausencias/Tardanzas...", "");
+    const url = qs({ action: "asistencia", token: TOKEN, employee, from, to });
+    const j = await fetchJSON(url);
+
+    const cols = ["full_name","date","weekday","day_type","status","first_in","min_tarde","causal"];
+    buildTable(el.headAsistencia, el.bodyAsistencia, cols, j.rows || []);
+
+    // Opcional: activar tab Asistencia
+    const tabAsi = document.querySelector('.tab[data-tab="tab-asi"]');
+    if (tabAsi) tabAsi.click();
+
+    setStatus("Reporte de Ausencias/Tardanzas cargado.", "ok");
+  } catch (e) {
+    console.error(e);
+    setStatus("Error: " + e.message, "danger");
+  } finally {
+    if (el.btnAsistencia) el.btnAsistencia.disabled = false;
   }
 }
