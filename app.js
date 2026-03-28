@@ -13,6 +13,7 @@ let chartDayType = null;
 let chartBenefits = null;
 let chartCycles = null;
 let currentData = null; // Variable crítica para guardar la última consulta
+let currentAsistenciaReport = null;
 
 const el = {
   employee: document.getElementById("employee"),
@@ -886,6 +887,8 @@ async function doAsistencia() {
     const url = qs({ action: "asistencia", token: TOKEN, employee, from, to });
     const j = await fetchJSON(url);
 
+    currentAsistenciaReport = j; // guarda el último reporte de incidencias
+
     // El backend nuevo responde: { ok:true, rows:[...] }
     const filas = j.rows || [];
 
@@ -901,6 +904,8 @@ async function doAsistencia() {
       return;
     }
 
+    printAsistenciaPdf(currentAsistenciaReport);
+    
     setStatus("Reporte de Ausencias/Tardanzas cargado.", "ok");
   } catch (e) {
     console.error(e);
@@ -908,4 +913,75 @@ async function doAsistencia() {
   } finally {
     if (el.btnAsistencia) el.btnAsistencia.disabled = false;
   }
+}
+
+function printAsistenciaPdf(report) {
+  if (!report || !report.ok) {
+    alert("No hay datos de Ausencias/Tardanzas para imprimir.");
+    return;
+  }
+
+  const p = report.params || {};
+  const rows = report.rows || [];
+  const now = new Date().toLocaleDateString();
+
+  const esc = s => String(s || "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+
+  const cols = [
+    ["date", "Fecha"],
+    ["weekday", "Día"],
+    ["full_name", "Nombre"],
+    ["status", "Estado"],
+    ["first_in", "Hora Llegada"],
+    ["min_tarde", "Min. Tarde"],
+    ["causal", "Causal"]
+  ];
+
+  const header = cols.map(c => `<th>${esc(c[1])}</th>`).join("");
+  const body = rows.map(r => {
+    const tds = cols.map(([k]) => `<td>${esc(r[k])}</td>`).join("");
+    const bg = r.status === "AUSENCIA" ? "#ffebee" : (r.status === "TARDANZA" ? "#fff8dc" : "#fff");
+    return `<tr style="background:${bg}">${tds}</tr>`;
+  }).join("");
+
+  const title = `Reporte Ausencias/Tardanzas - ${esc(p.employee || "TODOS")}`;
+
+  const html = `
+  <!doctype html>
+  <html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>${title}</title>
+    <style>
+      @page { size: portrait; margin: 12mm; }
+      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
+      h1 { font-size: 16px; margin: 0 0 6px 0; }
+      .meta { font-size: 11px; color: #444; margin-bottom: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+      th { background: #0b1f3a; color: #fff; }
+    </style>
+  </head>
+  <body>
+    <h1>${title}</h1>
+    <div class="meta">
+      <div><b>Periodo:</b> ${esc(p.from)} al ${esc(p.to)}</div>
+      <div><b>Generado:</b> ${esc(now)}</div>
+      <div><b>Total incidencias:</b> ${rows.length}</div>
+    </div>
+
+    <table>
+      <thead><tr>${header}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </body>
+  </html>
+  `;
+
+  const win = window.open("", "_blank");
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => { win.focus(); win.print(); }, 500);
 }
