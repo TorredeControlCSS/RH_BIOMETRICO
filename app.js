@@ -957,7 +957,13 @@ function printAsistenciaPdf(report) {
         legend: { display: false },
         title: { display: true, text: "Distribución de incidencias" }
       },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      scales: {
+        y: {
+          min: 0,
+          suggestedMax: Math.max(totalAus, totalTar, 1),
+          ticks: { stepSize: 1, precision: 0 }
+        }
+      }
     }
   };
 
