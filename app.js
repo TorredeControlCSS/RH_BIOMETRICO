@@ -946,21 +946,28 @@ function printAsistenciaPdf(report) {
     type: "bar",
     data: {
       labels: ["Ausencias", "Tardanzas"],
-      datasets: [{
-        label: "Incidencias",
-        data: [totalAus, totalTar],
-        backgroundColor: ["#c0392b", "#d35400"]
-      }]
+      datasets: [
+        {
+          label: "Ausencias",
+          data: [totalAus, 0],
+          backgroundColor: "#c0392b"
+        },
+        {
+          label: "Tardanzas",
+          data: [0, totalTar],
+          backgroundColor: "#d35400"
+        }
+      ]
     },
     options: {
+      responsive: true,
       plugins: {
-        legend: { display: false },
+        legend: { position: "top" },
         title: { display: true, text: "Distribución de incidencias" }
       },
       scales: {
         y: {
           min: 0,
-          suggestedMax: Math.max(totalAus, totalTar, 1),
           ticks: { stepSize: 1, precision: 0 }
         }
       }
