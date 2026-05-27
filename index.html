@@ -1,237 +1,933 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link rel="icon" href="./favicon.ico?v=1"/>
-  <link rel="shortcut icon" href="./favicon.ico?v=1"/>
-  <title>DINALOG — RH Biométrico (HE / TXT / Alimentación)</title>
-
- <style>
-    body{font-family:Arial, sans-serif; margin:0; background:#fff;}
-    .topbar{
-      background: linear-gradient(90deg,#0b1f3a,#133a74);
-      color:#fff; padding:12px 14px; display:flex; align-items:center; gap:12px;
-      box-shadow:0 2px 10px rgba(0,0,0,.2);
-      position:sticky; top:0; z-index:9999; width:100%; box-sizing:border-box;
-    }
-    .topbar img{width:40px;height:40px;object-fit:contain;flex-shrink:0;background:transparent;}
-    .topbar .title{flex:1 1 auto;min-width:200px;display:flex;flex-direction:column;line-height:1.2;}
-    .topbar .title-main{font-size:16px;font-weight:700;letter-spacing:.3px;color:#fff;}
-    .topbar .title-sub{font-size:12px;font-weight:400;color:#cbd5e1;margin-top:2px;}
-    .topbar .top-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
-    .topbar .theme-select{padding:6px 8px;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:#fff;min-width:110px;}
-    .topbar .theme-select option{background:#0b1f3a;color:#fff;}
-    @media (max-width:720px){
-      .topbar{flex-direction:column;align-items:center;text-align:center;position:static;}
-      .topbar .top-actions{width:100%;justify-content:center;margin-top:8px;}
-      .topbar .theme-select{width:100%;max-width:220px;}
-    }
-
-    .page{padding:18px;}
-    .grid{display:grid;grid-template-columns:420px 1fr;gap:12px;align-items:start;}
-    .card{border:1px solid #ddd;border-radius:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);background:#fff;}
-    h1{font-size:18px;margin:0 0 8px 0;}
-    h2{font-size:14px;margin:0 0 8px 0;}
-    label{display:block;font-size:12px;margin-top:6px;}
-    select,input{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;}
-    button{padding:9px 12px;border:1px solid #333;border-radius:10px;background:#fff;cursor:pointer;}
-    button:disabled{opacity:.5;cursor:not-allowed;}
-    
-    .kpi{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
-    .kpi .box{border:1px solid #e5e5e5;border-radius:10px;padding:10px;}
-    .kpi .value{font-size:16px;font-weight:700;margin-top:6px;}
-    
-    .muted{color:#666;font-size:12px;}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-    .tab{border:1px solid #ddd;border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer;user-select:none;background:#fff;}
-    .tab.active{border-color:#333;font-weight:700;}
-    .tab-content{display:none;}
-    .tab-content.active{display:block;}
-
-    table{border-collapse:collapse;width:100%;font-size:12px;}
-    th,td{border:1px solid #ddd;padding:6px;vertical-align:top;}
-    th{background:#f7f7f7;position:sticky;top:0;z-index:1;}
-    
-    /* CAMBIO: Altura reducida para que quepa mejor arriba */
-    .scroll{max-height:300px; overflow:auto; border:1px solid #ddd; border-radius:10px;}
-    
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    .row > *{flex:1 1 auto;}
-    .right{text-align:right;}
-    .danger{color:#b00020;}
-    .ok{color:#0a7a2f;}
-
-    .btn-main { background: #0b1f3a; color: white; border: none; font-weight:700;}
-    .btn-secondary { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
-
-    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    @media (max-width:980px){
-      .grid{grid-template-columns:1fr;}
-      .kpi{grid-template-columns:repeat(2,1fr);}
-      .charts-grid{grid-template-columns:1fr;}
-    }
-  </style>
-
+  <title>DINALOG — RH Biométrico v2</title>
+  <link rel="icon" href="./favicon.ico?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --navy:      #0B1F3A;
+      --navy2:     #133a74;
+      --gold:      #F59E0B;
+      --bg:        #F1F5F9;
+      --white:     #FFFFFF;
+      --text:      #1F2937;
+      --muted:     #6B7280;
+      --border:    #E5E7EB;
+      --success:   #059669;
+      --danger:    #DC2626;
+      --warn:      #D97706;
+      --info:      #2563EB;
+      --ff:        'DM Sans', sans-serif;
+      --mono:      'DM Mono', monospace;
+      --r:         12px;
+
+      /* dark mode override */
+      --card-bg:    #fff;
+      --card-bd:    #E5E7EB;
+      --body-bg:    #F1F5F9;
+      --label-col:  #6B7280;
+      --th-bg:      #F9FAFB;
+    }
+    [data-theme="dark"] {
+      --card-bg:   #1e293b;
+      --card-bd:   #334155;
+      --body-bg:   #0f172a;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --label-col: #94a3b8;
+      --border:    #334155;
+      --th-bg:     #1a2744;
+      --white:     #1e293b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--ff); background: var(--body-bg); color: var(--text); min-height: 100vh; }
+
+    /* ── TOPBAR ──────────────────────────────── */
+    .topbar {
+      background: linear-gradient(90deg, var(--navy), var(--navy2));
+      color: #fff; padding: 12px 20px;
+      display: flex; align-items: center; gap: 14px;
+      position: sticky; top: 0; z-index: 999;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    .topbar img { width: 38px; height: 38px; object-fit: contain; }
+    .topbar .t-main { font-size: 15px; font-weight: 800; letter-spacing: -.2px; }
+    .topbar .t-sub  { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+    .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .tb-btn {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+      color: #fff; font-size: 11px; font-weight: 700;
+      padding: 7px 13px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+      text-decoration: none; display: flex; align-items: center; gap: 5px;
+      font-family: var(--ff);
+    }
+    .tb-btn:hover { background: rgba(255,255,255,.18); }
+    .tb-btn.gold  { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+    select.tb-sel { background: transparent; border: 1px solid rgba(255,255,255,.2); color: #fff; padding: 6px 8px; border-radius: 8px; font-size: 11px; }
+    select.tb-sel option { background: var(--navy); }
+    #live-clock { font-size: 11px; color: #64748b; font-family: var(--mono); white-space: nowrap; }
+
+    /* ── LAYOUT ──────────────────────────────── */
+    .page { padding: 16px; max-width: 1400px; margin: 0 auto; }
+    .grid-2 { display: grid; grid-template-columns: 380px 1fr; gap: 14px; align-items: start; }
+    @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-bd);
+      border-radius: var(--r); padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .card-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+    [data-theme="dark"] .card-title { color: #e2e8f0; }
+
+    /* ── QUERY PANEL ─────────────────────────── */
+    label { display: block; font-size: 11px; font-weight: 600; color: var(--label-col); margin-top: 10px; margin-bottom: 4px; letter-spacing: .3px; text-transform: uppercase; }
+    select, input[type="date"] {
+      width: 100%; padding: 9px 11px;
+      border: 1.5px solid var(--border); border-radius: 9px;
+      background: var(--body-bg); color: var(--text);
+      font-size: 13px; font-family: var(--ff);
+    }
+    select:focus, input:focus { outline: none; border-color: var(--navy); }
+    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hint { font-size: 10.5px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    
+    .btn-group { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+    .btn {
+      padding: 9px 14px; border-radius: 9px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; font-family: var(--ff); display: flex; align-items: center; gap: 5px;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover   { opacity: .88; }
+    .btn:active  { transform: scale(.96); }
+    .btn:disabled{ opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-gold    { background: var(--gold); color: var(--navy); }
+    .btn-ghost   { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger  { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    .btn-dark    { background: var(--navy2); color: #fff; }
+    .btn-red     { background: var(--danger); color: #fff; }
+    .btn-warn    { background: var(--warn); color: #fff; }
+
+    .status { font-size: 11.5px; color: var(--muted); margin-top: 10px; min-height: 18px; font-family: var(--mono); }
+    .status.ok { color: var(--success); }
+    .status.err { color: var(--danger); }
+
+    /* ── KPI GRID ────────────────────────────── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 14px; }
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-box { background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: var(--r); padding: 12px 14px; }
+    .kpi-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 5px; }
+    .kpi-val { font-size: 20px; font-weight: 800; color: var(--text); font-family: var(--mono); }
+    .kpi-box.accent-gold   { border-top: 3px solid var(--gold); }
+    .kpi-box.accent-green  { border-top: 3px solid var(--success); }
+    .kpi-box.accent-navy   { border-top: 3px solid var(--navy2); }
+    .kpi-box.accent-warn   { border-top: 3px solid var(--warn); }
+    .kpi-box.accent-danger { border-top: 3px solid var(--danger); }
+    .kpi-box.accent-info   { border-top: 3px solid var(--info); }
+
+    /* Total highlight */
+    .total-highlight {
+      background: linear-gradient(135deg, var(--navy), var(--navy2));
+      border-radius: var(--r); padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .thl-lbl { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: .6px; text-transform: uppercase; }
+    .thl-val { font-size: 28px; font-weight: 800; color: var(--gold); font-family: var(--mono); margin-top: 3px; }
+    .thl-right { text-align: right; display: flex; flex-direction: column; gap: 4px; }
+    .thl-sub { font-size: 11px; color: #64748b; font-family: var(--mono); }
+
+    /* ── TABS ────────────────────────────────── */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 2px solid var(--border); margin-bottom: 12px; padding-bottom: 0; }
+    .tab { padding: 9px 14px; font-size: 12px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; color: var(--muted); margin-bottom: -2px; transition: color .15s, border-color .15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--navy); border-bottom-color: var(--navy); }
+    [data-theme="dark"] .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── TABLES ──────────────────────────────── */
+    .scroll-wrap { max-height: 340px; overflow: auto; border-radius: 9px; border: 1px solid var(--card-bd); }
+    table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    th { background: var(--th-bg); padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--card-bd); }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--card-bd); color: var(--text); font-family: var(--mono); font-size: 11px; }
+    tr:last-child td { border: none; }
+    tr:hover td { background: rgba(245,158,11,.04); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: var(--ff); }
+    .badge-ok   { background: #ecfdf5; color: #059669; }
+    .badge-warn { background: #fffbeb; color: #d97706; }
+    .badge-bad  { background: #fef2f2; color: #dc2626; }
+    .badge-info { background: #eff6ff; color: #2563eb; }
+    .badge-rest { background: #f1f5f9; color: #94a3b8; }
+    .td-he  { color: var(--success); font-weight: 700; }
+    .td-txt { color: var(--warn); font-weight: 700; }
+    .td-ben { color: var(--info); }
+
+    /* ── CHARTS ──────────────────────────────── */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 700px) { .charts-row { grid-template-columns: 1fr; } }
+    .chart-card { background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: var(--r); padding: 14px; }
+    .chart-title { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 12px; letter-spacing: .3px; text-transform: uppercase; }
+    .chart-full { background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: var(--r); padding: 14px; margin-top: 14px; }
+
+    /* ── INCIDENCIAS PANEL ───────────────────── */
+    .inc-banner {
+      background: linear-gradient(135deg, #1e3a5f, var(--navy2));
+      border-radius: var(--r); padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 10px;
+    }
+    .inc-banner-ico { font-size: 26px; flex-shrink: 0; }
+    .inc-banner-txt h3 { font-size: 13px; font-weight: 800; color: #fff; }
+    .inc-banner-txt p  { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .inc-banner-actions { margin-left: auto; display: flex; gap: 8px; }
+
+    .flag-row { background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: 9px; padding: 11px 13px; margin-bottom: 7px; display: flex; gap: 10px; align-items: flex-start; }
+    .flag-row.flag-warn   { border-left: 3px solid var(--warn);    background: #fffbeb; }
+    .flag-row.flag-bad    { border-left: 3px solid var(--danger);  background: #fef2f2; }
+    .flag-row.flag-info   { border-left: 3px solid var(--info);    background: #eff6ff; }
+    .flag-ico { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .flag-date { font-size: 10px; font-weight: 700; color: var(--muted); font-family: var(--mono); }
+    .flag-msg  { font-size: 12px; font-weight: 700; color: var(--text); margin-top: 1px; }
+    .flag-sub  { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+
+    /* ── DIRECTOR VIEW ───────────────────────── */
+    .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .dir-card {
+      background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: var(--r); padding: 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .dir-name { font-size: 13px; font-weight: 800; color: var(--text); }
+    .dir-row  { display: flex; justify-content: space-between; font-size: 11px; }
+    .dir-lbl  { color: var(--muted); }
+    .dir-val  { font-family: var(--mono); font-weight: 700; color: var(--text); }
+    .dir-total{ font-size: 16px; font-weight: 800; color: var(--gold); font-family: var(--mono); }
+    .dir-flags{ font-size: 10px; font-weight: 700; color: var(--danger); }
+
+    /* ── MISC ────────────────────────────────── */
+    .sep { height: 1px; background: var(--border); margin: 14px 0; }
+    .empty-msg { text-align: center; color: var(--muted); font-size: 13px; padding: 32px; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: rot .7s linear infinite; vertical-align: middle; margin-left: 6px; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+    .link-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+      padding: 5px 11px; border-radius: 99px; text-decoration: none;
+      transition: background .15s;
+    }
+    .link-pill:hover { background: rgba(245,158,11,.2); }
+  </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <img src="icons/icon-512.png" alt="Logo" width="40" height="40" onerror="this.style.display='none'">
-    <div class="title">
-      <div class="title-main">DINALOG — RH Biométrico (HORAS EXTRAS / TXT / ALIMENTACIÓN) — CEDIS PANAMÁ</div>
-      <div class="title-sub">
-        <span id="currentDateTime">Dashboard Recursos Humanos · v1.0</span>
-      </div>
-    </div>
-    <div class="top-actions">
-      <select id="themeMode" class="theme-select" title="Tema">
-        <option value="auto">Sistema</option>
-        <option value="light">Claro</option>
-        <option value="dark">Oscuro</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="page">
-    <div class="grid">
-      <!-- LEFT -->
-      <div class="card">
-        <h1>Consulta</h1>
-        <div class="muted">Fuente: Reporte Biometrico + Apps Script) → Validacion de Analista Pendiente.</div>
+<!-- TOPBAR -->
+<div class="topbar">
+  <img src="icons/icon-512.png" alt="CSS" onerror="this.style.display='none'">
+  <div>
+    <div class="t-main">DINALOG — RH Biométrico · CEDIS PANAMÁ</div>
+    <div class="t-sub" id="live-clock">Dashboard Recursos Humanos · v2.0</div>
+  </div>
+  <div class="topbar-actions">
+    <a href="incidencias.html" class="tb-btn">🚨 Incidencias</a>
+    <a href="mis_tiempos.html" class="tb-btn gold">👤 Portal Empleado</a>
+    <select id="themeToggle" class="tb-sel" onchange="setTheme(this.value)">
+      <option value="light">☀️ Claro</option>
+      <option value="dark">🌙 Oscuro</option>
+    </select>
+  </div>
+</div>
+
+<div class="page">
+  <div class="grid-2">
+
+    <!-- ── LEFT: QUERY PANEL ── -->
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">🔍 Consulta Biométrica</div>
+        <div class="hint" style="margin-top:0;margin-bottom:8px;">Fuente: Reporte Biométrico → Validación de Analista</div>
 
         <label>Empleado</label>
-        <select id="employee"></select>
-
-        <label>Ciclo (16 → 15)</label>
-        <select id="cycle">
-          <option value="manual">Rango manual</option>
+        <select id="empSel">
+          <option value="">Cargando…</option>
         </select>
-        <div class="muted">El TXT y el CAP 40h se calculan por cierre de ciclo (16→15).</div>
 
-        <div class="row" style="margin-top:8px;">
+        <label>Ciclo de nómina (16 → 15)</label>
+        <select id="cycleSel" onchange="onCycleChange()">
+          <option value="manual">— Rango manual —</option>
+        </select>
+        <div class="hint">TXT y CAP 40h se calculan por cierre de ciclo (día 16 al 15).</div>
+
+        <div class="date-row" style="margin-top:10px;">
           <div>
             <label>Desde</label>
-            <input id="from" type="date">
+            <input id="fromDate" type="date">
           </div>
           <div>
             <label>Hasta</label>
-            <input id="to" type="date">
+            <input id="toDate" type="date">
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button id="btnQuery" class="btn-main">Consultar</button>
-          <button id="btnPdf" class="btn-action">PDF Individual</button>
-          <div style="width:1px; height:25px; background:#ccc; margin:0 5px;"></div>
-          <button id="btnDirectorCycle" class="btn-action" style="background-color:#0b1f3a; color:white; border:none;">
-            📊 Director (Ciclo)
-          </button>
-          <button id="btnDirectorHistory" class="btn-action" style="background-color:#c0392b; color:white; border:none;">
-            📈 Director (Histórico)
-          </button>
-          <!-- Botón para descargar reporte de inasistencias/tardanzas -->
-          <button id="btnAsistencia" class="btn-action" style="background-color:#d35400; color:white; border:none;">
-           ⚠️ Reporte Ausencias / Tardanzas
-          </button>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btnQuery" onclick="doQuery()">▶ Consultar</button>
+          <button class="btn btn-ghost" id="btnClear" onclick="doClear()">✕ Limpiar</button>
         </div>
 
-        <div style="margin-top:8px;">
-          <button id="btnClear" class="btn-secondary" style="width:100%;">Limpiar</button>
+        <div class="sep"></div>
+
+        <div class="card-title">📄 Reportes</div>
+        <div class="btn-group">
+          <button class="btn btn-ghost" id="btnPdf" onclick="doPdf('detail')">🗒 PDF Individual</button>
+          <button class="btn btn-dark"  id="btnPdfMgr" onclick="doPdf('manager')">📊 PDF Gerencial</button>
+        </div>
+        <div class="sep"></div>
+        <div class="card-title">📋 Vista Director</div>
+        <div class="btn-group">
+          <button class="btn btn-dark"  id="btnDirCycle" onclick="doDirector('cycle')">📊 Director (Ciclo)</button>
+          <button class="btn btn-red"   id="btnDirHist"  onclick="doDirector('hist')">📈 Director (Histórico)</button>
+          <button class="btn btn-warn"  id="btnAsist"    onclick="doAsistencia()">⚠️ Ausencias / Tardanzas</button>
         </div>
 
-        <div id="status" class="muted" style="margin-top:10px;"></div>
+        <div id="status" class="status"></div>
       </div>
 
-      <!-- RIGHT -->
+      <!-- Links rápidos -->
       <div class="card">
-        <h1>KPIs del rango</h1>
-        <div class="kpi">
-          <div class="box"><div class="muted">Eventos</div><div class="value" id="kpiEvents">0</div></div>
-          <div class="box"><div class="muted">Días</div><div class="value" id="kpiDays">0</div></div>
-          <div class="box"><div class="muted">HE Calculadas</div><div class="value" id="kpiHeCalc">00:00</div></div>
-          <div class="box"><div class="muted">HE Pagadas (cap 40h)</div><div class="value" id="kpiHePay">00:00</div></div>
-          <div class="box"><div class="muted">TXT (Bolsón)</div><div class="value" id="kpiTxt">00:00</div></div>
-          <!-- CAMBIO DE ETIQUETA -->
-          <div class="box"><div class="muted">Beneficios (Alim+Transp)</div><div class="value" id="kpiBen">USD 0.00</div></div>
+        <div class="card-title">🔗 Accesos rápidos</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="incidencias.html" class="link-pill">🚨 App Incidencias (empleados)</a>
+          <a href="mis_tiempos.html" class="link-pill">📊 Portal Mis Tiempos (empleados)</a>
+          <a href="asistencia (32).html" class="link-pill">📅 Control de Asistencia</a>
         </div>
-        
-        <!-- NUEVA TARJETA TOTAL -->
-        <div style="margin-top:10px; background:#fffcf0; border:2px solid #bf9000; border-radius:10px; padding:15px; text-align:center;">
-           <div style="font-size:12px; color:#bf9000; font-weight:bold; text-transform:uppercase;">TOTAL A PAGAR</div>
-           <div id="kpiTotalGeneral" style="font-size:24px; font-weight:bold; color:#333; margin-top:5px;">USD 0.00</div>
-        </div>
-
-        <!-- SECCIÓN MOVIDA: DETALLE (AHORA ESTÁ ARRIBA) -->
-        <div class="card" style="margin-top:20px; border-top:4px solid #0b1f3a;">
-          <h1>Detalle</h1>
-          <div class="tabs">
-            <div class="tab active" data-tab="tab-asi">Asistencia</div>
-            <div class="tab" data-tab="tab-he">HE + TXT</div>
-            <div class="tab" data-tab="tab-ben">Beneficios</div>
-            <div class="tab" data-tab="tab-cycles">Resumen ciclo</div>
-          </div>
-
-          <div id="tab-asi" class="tab-content active" style="margin-top:10px;">
-            <div class="scroll">
-              <table><thead id="headAsistencia"></thead><tbody id="bodyAsistencia"></tbody></table>
-            </div>
-          </div>
-          <div id="tab-he" class="tab-content" style="margin-top:10px;">
-            <div class="scroll">
-              <table><thead id="headHE"></thead><tbody id="bodyHE"></tbody></table>
-            </div>
-          </div>
-          <div id="tab-ben" class="tab-content" style="margin-top:10px;">
-            <div class="scroll">
-              <table><thead id="headBEN"></thead><tbody id="bodyBEN"></tbody></table>
-            </div>
-          </div>
-          <div id="tab-cycles" class="tab-content" style="margin-top:10px;">
-            <div class="scroll">
-              <table><thead id="headCYC"></thead><tbody id="bodyCYC"></tbody></table>
-            </div>
-          </div>
-        </div>
-        <!-- FIN SECCIÓN DETALLE -->
-
-
-        <h1 style="margin-top:20px;">Gráficos</h1>
-        <div class="charts-grid">
-          <div class="card" style="box-shadow:none;">
-            <div class="muted">Horas por tipo de día (HE Calc / HE Pagable)</div>
-            <canvas id="chartDayType"></canvas>
-          </div>
-
-          <div class="card" style="box-shadow:none;">
-            <div class="muted">Beneficios por tipo de día (Alimentación / Transporte)</div>
-            <canvas id="chartBenefits"></canvas>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px; box-shadow:none;">
-          <div class="muted">Cierre por ciclo (CAP 40h): HE pagadas vs TXT</div>
-            <div style="height: 350px; position: relative; width: 100%;">
-              <canvas id="chartCycles"></canvas>
-            </div>
-        </div>
-
       </div>
     </div>
+
+    <!-- ── RIGHT: RESULTS ── -->
+    <div id="resultsPanel">
+
+      <!-- KPIs -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-box"><div class="kpi-lbl">Eventos</div><div class="kpi-val" id="kpiEv">—</div></div>
+        <div class="kpi-box accent-info"><div class="kpi-lbl">Días</div><div class="kpi-val" id="kpiDays">—</div></div>
+        <div class="kpi-box accent-gold"><div class="kpi-lbl">HE Calculadas</div><div class="kpi-val" id="kpiCalc">—</div></div>
+        <div class="kpi-box accent-green"><div class="kpi-lbl">HE Pagadas (cap 40h)</div><div class="kpi-val" id="kpiPaid">—</div></div>
+        <div class="kpi-box accent-warn"><div class="kpi-lbl">TXT Bolsón</div><div class="kpi-val" id="kpiTxt">—</div></div>
+        <div class="kpi-box accent-danger"><div class="kpi-lbl">Alertas Auditoría</div><div class="kpi-val" id="kpiAlerts" style="color:var(--danger);">—</div></div>
+      </div>
+
+      <!-- Total highlight -->
+      <div class="total-highlight" id="totalCard" style="display:none;">
+        <div>
+          <div class="thl-lbl">💰 Total a Pagar (ciclo)</div>
+          <div class="thl-val" id="kpiTotal">USD 0.00</div>
+        </div>
+        <div class="thl-right">
+          <div class="thl-sub" id="kpiHe$">HE: USD 0.00</div>
+          <div class="thl-sub" id="kpiBen$">Ben: USD 0.00</div>
+          <div class="thl-sub" id="kpiAlim$">🍱 Alim: USD 0.00</div>
+          <div class="thl-sub" id="kpiTrp$">🚌 Transp: USD 0.00</div>
+        </div>
+      </div>
+
+      <!-- Incidencias integradas -->
+      <div id="incPanel" style="display:none;" class="card" style="margin-bottom:14px;">
+        <div class="inc-banner">
+          <div class="inc-banner-ico">🚨</div>
+          <div class="inc-banner-txt">
+            <h3>Incidencias del empleado</h3>
+            <p>Registros del sistema de reporte de incidencias · CEDIS</p>
+          </div>
+          <div class="inc-banner-actions">
+            <button class="btn btn-ghost" style="font-size:11px;" onclick="loadIncidencias()">↺ Actualizar</button>
+          </div>
+        </div>
+        <div id="incList"></div>
+      </div>
+
+      <!-- Alertas de auditoría -->
+      <div id="flagsPanel" class="card" style="display:none;margin-bottom:14px;">
+        <div class="card-title">🚩 Alertas de Auditoría</div>
+        <div id="flagsList"></div>
+      </div>
+
+      <!-- Detalle tabs -->
+      <div class="card" id="detailCard" style="display:none;">
+        <div class="tabs" id="tabsRow">
+          <div class="tab active" onclick="switchTab(this,'panelAsi')">📋 Asistencia</div>
+          <div class="tab"       onclick="switchTab(this,'panelHE')">⏱ HE + TXT</div>
+          <div class="tab"       onclick="switchTab(this,'panelBen')">🍱 Beneficios</div>
+          <div class="tab"       onclick="switchTab(this,'panelCic')">📊 Resumen Ciclo</div>
+          <div class="tab"       onclick="switchTab(this,'panelDir')">🏢 Director</div>
+        </div>
+
+        <div id="panelAsi" class="tab-panel active">
+          <div class="scroll-wrap"><table id="tblAsi"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div id="panelHE" class="tab-panel">
+          <div class="scroll-wrap"><table id="tblHE"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div id="panelBen" class="tab-panel">
+          <div class="scroll-wrap"><table id="tblBen"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div id="panelCic" class="tab-panel">
+          <div class="scroll-wrap"><table id="tblCic"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div id="panelDir" class="tab-panel">
+          <div id="dirContent"><div class="empty-msg">Usa los botones "Director" para cargar la vista consolidada.</div></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div id="chartsArea" style="display:none;">
+        <div class="charts-row" style="margin-top:14px;">
+          <div class="chart-card">
+            <div class="chart-title">HE por tipo de día</div>
+            <canvas id="chartDayType" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Beneficios por tipo de día</div>
+            <canvas id="chartBen" height="220"></canvas>
+          </div>
+        </div>
+        <div class="chart-full">
+          <div class="chart-title">Cierre por ciclo — HE pagadas vs TXT (Bolsón)</div>
+          <div style="height:300px;position:relative;">
+            <canvas id="chartCycles"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
+</div>
 
-  <script>
-    (function(){
-      const el = document.getElementById("currentDateTime");
-      function tick(){
-        const d = new Date();
-        el.textContent = d.toLocaleString("es-PA", { dateStyle:"short", timeStyle:"short" }) + "  | Dashboard Recursos Humanos · v1.0";
-      }
-      tick(); setInterval(tick, 10000);
-    })();
-  </script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIG — Reemplaza con tu URL del GAS biométrico
+═══════════════════════════════════════════════════════════ */
+const GAS_URL   = 'https://script.google.com/macros/s/AKfycbxHZg8vPJ9ECi45nIdr4L3CMN3UTupgCr06ho9AQ5iLUx2e-m0RRc2Mfg020IQorIFv/exec'; // ← URL del web app de Back_End_RH_BIOMETRICO
+const GAS_INC   = 'https://script.google.com/macros/s/AKfycbyVHDQ8IuVHibz259AiEvZ-jUfVC7fxvSSqC-wfaiiq1_13C9_TK4dVtPK0SMW4sZoJ/exec'; // incidencias
+const API_TOKEN = 'RH_DINALOG';
 
-  <script src="./app.js?v=10"></script>
+/* ── Theme ──────────────────────────────────────────────── */
+function setTheme(v) { document.documentElement.dataset.theme = v; localStorage.setItem('rh_theme', v); }
+(function(){ const s=localStorage.getItem('rh_theme'); if(s){ setTheme(s); document.getElementById('themeToggle').value=s; }})();
+
+/* ── Clock ──────────────────────────────────────────────── */
+(function clock(){
+  const el=document.getElementById('live-clock');
+  const t=()=>{ el.textContent=new Date().toLocaleString('es-PA',{dateStyle:'short',timeStyle:'medium'})+' · RH Biométrico v2.0'; };
+  t(); setInterval(t,5000);
+})();
+
+/* ── State ──────────────────────────────────────────────── */
+let CUR_DATA = null;
+let charts   = {};
+
+/* ── Cycles ─────────────────────────────────────────────── */
+function buildCycles() {
+  const sel = document.getElementById('cycleSel');
+  const cycles = [];
+  const today = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+    const start = new Date(d.getFullYear(), d.getMonth()-1, 16);
+    const end   = new Date(d.getFullYear(), d.getMonth(), 15);
+    const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+    const lbl  = x => x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'numeric'});
+    cycles.push({ from: fmt(start), to: fmt(end), label: `${lbl(start)} — ${lbl(end)}` });
+  }
+  cycles.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({ from: c.from, to: c.to });
+    opt.textContent = c.label;
+    sel.appendChild(opt);
+  });
+}
+buildCycles();
+
+function onCycleChange() {
+  const v = document.getElementById('cycleSel').value;
+  if (v === 'manual') return;
+  const c = JSON.parse(v);
+  document.getElementById('fromDate').value = c.from;
+  document.getElementById('toDate').value   = c.to;
+}
+
+/* ── Load meta (employees) ──────────────────────────────── */
+async function loadMeta() {
+  try {
+    const r = await fetch(`${GAS_URL}?action=meta&token=${API_TOKEN}&_=${Date.now()}`);
+    const d = await r.json();
+    if (!d.ok || !d.employees) return;
+    const sel = document.getElementById('empSel');
+    sel.innerHTML = '';
+    d.employees.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e; o.textContent = e;
+      sel.appendChild(o);
+    });
+  } catch(e) {
+    document.getElementById('empSel').innerHTML = '<option value="TODOS">TODOS</option>';
+  }
+}
+loadMeta();
+
+/* ── STATUS ─────────────────────────────────────────────── */
+function setStatus(msg, cls='') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + cls;
+}
+
+/* ── QUERY ──────────────────────────────────────────────── */
+async function doQuery() {
+  const emp  = document.getElementById('empSel').value;
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if (!from || !to) { setStatus('⚠ Selecciona un ciclo o rango de fechas.'); return; }
+
+  setStatus('⏳ Consultando datos biométricos…');
+  setBtnLoading('btnQuery', true);
+
+  try {
+    const url = `${GAS_URL}?action=query&token=${API_TOKEN}&employee=${encodeURIComponent(emp)}&from=${from}&to=${to}&_=${Date.now()}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { setStatus('❌ ' + (d.error||'Error desconocido'), 'err'); setBtnLoading('btnQuery', false); return; }
+
+    CUR_DATA = d;
+    renderResults(d);
+    setStatus(`✓ ${d.totals.total_events} eventos · ${d.totals.total_days} días · ${from} → ${to}`, 'ok');
+    setBtnLoading('btnQuery', false);
+
+    // Auto-load incidencias si no es TODOS
+    if (emp && emp !== 'TODOS') loadIncidencias();
+  } catch(e) {
+    setStatus('❌ Error de conexión con el backend.', 'err');
+    setBtnLoading('btnQuery', false);
+  }
+}
+
+function setBtnLoading(id, v) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = v;
+  btn.innerHTML = v ? `⏳ Cargando<span class="spinner"></span>` : (id==='btnQuery'?'▶ Consultar':'Reintentar');
+}
+
+/* ── RENDER ─────────────────────────────────────────────── */
+function renderResults(d) {
+  const t  = d.totals || {};
+  const ct = d.resumen_ciclo_totales || {};
+
+  // KPIs
+  document.getElementById('kpiEv').textContent    = t.total_events || 0;
+  document.getElementById('kpiDays').textContent  = t.total_days || 0;
+  document.getElementById('kpiCalc').textContent  = t.he_calc_hhmm || '00:00';
+  document.getElementById('kpiPaid').textContent  = t.he_paid_capped_hhmm || '00:00';
+  document.getElementById('kpiTxt').textContent   = t.txt_total_hhmm || '00:00';
+
+  const flags = (d.he_daily||[]).filter(r => r.audit_flag !== 'OK');
+  document.getElementById('kpiAlerts').textContent = flags.length || '0';
+
+  // Total card
+  const benTotal = +(t.total_beneficios || 0);
+  const heTotal  = +(t.he_amount_paid_capped || 0);
+  document.getElementById('totalCard').style.display = '';
+  document.getElementById('kpiTotal').textContent  = `USD ${(heTotal + benTotal).toFixed(2)}`;
+  document.getElementById('kpiHe$').textContent    = `HE: USD ${heTotal.toFixed(2)}`;
+  document.getElementById('kpiBen$').textContent   = `Ben: USD ${benTotal.toFixed(2)}`;
+  document.getElementById('kpiAlim$').textContent  = `🍱 Alim: USD ${(ct.total_alim_total||0).toFixed(2)}`;
+  document.getElementById('kpiTrp$').textContent   = `🚌 Transp: USD ${(ct.total_transp_total||0).toFixed(2)}`;
+
+  // Flags panel
+  renderFlags(d.he_daily || []);
+
+  // Tables
+  renderTableAsi(d.asistencia || []);
+  renderTableHE(d.he_daily   || []);
+  renderTableBen(d.beneficios|| []);
+  renderTableCic(d.resumen_ciclo || []);
+
+  // Charts
+  renderCharts(d);
+
+  document.getElementById('detailCard').style.display  = '';
+  document.getElementById('chartsArea').style.display  = '';
+}
+
+/* ── FLAGS ──────────────────────────────────────────────── */
+function renderFlags(rows) {
+  const flags = rows.filter(r => r.audit_flag !== 'OK' && r.day_type === 'LABORABLE');
+  const panel = document.getElementById('flagsPanel');
+  const list  = document.getElementById('flagsList');
+  if (!flags.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  list.innerHTML = flags.map(f => `
+    <div class="flag-row flag-warn">
+      <div class="flag-ico">🔍</div>
+      <div>
+        <div class="flag-date">${f.date} · ${f.weekday} · ${f.day_type}</div>
+        <div class="flag-msg">${f.audit_flag}: ${f.issues || 'Requiere revisión'}</div>
+        <div class="flag-sub">Entrada: ${f.first_in||'—'} · Salida: ${f.last_out||'—'} · ${f.marks_count||0} marca(s)</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── TABLES ─────────────────────────────────────────────── */
+function buildTable(id, headers, rows, rowFn) {
+  const tbl  = document.getElementById(id);
+  const head = tbl.querySelector('thead');
+  const body = tbl.querySelector('tbody');
+  head.innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  body.innerHTML = rows.length ? rows.map(rowFn).join('') : `<tr><td colspan="${headers.length}" style="text-align:center;color:var(--muted);padding:20px;">Sin datos</td></tr>`;
+}
+function esc(v){ return String(v||'').replace(/</g,'&lt;'); }
+function badge(t,v){ return `<span class="badge badge-${t}">${esc(v)}</span>`; }
+
+function renderTableAsi(rows) {
+  buildTable('tblAsi',
+    ['Fecha','Día','Tipo','Entrada','Salida','Span','Marcas','Estado','Alertas'],
+    rows,
+    r => `<tr>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.weekday)}</td>
+      <td>${badge(r.day_type==='LABORABLE'?'info':r.day_type==='FERIADO'?'warn':'rest', r.day_type)}</td>
+      <td>${esc(r.first_in)}</td>
+      <td>${esc(r.last_out)}</td>
+      <td>${esc(r.work_span_hhmm)}</td>
+      <td style="text-align:center;">${esc(r.marks_count)}</td>
+      <td>${badge(r.audit_flag==='OK'?'ok':'warn', r.audit_flag)}</td>
+      <td style="font-size:10px;color:var(--danger);">${esc(r.issues)}</td>
+    </tr>`
+  );
+}
+
+function renderTableHE(rows) {
+  buildTable('tblHE',
+    ['Fecha','Día','Tipo día','HE Calc','Regla','Aplica HE','Aplica TXT','Catálogo'],
+    rows,
+    r => `<tr>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.weekday)}</td>
+      <td>${badge(r.day_type==='LABORABLE'?'info':r.day_type==='FERIADO'?'warn':'rest', r.day_type)}</td>
+      <td class="td-he">${esc(r.he_calc_hhmm)}</td>
+      <td style="font-size:10px;">${esc(r.rule_applied)}</td>
+      <td>${r.applies_he_paid ? badge('ok','✓ SÍ') : badge('rest','NO')}</td>
+      <td>${r.applies_txt     ? badge('warn','✓ SÍ') : badge('rest','NO')}</td>
+      <td>${badge(r.catalog_match==='OK'?'ok':'bad', r.catalog_match||'—')}</td>
+    </tr>`
+  );
+}
+
+function renderTableBen(rows) {
+  buildTable('tblBen',
+    ['Fecha','Alimentación $','Transporte $','Total $','Regla'],
+    rows,
+    r => `<tr>
+      <td>${esc(r.date)}</td>
+      <td class="td-ben">${r.alim_b > 0 ? `$${(+r.alim_b).toFixed(2)}` : '—'}</td>
+      <td class="td-ben">${r.transp_b > 0 ? `$${(+r.transp_b).toFixed(2)}` : '—'}</td>
+      <td class="td-he">$${(+(r.benefits_b||0)).toFixed(2)}</td>
+      <td style="font-size:10px;">${esc(r.benefits_rule)}</td>
+    </tr>`
+  );
+}
+
+function renderTableCic(rows) {
+  buildTable('tblCic',
+    ['Ciclo','HE Calc','HE Pagadas','TXT','Monto HE $','Alim $','Transp $','Total $'],
+    rows,
+    r => {
+      const tot = (+(r.he_amount_paid_capped||0)) + (+(r.beneficios_total||0));
+      return `<tr>
+        <td style="font-family:var(--ff);font-weight:700;">${esc(r.cycle)}</td>
+        <td>${esc(r.he_calc_total_hhmm)}</td>
+        <td class="td-he">${esc(r.he_paid_capped_hhmm)}</td>
+        <td class="td-txt">${esc(r.txt_total_hhmm)}</td>
+        <td>$${(+(r.he_amount_paid_capped||0)).toFixed(2)}</td>
+        <td>$${(+(r.alim_total||0)).toFixed(2)}</td>
+        <td>$${(+(r.transp_total||0)).toFixed(2)}</td>
+        <td class="td-he" style="font-weight:800;">$${tot.toFixed(2)}</td>
+      </tr>`;
+    }
+  );
+}
+
+/* ── CHARTS ─────────────────────────────────────────────── */
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderCharts(d) {
+  // Chart 1: HE by day type
+  destroyChart('chartDayType');
+  const heByType = {};
+  (d.he_daily||[]).forEach(r => {
+    const k = r.day_type || 'OTRO';
+    heByType[k] = (heByType[k] || 0) + (r.he_calc_hours || 0);
+  });
+  charts.chartDayType = new Chart(document.getElementById('chartDayType'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(heByType),
+      datasets: [{ data: Object.values(heByType).map(v=>+v.toFixed(2)),
+        backgroundColor: ['#2563EB','#F59E0B','#DC2626','#94a3b8'], borderWidth: 2 }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, cutout: '65%' }
+  });
+
+  // Chart 2: Benefits by type
+  destroyChart('chartBen');
+  let alimTotal = 0, transpTotal = 0;
+  (d.beneficios||[]).forEach(r => { alimTotal += +(r.alim_b||0); transpTotal += +(r.transp_b||0); });
+  charts.chartBen = new Chart(document.getElementById('chartBen'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Alimentación', 'Transporte'],
+      datasets: [{ data: [alimTotal.toFixed(2), transpTotal.toFixed(2)],
+        backgroundColor: ['#059669','#2563EB'], borderWidth: 2 }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, cutout: '65%' }
+  });
+
+  // Chart 3: Cycle history
+  destroyChart('chartCycles');
+  const cycles = (d.resumen_ciclo || []);
+  const hhmm2h = s => { const [h,m]=(s||'00:00').split(':').map(Number); return +(h+m/60).toFixed(2); };
+  charts.chartCycles = new Chart(document.getElementById('chartCycles'), {
+    type: 'bar',
+    data: {
+      labels: cycles.map(c => c.cycle || '—'),
+      datasets: [
+        { label: 'HE Pagadas (cap 40h)', data: cycles.map(c=>hhmm2h(c.he_paid_capped_hhmm)), backgroundColor: '#059669' },
+        { label: 'TXT (Bolsón)',          data: cycles.map(c=>hhmm2h(c.txt_total_hhmm)),       backgroundColor: '#F59E0B' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font:{size:11} } } },
+      scales: { x: { ticks:{font:{size:10}} }, y: { title:{display:true,text:'Horas',font:{size:11}}, ticks:{font:{size:10}} } }
+    }
+  });
+}
+
+/* ── INCIDENCIAS ────────────────────────────────────────── */
+async function loadIncidencias() {
+  const emp  = document.getElementById('empSel').value;
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if (!emp || emp === 'TODOS' || !from || !to) return;
+
+  document.getElementById('incPanel').style.display = '';
+  document.getElementById('incList').innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px;">Cargando incidencias…</div>';
+
+  try {
+    const url = `${GAS_INC}?file=incidencias_empleado&employee=${encodeURIComponent(emp)}&from=${from}&to=${to}&_=${Date.now()}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d || !d.incidencias || !d.incidencias.length) {
+      document.getElementById('incList').innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px;">Sin incidencias en este período.</div>';
+      return;
+    }
+    document.getElementById('incList').innerHTML = d.incidencias.map(inc => `
+      <div class="flag-row ${inc.tipo==='tardanza'||inc.tipo==='baja-medica'?'flag-warn':'flag-info'}">
+        <div class="flag-ico">${inc.emoji||'📋'}</div>
+        <div>
+          <div class="flag-date">${inc.fecha} · ${inc.tipo}</div>
+          <div class="flag-msg">${inc.nota||'Sin nota'}</div>
+          <div class="flag-sub">Estado: ${inc.estado||'—'} · Enviado: ${inc.timestamp||'—'}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('incList').innerHTML = '<div style="color:var(--danger);font-size:12px;padding:12px;">No se pudo cargar incidencias. El endpoint <code>file=incidencias_empleado</code> debe existir en el GAS de incidencias.</div>';
+  }
+}
+
+/* ── DIRECTOR ───────────────────────────────────────────── */
+async function doDirector(mode) {
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if (!from || !to) { setStatus('⚠ Selecciona un rango de fechas primero.'); return; }
+
+  // Activate director tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab')[4].classList.add('active');
+  document.getElementById('panelDir').classList.add('active');
+  document.getElementById('detailCard').style.display = '';
+  document.getElementById('dirContent').innerHTML = '<div class="empty-msg">⏳ Cargando todos los empleados…</div>';
+
+  setStatus('⏳ Generando reporte Director…');
+  setBtnLoading('btnDirCycle', true);
+
+  try {
+    const url = `${GAS_URL}?action=query&token=${API_TOKEN}&employee=TODOS&from=${from}&to=${to}&_=${Date.now()}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { setStatus('❌ '+d.error, 'err'); setBtnLoading('btnDirCycle', false); return; }
+
+    renderDirectorView(d, mode);
+    setStatus(`✓ Reporte Director: ${(d.asistencia||[]).length} registros`, 'ok');
+  } catch(e) {
+    setStatus('❌ Error cargando vista director.', 'err');
+  }
+  setBtnLoading('btnDirCycle', false);
+}
+
+function renderDirectorView(d, mode) {
+  // Group by employee
+  const empMap = {};
+  (d.resumen_ciclo || []).forEach(r => {
+    const name = r.employee || r.full_name || '?';
+    if (!empMap[name]) empMap[name] = { name, cycles: [] };
+    empMap[name].cycles.push(r);
+  });
+  // Also from he_daily for flag count
+  const flagMap = {};
+  (d.he_daily||[]).filter(r=>r.audit_flag!=='OK'&&r.day_type==='LABORABLE').forEach(r=>{
+    const k = r.full_name||'?';
+    flagMap[k] = (flagMap[k]||0)+1;
+  });
+  // Summaries from asistencia
+  const sumMap = {};
+  (d.asistencia||[]).forEach(r => {
+    const k = r.full_name||'?';
+    if(!sumMap[k]) sumMap[k]={he_paid:0,txt:0,total:0,alim:0,transp:0};
+  });
+  // Resumen ciclo totales per person
+  const personTotals = {};
+  (d.resumen_ciclo||[]).forEach(r => {
+    const k = r.employee || r.full_name || r.nombre || '?';
+    if (!personTotals[k]) personTotals[k] = { he_paid_hhmm:'00:00', txt_hhmm:'00:00', total:0, alim:0, transp:0 };
+    personTotals[k].total += (+(r.he_amount_paid_capped||0)) + (+(r.beneficios_total||0));
+    personTotals[k].alim  += +(r.alim_total||0);
+    personTotals[k].transp+= +(r.transp_total||0);
+    personTotals[k].he_paid_hhmm = r.he_paid_capped_hhmm || '00:00';
+    personTotals[k].txt_hhmm     = r.txt_total_hhmm || '00:00';
+  });
+
+  const names = Object.keys(personTotals).sort();
+  if (!names.length) {
+    document.getElementById('dirContent').innerHTML = '<div class="empty-msg">Sin datos para el período seleccionado.</div>';
+    return;
+  }
+
+  let grandTotal = 0;
+  names.forEach(n => grandTotal += personTotals[n].total);
+
+  const cards = names.map(n => {
+    const p = personTotals[n];
+    const alerts = flagMap[n] || 0;
+    return `<div class="dir-card">
+      <div class="dir-name">${n}</div>
+      ${alerts > 0 ? `<div class="dir-flags">⚠ ${alerts} alerta(s) de auditoría</div>` : ''}
+      <div class="dir-row"><span class="dir-lbl">HE Pagadas</span><span class="dir-val">${p.he_paid_hhmm}</span></div>
+      <div class="dir-row"><span class="dir-lbl">TXT Bolsón</span><span class="dir-val" style="color:var(--warn);">${p.txt_hhmm}</span></div>
+      <div class="dir-row"><span class="dir-lbl">🍱 Alim</span><span class="dir-val">$${p.alim.toFixed(2)}</span></div>
+      <div class="dir-row"><span class="dir-lbl">🚌 Transp</span><span class="dir-val">$${p.transp.toFixed(2)}</span></div>
+      <div class="dir-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+        <span class="dir-lbl">TOTAL</span><span class="dir-total">$${p.total.toFixed(2)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dirContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);">${names.length} empleados</div>
+      <div style="font-size:18px;font-weight:800;color:var(--gold);font-family:var(--mono);">Grand Total: $${grandTotal.toFixed(2)}</div>
+    </div>
+    <div class="dir-grid">${cards}</div>`;
+}
+
+/* ── PDF ────────────────────────────────────────────────── */
+async function doPdf(type) {
+  const emp  = document.getElementById('empSel').value;
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if (!from || !to) { setStatus('⚠ Selecciona rango de fechas.'); return; }
+
+  setStatus('⏳ Generando PDF…');
+  try {
+    const url = `${GAS_URL}?action=pdf&token=${API_TOKEN}&employee=${encodeURIComponent(emp)}&from=${from}&to=${to}&type=${type}&_=${Date.now()}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { setStatus('❌ '+(d.error||'Error PDF'), 'err'); return; }
+    window.open(d.downloadUrl, '_blank');
+    setStatus('✓ PDF generado y abierto.', 'ok');
+  } catch(e) {
+    setStatus('❌ Error generando PDF.', 'err');
+  }
+}
+
+/* ── ASISTENCIA ─────────────────────────────────────────── */
+async function doAsistencia() {
+  const emp  = document.getElementById('empSel').value;
+  const from = document.getElementById('fromDate').value;
+  const to   = document.getElementById('toDate').value;
+  if (!from || !to) { setStatus('⚠ Selecciona rango de fechas.'); return; }
+
+  setStatus('⏳ Generando reporte de ausencias…');
+  try {
+    const url = `${GAS_URL}?action=asistencia&token=${API_TOKEN}&employee=${encodeURIComponent(emp)}&from=${from}&to=${to}&_=${Date.now()}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { setStatus('❌ '+(d.error||'Error'), 'err'); return; }
+    const rows = d.rows || [];
+    setStatus(`✓ ${rows.length} incidencias de asistencia encontradas.`, 'ok');
+    // Mostrar en panel director
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab')[4].classList.add('active');
+    document.getElementById('panelDir').classList.add('active');
+    document.getElementById('detailCard').style.display = '';
+    document.getElementById('dirContent').innerHTML = `
+      <div class="scroll-wrap">
+        <table><thead><tr><th>Empleado</th><th>Fecha</th><th>Día</th><th>Estado</th><th>Llegada</th><th>Min tarde</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td style="font-family:var(--ff);font-weight:600;">${esc(r.full_name)}</td>
+          <td>${esc(r.date)}</td><td>${esc(r.weekday)}</td>
+          <td>${badge(r.status==='AUSENCIA'?'bad':'warn', r.status)}</td>
+          <td>${esc(r.first_in)||'—'}</td>
+          <td>${r.min_tarde>0?r.min_tarde+'m':'—'}</td>
+        </tr>`).join('')}</tbody>
+        </table></div>`;
+  } catch(e) {
+    setStatus('❌ Error cargando asistencia.', 'err');
+  }
+}
+
+/* ── TABS ───────────────────────────────────────────────── */
+function switchTab(el, panelId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+/* ── CLEAR ──────────────────────────────────────────────── */
+function doClear() {
+  CUR_DATA = null;
+  document.getElementById('fromDate').value = '';
+  document.getElementById('toDate').value   = '';
+  document.getElementById('cycleSel').value = 'manual';
+  ['kpiEv','kpiDays','kpiCalc','kpiPaid','kpiTxt','kpiAlerts'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('totalCard').style.display   = 'none';
+  document.getElementById('detailCard').style.display  = 'none';
+  document.getElementById('chartsArea').style.display  = 'none';
+  document.getElementById('incPanel').style.display    = 'none';
+  document.getElementById('flagsPanel').style.display  = 'none';
+  ['chartDayType','chartBen','chartCycles'].forEach(id => { try { charts[id]?.destroy(); delete charts[id]; } catch{} });
+  setStatus('');
+}
+</script>
 </body>
 </html>
