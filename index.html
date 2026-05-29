@@ -435,23 +435,28 @@ let charts   = {};
 
 /* ── Cycles ─────────────────────────────────────────────── */
 function buildCycles() {
-  const sel = document.getElementById('cycleSel');
-  const cycles = [];
+  const sel   = document.getElementById('cycleSel');
   const today = new Date();
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
-    const start = new Date(d.getFullYear(), d.getMonth()-1, 16);
-    const end   = new Date(d.getFullYear(), d.getMonth(), 15);
-    const fmt = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
-    const lbl  = x => x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'numeric'});
-    cycles.push({ from: fmt(start), to: fmt(end), label: `${lbl(start)} — ${lbl(end)}` });
-  }
-  cycles.forEach(c => {
+  const fmt   = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const lbl   = x => x.toLocaleDateString('es-PA',{day:'numeric',month:'short',year:'numeric'});
+
+  // Inicio real de datos en EVENTS_RAW (primer ciclo con registros)
+  const DATA_START = new Date(2025, 8, 16); // 16 sep 2025
+
+  // Ciclo activo actual: si hoy >= 16, empieza este mes; si no, el mes anterior
+  let cycleStart = today.getDate() >= 16
+    ? new Date(today.getFullYear(), today.getMonth(), 16)
+    : new Date(today.getFullYear(), today.getMonth() - 1, 16);
+
+  // Generar ciclos del más reciente al primero con datos
+  while (cycleStart >= DATA_START) {
+    const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, 15);
     const opt = document.createElement('option');
-    opt.value = JSON.stringify({ from: c.from, to: c.to });
-    opt.textContent = c.label;
+    opt.value = JSON.stringify({ from: fmt(cycleStart), to: fmt(cycleEnd) });
+    opt.textContent = `${lbl(cycleStart)} — ${lbl(cycleEnd)}`;
     sel.appendChild(opt);
-  });
+    cycleStart = new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 16);
+  }
 }
 buildCycles();
 
