@@ -464,23 +464,20 @@ const fHora  = h => {
 
 /* ── Limpiar: vuelve al estado inicial ── */
 function limpiar(){
-  // Selectores
   const se=document.getElementById('sel-emp'); if(se) se.value='';
   const sa=document.getElementById('sel-area'); if(sa) sa.value='';
   setModo('uno');
-
-  // Ciclo por defecto (el último cerrado)
   pintarChips();
 
-  // Contenidos de cada sección
+  // Todas las secciones vuelven a su estado inicial: ninguna queda con
+  // datos del colaborador anterior.
   const vacio='<div class="panel"><div class="msg">'+
     'Selecciona un colaborador y pulsa <strong>Consultar</strong>.</div></div>';
-  document.getElementById('res-txt').innerHTML=vacio;
-  document.getElementById('res-art18').innerHTML='';
-  document.getElementById('res-vac').innerHTML=vacio;
-  document.getElementById('res-inc').innerHTML=vacio;
+  ['res-via','res-txt','res-vac','res-inc'].forEach(function(id){
+    const el=document.getElementById(id); if(el) el.innerHTML=vacio;
+  });
+  const a18=document.getElementById('res-art18'); if(a18) a18.innerHTML='';
 
-  // Volver a la primera sección y a la bienvenida
   verSec('asi');
   EMP_ACTUAL=''; ULTIMA=null;
   pintarBienvenida();
@@ -757,12 +754,152 @@ function irAArea(area){
 
 
 
+
+/* ══ Vistas por área servidas desde el JSON (sin llamar al script) ══ */
+
+function _personasDelArea(D,area){
+  return Object.keys(D.detalle||{})
+    .filter(n=>String(D.area_de[n]||'').toUpperCase()===String(area).toUpperCase())
+    .map(n=>Object.assign({nombre:n}, D.detalle[n]));
+}
+
+function _fichaKpis(D,area){
+  const info=(D.areas||[]).filter(a=>a.area.toUpperCase()===String(area).toUpperCase())[0]||{};
+  return info;
+}
+
+// Registro de asistencia · área
+function pintarRegistroAsistenciaAreaJson(D,area){
+  const p=_personasDelArea(D,area);
+  if(!p.length) return `<div class="panel"><div class="msg">Sin personal con datos en ${area}.</div></div>`;
+  p.sort((a,b)=>(b.totales?b.totales.dias_marcados:0)-(a.totales?a.totales.dias_marcados:0));
+  const filas=p.map(x=>{
+    const t=x.totales||{};
+    return `<tr style="${!t.dias_marcados?'color:var(--muted)':''}">
+      <td class="l"><a href="#" onclick="verColaborador('${x.nombre.replace(/'/g,"\\'")}');return false"
+        style="color:var(--blue);text-decoration:none;font-weight:600">${x.nombre}</a>
+        <div style="font-size:11px;color:var(--muted)">${(x.ficha&&x.ficha.cargo)||''}</div></td>
+      <td class="num">${t.dias_marcados||'—'}</td>
+      <td class="num">${t.he_calculadas||'00:00'}</td>
+      <td class="num">${t.txt_generado||'00:00'}</td>
+    </tr>`;}).join('');
+  const sinM=p.filter(x=>!(x.totales&&x.totales.dias_marcados)).length;
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${p.length}</div>
+      <div class="kpi-s">en el área</div></div>
+    <div class="kpi"><div class="kpi-l">Con marcaciones</div><div class="kpi-v">${p.length-sinM}</div>
+      <div class="kpi-s">registran en el reloj</div></div>
+    <div class="kpi"><div class="kpi-l">Sin marcaciones</div><div class="kpi-v">${sinM}</div>
+      <div class="kpi-s">no aparecen en el reloj</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><div><div class="panel-t">${area}</div>
+      <div class="kpi-s">${fFecha(D.ciclo.from)} al ${fFecha(D.ciclo.to)} · toca un nombre para su detalle</div></div></div>
+    <div style="padding:0"><table>
+      <thead><tr><th style="text-align:left">Colaborador</th><th>Días</th>
+        <th>Horas extra</th><th>T. compensatorio</th></tr></thead>
+      <tbody>${filas}</tbody></table></div>
+  </div>`;
+}
+
+// Tiempo compensatorio · área
+function pintarTxtAreaJson(D,area){
+  const p=_personasDelArea(D,area).filter(x=>x.txt);
+  if(!p.length) return `<div class="panel"><div class="msg">Sin datos de tiempo compensatorio en ${area}.</div></div>`;
+  const filas=p.map(x=>`
+    <tr>
+      <td class="l"><a href="#" onclick="verColaborador('${x.nombre.replace(/'/g,"\\'")}');return false"
+        style="color:var(--blue);text-decoration:none;font-weight:600">${x.nombre}</a>
+        <div style="font-size:11px;color:var(--muted)">${(x.ficha&&x.ficha.cargo)||''}</div></td>
+      <td class="num"><strong style="color:${x.txt.sobregiro?'var(--bad)':'var(--navy)'}">${x.txt.saldo}</strong></td>
+      <td class="num">${x.txt.generado}</td>
+      <td class="num">${x.txt.tomado}</td>
+      <td class="num">${x.txt.he_pagadas}</td>
+    </tr>`).join('');
+  const sob=p.filter(x=>x.txt.sobregiro).length;
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${p.length}</div>
+      <div class="kpi-s">en el área</div></div>
+    <div class="kpi"><div class="kpi-l">Con saldo</div>
+      <div class="kpi-v">${p.filter(x=>x.txt.saldo!=='00:00').length}</div>
+      <div class="kpi-s">tienen horas acumuladas</div></div>
+    <div class="kpi"><div class="kpi-l">Sobregirados</div>
+      <div class="kpi-v" style="color:${sob?'var(--bad)':'var(--muted)'}">${sob}</div>
+      <div class="kpi-s">requieren revisión</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><div><div class="panel-t">Tiempo compensatorio · ${area}</div>
+      <div class="kpi-s">toca un nombre para ver su detalle por ciclo</div></div></div>
+    <div style="padding:0"><table>
+      <thead><tr><th style="text-align:left">Colaborador</th><th>Saldo</th>
+        <th>Generado</th><th>Tomado</th><th>H. extra pagadas</th></tr></thead>
+      <tbody>${filas}</tbody></table></div>
+  </div>`;
+}
+
+// Vacaciones · área
+function pintarVacacionesAreaJson(D,area){
+  const p=_personasDelArea(D,area).filter(x=>x.vacaciones);
+  if(!p.length) return `<div class="panel"><div class="msg">Sin datos de vacaciones en ${area}.</div></div>`;
+  p.sort((a,b)=>b.vacaciones.disponibles-a.vacaciones.disponibles);
+  const filas=p.map(x=>`
+    <tr>
+      <td class="l"><a href="#" onclick="verColaborador('${x.nombre.replace(/'/g,"\\'")}');return false"
+        style="color:var(--blue);text-decoration:none;font-weight:600">${x.nombre}</a>
+        <div style="font-size:11px;color:var(--muted)">${(x.ficha&&x.ficha.cargo)||''}</div></td>
+      <td class="num"><strong style="color:${x.vacaciones.disponibles>0?'var(--ok)':'var(--muted)'}">${x.vacaciones.disponibles}</strong></td>
+      <td class="num">${x.vacaciones.otorgados}</td>
+      <td class="num">${x.vacaciones.tomados}</td>
+      <td class="num">${x.vacaciones.resoluciones||'—'}</td>
+    </tr>`).join('');
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${p.length}</div>
+      <div class="kpi-s">en el área</div></div>
+    <div class="kpi"><div class="kpi-l">Con resoluciones</div>
+      <div class="kpi-v">${p.filter(x=>x.vacaciones.resoluciones>0).length}</div>
+      <div class="kpi-s">tienen días otorgados</div></div>
+    <div class="kpi"><div class="kpi-l">Días disponibles</div>
+      <div class="kpi-v" style="color:var(--ok)">${p.reduce((s,x)=>s+x.vacaciones.disponibles,0)}</div>
+      <div class="kpi-s">suma del área</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><div><div class="panel-t">Vacaciones · ${area}</div>
+      <div class="kpi-s">toca un nombre para registrar o ver resoluciones</div></div></div>
+    <div style="padding:0"><table>
+      <thead><tr><th style="text-align:left">Colaborador</th><th>Disponibles</th>
+        <th>Otorgados</th><th>Tomados</th><th>Resoluciones</th></tr></thead>
+      <tbody>${filas}</tbody></table></div>
+  </div>`;
+}
+
+// Incidencias · área: el JSON no las trae (cambian con cada registro),
+// así que esta vista sí consulta al script.
+function pintarAsistenciaAreaJson(D,area){ return null; }
+
+/* Salta de la vista por área al detalle de un colaborador */
+function verColaborador(nombre){
+  setModo('uno');
+  const sel=document.getElementById('sel-emp');
+  let existe=false;
+  for(const o of sel.options){ if(o.value===nombre){ sel.value=nombre; existe=true; break; } }
+  if(!existe){ alert('El colaborador no está en la lista.'); return; }
+  consultar();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 /* ══ VISTA POR ÁREA: cada sección como agregado ══ */
 
 // Registro de asistencia del área
 async function cargarRegistroAsistenciaArea(area,desde,hasta){
   const cont=document.getElementById('res-asi');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando el área…</div></div>';
+
+  // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
+  const _D=await cargarDatos(document.getElementById("f-desde").value);
+  if(_D&&_D.detalle){ const _h=pintarRegistroAsistenciaAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
   try{
     const url=`${GAS}?action=asistencia_area_detalle&token=${TOKEN}`+
               `&area=${encodeURIComponent(area)}&from=${desde}&to=${hasta}&_=${Date.now()}`;
@@ -807,6 +944,10 @@ async function cargarRegistroAsistenciaArea(area,desde,hasta){
 async function cargarTxtArea(area){
   const cont=document.getElementById('res-txt');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Calculando saldos del área…</div></div>';
+
+  // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
+  const _D=await cargarDatos(document.getElementById("f-desde").value);
+  if(_D&&_D.detalle){ const _h=pintarTxtAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
   try{
     const url=`${GAS}?action=txt_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -848,6 +989,10 @@ async function cargarTxtArea(area){
 async function cargarVacacionesArea(area){
   const cont=document.getElementById('res-vac');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando vacaciones…</div></div>';
+
+  // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
+  const _D=await cargarDatos(document.getElementById("f-desde").value);
+  if(_D&&_D.detalle){ const _h=pintarVacacionesAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
   try{
     const url=`${GAS}?action=vacaciones_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -1585,6 +1730,10 @@ async function guardarIncidencia(btn){
 async function cargarAsistenciaArea(area,desde,hasta){
   const cont=document.getElementById('res-inc');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando faltas y tardanzas…</div></div>';
+
+  // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
+  const _D=await cargarDatos(document.getElementById("f-desde").value);
+  // Las incidencias cambian con cada registro: se consultan en vivo.
   try{
     const url=`${GAS}?action=asistencia_area&token=${TOKEN}&area=${encodeURIComponent(area)}`+
               `&from=${desde}&to=${hasta}&_=${Date.now()}`;
