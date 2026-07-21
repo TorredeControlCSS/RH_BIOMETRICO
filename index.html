@@ -223,21 +223,47 @@ const GAS   = "https://script.google.com/macros/s/AKfycby_lXwc1VIzyj5qV2kxaZBzhi
 const TOKEN = "RH_DINALOG";
 // Datos precalculados publicados en GitHub Pages. Se leen del CDN en
 // milisegundos; el GAS solo se usa para escrituras y consultas puntuales.
-const RH_JSON = "./rh_data.json";
-let DATOS = null;   // JSON cargado en memoria
+const RH_JSON  = "./rh_data.json";     // ciclo vigente
+const RH_INDEX = "./rh_index.json";    // ciclos disponibles
+let DATOS = null;          // ciclo cargado ahora mismo
+const CACHE_CICLOS = {};   // {from: datosDelCiclo} — evita releer lo ya traído
+let INDICE = null;         // lista de ciclos publicados
 
 let MODO='uno';          // 'uno' | 'area'
 let EMP_ACTUAL='';       // colaborador consultado
 let ULTIMA=null;         // {modo, valor, desde, hasta}
 
 /* ── Datos precalculados (CDN) ── */
-async function cargarDatos(){
-  if(DATOS) return DATOS;
+// Devuelve los datos del ciclo pedido. Cada ciclo es un archivo propio
+// (rh_2026-06-16.json); el vigente además está en rh_data.json.
+async function cargarDatos(from){
+  if(from && CACHE_CICLOS[from]) { DATOS=CACHE_CICLOS[from]; return DATOS; }
+  if(!from && DATOS) return DATOS;
+
+  const rutas = from ? [`./rh_${from}.json`, RH_JSON] : [RH_JSON];
+  for(const ruta of rutas){
+    try{
+      const r=await fetch(`${ruta}?v=${Date.now()}`, {cache:'no-cache'});
+      if(!r.ok) continue;
+      const d=await r.json();
+      // Si se pidió un ciclo concreto, solo sirve si el archivo es de ese ciclo
+      if(from && d.ciclo && d.ciclo.from!==from) continue;
+      if(d.ciclo) CACHE_CICLOS[d.ciclo.from]=d;
+      DATOS=d;
+      return d;
+    }catch(e){ /* probar la siguiente ruta */ }
+  }
+  return null;
+}
+
+// Índice de ciclos publicados: para saber cuáles se pueden consultar rápido
+async function cargarIndice(){
+  if(INDICE) return INDICE;
   try{
-    const r=await fetch(`${RH_JSON}?v=${Date.now()}`, {cache:'no-cache'});
+    const r=await fetch(`${RH_INDEX}?v=${Date.now()}`, {cache:'no-cache'});
     if(!r.ok) return null;
-    DATOS=await r.json();
-    return DATOS;
+    INDICE=await r.json();
+    return INDICE;
   }catch(e){ return null; }
 }
 
@@ -334,6 +360,18 @@ function ciclos(n){
   }
   return out;
 }
+// Los ciclos con datos publicados responden al instante; los demas se
+// calculan en vivo. Se marcan para que el usuario sepa que esperar.
+async function marcarChipsPublicados(){
+  const idx=await cargarIndice();
+  if(!idx||!idx.ciclos) return;
+  const pub={}; idx.ciclos.forEach(function(c){ pub[c.from]=true; });
+  document.querySelectorAll("#chips .chip").forEach(function(b){
+    if(pub[b.dataset.d]){ b.title="Datos publicados \u00b7 consulta inmediata"; }
+    else{ b.style.opacity=".62"; b.title="Sin publicar \u00b7 se calcula en vivo y puede tardar"; }
+  });
+}
+
 function pintarChips(){
   const cont=document.getElementById('chips'), cs=ciclos(6);
   cont.innerHTML=cs.map((c,i)=>
@@ -355,6 +393,7 @@ function pintarChips(){
   cont.querySelectorAll('.chip')[idx].classList.add('on');
   document.getElementById('f-desde').value=sel.desde;
   document.getElementById('f-hasta').value=sel.hasta;
+  marcarChipsPublicados();
 }
 
 /* ── Catálogos ── */
@@ -486,8 +525,8 @@ function consultar(){
 async function cargarViaticosUno(emp,desde,hasta){
   const cont=document.getElementById('res-via');
 
-  // Si el período es el del JSON publicado, se sirve de ahí (instantáneo)
-  const D=await cargarDatos();
+  // Se pide el archivo del ciclo consultado (instantáneo si está publicado)
+  const D=await cargarDatos(desde);
   if(D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta){
     const r=D.colaboradores[emp];
     cont.innerHTML = r ? pintarUno(r) : `<div class="panel">
@@ -567,8 +606,8 @@ function pintarUno(d){
 async function cargarViaticosArea(area,desde,hasta){
   const cont=document.getElementById('res-via');
 
-  // Del JSON publicado si coincide el período
-  const D=await cargarDatos();
+  // Del archivo del ciclo consultado
+  const D=await cargarDatos(desde);
   if(D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta){
     const info=(D.areas||[]).filter(a=>a.area.toUpperCase()===area.toUpperCase())[0]||{};
     const reportes=Object.keys(D.colaboradores)
@@ -654,7 +693,7 @@ async function pintarBienvenida(){
   // Los datos vienen del JSON publicado en GitHub Pages (CDN, milisegundos).
   // Si aún no se ha publicado, se calcula en vivo contra el script (lento).
   try{
-    const D=await cargarDatos();
+    const D=await cargarDatos(desde);
     if(D&&D.areas&&D.areas.length){
       window.__ULTIMA_MARCACION=(D.ciclo&&D.ciclo.ultima_marcacion)||'';
       const tj=D.areas.map(a=>`
