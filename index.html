@@ -266,6 +266,20 @@ function pintarChips(){
 }
 
 /* ── Catálogos ── */
+// Si el backend no responde con lo esperado, se muestra el motivo en pantalla
+// en vez de dejar el desplegable vacío sin explicación.
+function avisoConexion(txt){
+  let el=document.getElementById('aviso-conn');
+  if(!el){
+    el=document.createElement('div');
+    el.id='aviso-conn';
+    el.style.cssText='background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;'+
+      'padding:10px 14px;border-radius:6px;font-size:12.5px;margin-top:10px';
+    document.querySelector('.ctx-in').appendChild(el);
+  }
+  el.textContent=txt;
+}
+
 async function cargarPersonal(){
   const sel=document.getElementById('sel-emp');
   try{
@@ -274,11 +288,16 @@ async function cargarPersonal(){
     let emps = d.employees || d.empleados || d.personal || [];
     emps = emps.filter(e=>e && String(e).trim() && String(e).toUpperCase()!=='TODOS')
                .map(String).sort();
-    if(!emps.length){ sel.innerHTML='<option value="">Sin personal disponible</option>'; return; }
+    if(!emps.length){
+      sel.innerHTML='<option value="">Sin personal disponible</option>';
+      avisoConexion('El servidor respondió pero no devolvió personal. Verifica que MATRIZ_ALIAS tenga registros activos.');
+      return;
+    }
     sel.innerHTML='<option value="">Selecciona un colaborador…</option>'+
       emps.map(e=>`<option value="${e}">${e}</option>`).join('');
   }catch(e){
     sel.innerHTML='<option value="">No se pudo cargar el personal</option>';
+    avisoConexion('No se pudo conectar con el servidor. Revisa que el script esté desplegado y que la dirección del despliegue coincida con la de esta página.');
   }
 }
 async function cargarAreas(){
@@ -287,7 +306,10 @@ async function cargarAreas(){
     const r=await fetch(`${GAS}?action=areas&token=${TOKEN}&_=${Date.now()}`);
     const d=await r.json();
     const as=d.areas||[];
-    if(!as.length){ sel.innerHTML='<option value="">Sin áreas disponibles</option>'; return; }
+    if(!as.length){
+      sel.innerHTML='<option value="">Sin áreas disponibles</option>';
+      return;
+    }
     sel.innerHTML='<option value="">Selecciona un área…</option>'+
       as.map(a=>`<option value="${a.area}">${a.area} (${a.personal})</option>`).join('');
   }catch(e){
