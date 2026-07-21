@@ -593,11 +593,11 @@ function pintarTxt(d){
                         font-family:inherit;font-size:13.5px;width:100%">
         </div>
         <div class="fld">
-          <label for="emp-quien">Registrado por</label>
-          <input type="text" id="emp-quien" placeholder="Nombre"
-                 value="${(d.empalme_registrado_por||'').replace(/"/g,'&quot;')}"
+          <label for="emp-pin">PIN de autorización</label>
+          <input type="password" id="emp-pin" placeholder="4 dígitos" maxlength="4"
+                 inputmode="numeric" autocomplete="off"
                  style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:inherit;font-size:13.5px;width:150px">
+                        font-family:var(--mono);font-size:13.5px;width:120px;letter-spacing:3px">
         </div>
         <button class="btn btn-2" onclick="guardarEmpalme(this)">Guardar empalme</button>
       </div>
@@ -659,12 +659,13 @@ async function guardarEmpalme(btn){
   const horas=document.getElementById('emp-horas').value||0;
   const corte=document.getElementById('emp-corte').value||'2025-09-15';
   const just=document.getElementById('emp-just').value||'';
-  const quien=document.getElementById('emp-quien').value||'';
+  const pin=document.getElementById('emp-pin').value||'';
+  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const url=`${GAS}?action=empalme_guardar&token=${TOKEN}`+
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
-      `&justificacion=${encodeURIComponent(just)}&registrado_por=${encodeURIComponent(quien)}&_=${Date.now()}`;
+      `&justificacion=${encodeURIComponent(just)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(d&&d.ok){ cargarTxt(EMP_ACTUAL); }
     else{ alert((d&&d.error)||'No se pudo guardar el empalme.'); }
@@ -756,11 +757,12 @@ function pintarArt18(d){
                  style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
                         font-family:inherit;font-size:13.5px;width:110px">
         </div>
-        <div class="fld grow">
-          <label for="a18-autoriza">Autorizado por</label>
-          <input type="text" id="a18-autoriza" placeholder="Jefe inmediato"
+        <div class="fld">
+          <label for="a18-pin">PIN de autorización</label>
+          <input type="password" id="a18-pin" placeholder="4 dígitos" maxlength="4"
+                 inputmode="numeric" autocomplete="off"
                  style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:inherit;font-size:13.5px;width:100%">
+                        font-family:var(--mono);font-size:13.5px;width:120px;letter-spacing:3px">
         </div>
         <div class="fld grow">
           <label for="a18-nota">Observación</label>
@@ -779,15 +781,16 @@ async function registrarArt18(btn){
   if(!EMP_ACTUAL) return;
   const fecha=document.getElementById('a18-fecha').value;
   const horas=document.getElementById('a18-horas').value;
-  const autoriza=document.getElementById('a18-autoriza').value||'';
+  const pin=document.getElementById('a18-pin').value||'';
   const nota=document.getElementById('a18-nota').value||'';
   if(!fecha||!horas){ alert('Indica la fecha y las horas del permiso.'); return; }
+  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar el registro.'); return; }
 
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const url=`${GAS}?action=art18_registrar&token=${TOKEN}`+
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${fecha}&horas=${horas}`+
-      `&autorizado_por=${encodeURIComponent(autoriza)}&nota=${encodeURIComponent(nota)}&_=${Date.now()}`;
+      `&pin=${encodeURIComponent(pin)}&nota=${encodeURIComponent(nota)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
     else{ alert((d&&d.error)||'No se pudo registrar el permiso.'); }
@@ -796,9 +799,11 @@ async function registrarArt18(btn){
 }
 
 async function eliminarArt18(id){
-  if(!confirm('¿Eliminar este permiso del registro?')) return;
+  const pin=prompt('Ingresa tu PIN de 4 dígitos para eliminar este permiso:');
+  if(!pin) return;
   try{
-    const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}&_=${Date.now()}`;
+    const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}`+
+              `&employee=${encodeURIComponent(EMP_ACTUAL)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
     else{ alert((d&&d.error)||'No se pudo eliminar.'); }
