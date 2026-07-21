@@ -92,6 +92,7 @@ th{background:#f7f9fc;font-weight:700;color:var(--navy);font-size:11.5px;
 td.l{text-align:left}
 td.num{font-family:var(--mono)}
 tr.doble td{background:#fffbeb}
+tr.apertura td{background:#f7f9fc;font-style:italic;color:var(--muted)}
 tfoot td{background:#f7f9fc;font-weight:700}
 
 .msg{padding:26px;text-align:center;color:var(--muted);font-size:13px}
@@ -168,7 +169,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
 <nav class="secs">
   <div class="secs-in">
     <button class="on" id="s-via" onclick="verSec('via')">Alimentación y transporte</button>
-    <button id="s-txt" onclick="verSec('txt')">Tiempo compensatorio <span class="badge">pendiente</span></button>
+    <button id="s-txt" onclick="verSec('txt')">Tiempo compensatorio</button>
     <button id="s-vac" onclick="verSec('vac')">Vacaciones <span class="badge">pendiente</span></button>
     <button id="s-inc" onclick="verSec('inc')">Incidencias <span class="badge">pendiente</span></button>
   </div>
@@ -182,9 +183,10 @@ tfoot td{background:#f7f9fc;font-weight:700}
   </div>
 
   <div class="sec" id="sec-txt">
-    <div class="panel"><div class="msg">
-      El registro de tiempo compensatorio se conecta en la próxima entrega.
-    </div></div>
+    <div id="res-txt"><div class="panel"><div class="msg">
+      Selecciona un colaborador y pulsa <strong>Consultar</strong>.
+    </div></div></div>
+    <div id="res-art18"></div>
   </div>
 
   <div class="sec" id="sec-vac">
@@ -334,11 +336,17 @@ function consultar(){
     if(!emp){ cont.innerHTML='<div class="panel"><div class="msg">Selecciona un colaborador.</div></div>'; return; }
     ULTIMA={modo:'uno', valor:emp, desde, hasta};
     cargarViaticosUno(emp,desde,hasta);
+    cargarTxt(emp);
+    cargarArt18(emp);
   }else{
     const area=document.getElementById('sel-area').value;
     if(!area){ cont.innerHTML='<div class="panel"><div class="msg">Selecciona un área.</div></div>'; return; }
     ULTIMA={modo:'area', valor:area, desde, hasta};
     cargarViaticosArea(area,desde,hasta);
+    document.getElementById('res-txt').innerHTML=
+      '<div class="panel"><div class="msg">El tiempo compensatorio se consulta por colaborador. '+
+      'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
+    document.getElementById('res-art18').innerHTML='';
   }
 }
 
@@ -451,6 +459,215 @@ function pintarArea(d){
     </div>
     <div>${items}</div>
   </div>`;
+}
+
+/* ── Tiempo compensatorio: libro por ciclo ── */
+async function cargarTxt(emp){
+  const cont=document.getElementById('res-txt');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Reconstruyendo el registro desde el biométrico…</div></div>';
+  try{
+    const url=`${GAS}?action=txt_libro&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo reconstruir el registro.'}</div></div>`; return; }
+    cont.innerHTML=pintarTxt(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión. Intenta de nuevo.</div></div>';
+  }
+}
+
+function pintarTxt(d){
+  const movs=d.movimientos||[];
+  if(!movs.length){
+    return `<div class="panel"><div class="msg">
+      Este colaborador no tiene movimientos de tiempo compensatorio registrados.</div></div>`;
+  }
+
+  const filas=movs.map(m=>`
+    <tr class="${m.tipo==='APERTURA'?'apertura':''}">
+      <td class="l">${m.periodo||''}</td>
+      <td class="num">${m.generado_hhmm||'—'}</td>
+      <td class="num">${m.tomado_hhmm||'—'}</td>
+      <td class="num"><strong>${m.acumulado_hhmm||''}</strong></td>
+      <td class="l" style="font-size:11.5px;color:var(--muted)">${m.observaciones||''}</td>
+    </tr>`).join('');
+
+  const alertaSobregiro = d.sobregiro
+    ? `<div class="aviso" style="background:var(--bad-bg);border-color:#fca5a5;color:var(--bad)">
+         El saldo está sobregirado: se ha tomado más tiempo del acumulado. Requiere revisión.
+       </div>` : '';
+
+  const avisoFoto = !d.foto_encontrada
+    ? `<div class="aviso">Sin saldo inicial de empalme registrado. El acumulado parte solo
+       de lo generado desde que el biométrico tiene datos.</div>` : '';
+
+  return `
+  ${alertaSobregiro}${avisoFoto}
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Saldo disponible</div>
+      <div class="kpi-v" style="${d.sobregiro?'color:var(--bad)':''}">${d.saldo_actual_hhmm}</div>
+      <div class="kpi-s">horas : minutos</div></div>
+    <div class="kpi"><div class="kpi-l">Generado</div><div class="kpi-v">${d.total_generado_hhmm}</div>
+      <div class="kpi-s">desde el biométrico</div></div>
+    <div class="kpi"><div class="kpi-l">Tomado</div><div class="kpi-v">${d.total_tomado_hhmm}</div>
+      <div class="kpi-s">usos aprobados</div></div>
+    <div class="kpi"><div class="kpi-l">Horas extra pagadas</div><div class="kpi-v">${d.he_pagadas_hhmm}</div>
+      <div class="kpi-s">B/. ${Number(d.he_monto_usd||0).toFixed(2)} · bolsón aparte</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Registro de tiempo compensatorio</div>
+        <div class="kpi-s">${d.employee} · un renglón por ciclo</div></div>
+    </div>
+    <div style="padding:0">
+      <table>
+        <thead><tr>
+          <th style="text-align:left">Período</th>
+          <th>Generado</th><th>Tomado</th><th>Acumulado</th>
+          <th style="text-align:left">Observaciones</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="kpi-s" style="padding:0 4px 10px">
+    El acumulado arrastra el saldo de cada ciclo. El tiempo compensatorio es distinto
+    de las horas extra pagadas: son dos bolsones separados.
+  </div>`;
+}
+
+/* ── Artículo 18: permisos anuales (bolsón editable) ── */
+let EMP_ACTUAL = '';
+
+async function cargarArt18(emp){
+  EMP_ACTUAL = emp;
+  const cont=document.getElementById('res-art18');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando permisos…</div></div>';
+  try{
+    const url=`${GAS}?action=art18&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar los permisos.'}</div></div>`; return; }
+    cont.innerHTML=pintarArt18(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión al cargar los permisos.</div></div>';
+  }
+}
+
+function pintarArt18(d){
+  const hoy=new Date().toISOString().slice(0,10);
+  const bloques=(d.bloques||[]).map(b=>{
+    const permisos=(b.permisos||[]).map(x=>`
+      <div class="lote-item">
+        <div>
+          <div class="lote-n">${x.horas} h · ${fFecha(x.fecha)}</div>
+          <div class="lote-d">${x.autorizado_por?'Autorizó: '+x.autorizado_por:''}${x.nota?' · '+x.nota:''}</div>
+        </div>
+        <button class="btn btn-2" style="padding:5px 12px;font-size:12px"
+          onclick="eliminarArt18('${x.id}')">Eliminar</button>
+      </div>`).join('') ||
+      '<div class="msg" style="padding:14px">Sin permisos registrados en este cuatrimestre.</div>';
+
+    const color = b.excedido ? 'var(--bad)' : (b.horas_restantes===0 ? 'var(--warn)' : 'var(--ok)');
+    return `
+    <div class="panel">
+      <div class="panel-h">
+        <div>
+          <div class="panel-t">${b.etiqueta}${b.es_actual?' · vigente':''}</div>
+          <div class="kpi-s">${fFecha(b.desde)} a ${fFecha(b.hasta)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${color}">
+            ${b.horas_restantes} h</div>
+          <div class="kpi-s">de ${b.horas_disponibles} h disponibles</div>
+        </div>
+      </div>
+      <div>${permisos}</div>
+      ${b.excedido?'<div class="aviso" style="background:var(--bad-bg);border-color:#fca5a5;color:var(--bad);margin:12px">Se excedió el límite de 8 horas de este cuatrimestre.</div>':''}
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Artículo 18 · Permisos anuales</div>
+        <div class="kpi-s">Hasta 8 horas cada 4 meses · 3 permisos al año</div></div>
+    </div>
+    <div class="panel-b">
+      <div class="aviso">
+        Este es un bolsón aparte del tiempo compensatorio: son permisos que autoriza
+        el jefe inmediato, no horas generadas.
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfd4ee;font-size:11.5px">
+          <strong>Artículo 18 · Permisos anuales (RIP 2026):</strong>
+          «Los jefes inmediatos podrán conceder permisos hasta por ocho (8) horas,
+          cada cuatro (4) meses al año, a sus subalternos.»
+          El reglamento añade: «En lo sucesivo serán 3 permisos en el año» y
+          «por la aplicación de la ley en el tiempo, la periodicidad de los 4 meses
+          inicia en mayo de 2026».
+          <br><span style="color:var(--muted)">
+          Sobre esa base, el sistema cuenta los cuatrimestres así: mayo–agosto,
+          septiembre–diciembre y enero–abril. El reglamento fija el inicio en mayo
+          pero no enumera los bloques; si la aplicación institucional difiere,
+          debe ajustarse.</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="fld">
+          <label for="a18-fecha">Fecha del permiso</label>
+          <input type="date" id="a18-fecha" value="${hoy}">
+        </div>
+        <div class="fld">
+          <label for="a18-horas">Horas</label>
+          <input type="number" id="a18-horas" min="0.5" max="8" step="0.5" value="8"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:110px">
+        </div>
+        <div class="fld grow">
+          <label for="a18-autoriza">Autorizado por</label>
+          <input type="text" id="a18-autoriza" placeholder="Jefe inmediato"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:100%">
+        </div>
+        <div class="fld grow">
+          <label for="a18-nota">Observación</label>
+          <input type="text" id="a18-nota" placeholder="Opcional"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:100%">
+        </div>
+        <button class="btn btn-main" onclick="registrarArt18(this)">Registrar permiso</button>
+      </div>
+    </div>
+  </div>
+  ${bloques}`;
+}
+
+async function registrarArt18(btn){
+  if(!EMP_ACTUAL) return;
+  const fecha=document.getElementById('a18-fecha').value;
+  const horas=document.getElementById('a18-horas').value;
+  const autoriza=document.getElementById('a18-autoriza').value||'';
+  const nota=document.getElementById('a18-nota').value||'';
+  if(!fecha||!horas){ alert('Indica la fecha y las horas del permiso.'); return; }
+
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const url=`${GAS}?action=art18_registrar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${fecha}&horas=${horas}`+
+      `&autorizado_por=${encodeURIComponent(autoriza)}&nota=${encodeURIComponent(nota)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
+    else{ alert((d&&d.error)||'No se pudo registrar el permiso.'); }
+  }catch(e){ alert('Error de conexión al registrar.'); }
+  btn.disabled=false; btn.textContent=t;
+}
+
+async function eliminarArt18(id){
+  if(!confirm('¿Eliminar este permiso del registro?')) return;
+  try{
+    const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
+    else{ alert((d&&d.error)||'No se pudo eliminar.'); }
+  }catch(e){ alert('Error de conexión al eliminar.'); }
 }
 
 /* ── PDF (según modo) ── */
