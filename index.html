@@ -172,8 +172,8 @@ tfoot td{background:#f7f9fc;font-weight:700}
   <div class="secs-in">
     <button class="on" id="s-via" onclick="verSec('via')">Alimentación y transporte</button>
     <button id="s-txt" onclick="verSec('txt')">Tiempo compensatorio</button>
-    <button id="s-vac" onclick="verSec('vac')">Vacaciones <span class="badge">pendiente</span></button>
-    <button id="s-inc" onclick="verSec('inc')">Incidencias <span class="badge">pendiente</span></button>
+    <button id="s-vac" onclick="verSec('vac')">Vacaciones</button>
+    <button id="s-inc" onclick="verSec('inc')">Incidencias</button>
   </div>
 </nav>
 
@@ -190,15 +190,15 @@ tfoot td{background:#f7f9fc;font-weight:700}
   </div>
 
   <div class="sec" id="sec-vac">
-    <div class="panel"><div class="msg">
-      El detalle de vacaciones por resolución se conecta en la próxima entrega.
-    </div></div>
+    <div id="res-vac"><div class="panel"><div class="msg">
+      Selecciona un colaborador y pulsa <strong>Consultar</strong>.
+    </div></div></div>
   </div>
 
   <div class="sec" id="sec-inc">
-    <div class="panel"><div class="msg">
-      El registro de ausencias, tardanzas y artículos se conecta en la próxima entrega.
-    </div></div>
+    <div id="res-inc"><div class="panel"><div class="msg">
+      Selecciona un colaborador y pulsa <strong>Consultar</strong>.
+    </div></div></div>
   </div>
 </div>
 
@@ -346,6 +346,8 @@ function consultar(){
     cargarViaticosUno(emp,desde,hasta);
     cargarTxt(emp);
     cargarArt18(emp);
+    cargarVacaciones(emp);
+    cargarIncidencias(emp,desde,hasta);
   }else{
     const area=document.getElementById('sel-area').value;
     if(!area){ cont.innerHTML='<div class="panel"><div class="msg">Selecciona un área.</div></div>'; return; }
@@ -355,6 +357,10 @@ function consultar(){
       '<div class="panel"><div class="msg">El tiempo compensatorio se consulta por colaborador. '+
       'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
     document.getElementById('res-art18').innerHTML='';
+    const porColab='<div class="panel"><div class="msg">Se consulta por colaborador. '+
+      'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
+    document.getElementById('res-vac').innerHTML=porColab;
+    document.getElementById('res-inc').innerHTML=porColab;
   }
 }
 
@@ -396,11 +402,11 @@ function pintarUno(d){
     <div class="kpi"><div class="kpi-l">Días reconocidos</div><div class="kpi-v">${d.dias.length}</div>
       <div class="kpi-s">fuera de horario regular</div></div>
     <div class="kpi"><div class="kpi-l">Alimentación</div><div class="kpi-v">${Number(d.subtotales.alimentacion).toFixed(2)}</div>
-      <div class="kpi-s">balboas</div></div>
+      <div class="kpi-s">B/.</div></div>
     <div class="kpi"><div class="kpi-l">Transporte</div><div class="kpi-v">${Number(d.subtotales.transporte).toFixed(2)}</div>
-      <div class="kpi-s">balboas</div></div>
+      <div class="kpi-s">B/.</div></div>
     <div class="kpi"><div class="kpi-l">Total a reconocer</div><div class="kpi-v">${Number(d.total).toFixed(2)}</div>
-      <div class="kpi-s">balboas</div></div>
+      <div class="kpi-s">B/.</div></div>
   </div>
   <div class="panel">
     <div class="panel-h">
@@ -458,7 +464,7 @@ function pintarArea(d){
     <div class="kpi"><div class="kpi-l">Sin días fuera de horario</div><div class="kpi-v">${d.sin_viaticos}</div>
       <div class="kpi-s">no generan reporte</div></div>
     <div class="kpi"><div class="kpi-l">Total del área</div><div class="kpi-v">${Number(d.total_lote).toFixed(2)}</div>
-      <div class="kpi-s">balboas</div></div>
+      <div class="kpi-s">B/.</div></div>
   </div>
   <div class="panel">
     <div class="panel-h">
@@ -523,7 +529,7 @@ async function pintarBienvenida(){
       return `<div class="kpi" style="cursor:pointer" onclick="irAArea('${a.area}')">
         <div class="kpi-l">${a.area}</div>
         <div class="kpi-v">${Number(d.total_lote||0).toFixed(2)}</div>
-        <div class="kpi-s">${d.con_viaticos} de ${d.personal_evaluado} · balboas</div></div>`;
+        <div class="kpi-s">${d.con_viaticos} de ${d.personal_evaluado} colaboradores</div></div>`;
     }).join('');
 
     document.getElementById('bienv-areas').innerHTML=
@@ -828,6 +834,153 @@ async function eliminarArt18(id){
     if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
     else{ alert((d&&d.error)||'No se pudo eliminar.'); }
   }catch(e){ alert('Error de conexión al eliminar.'); }
+}
+
+/* ── Vacaciones: resoluciones con orden FIFO ── */
+async function cargarVacaciones(emp){
+  const cont=document.getElementById('res-vac');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando resoluciones…</div></div>';
+  try{
+    const url=`${GAS}?action=vacaciones&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar las vacaciones.'}</div></div>`; return; }
+    cont.innerHTML=pintarVacaciones(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+function pintarVacaciones(d){
+  const res=d.resoluciones||[];
+  if(!res.length){
+    return `<div class="panel"><div class="msg">
+      Sin resoluciones de vacaciones registradas para ${d.employee}.</div></div>`;
+  }
+
+  const filas=res.map(r=>{
+    const agotada = r.disponibles<=0;
+    const esProxima = d.proxima_fifo && d.proxima_fifo.num===r.num && d.proxima_fifo.anio===r.anio;
+    return `<tr${agotada?' style="color:var(--muted)"':''}>
+      <td class="num">${r.num||'—'}</td>
+      <td class="num">${r.anio||'—'}</td>
+      <td class="num">${r.otorgados}</td>
+      <td class="num">${r.consumidos}</td>
+      <td class="num"><strong style="color:${agotada?'var(--muted)':'var(--ok)'}">${r.disponibles}</strong></td>
+      <td class="l" style="font-size:11.5px">${esProxima
+        ? '<span style="background:var(--blue-soft);color:var(--blue);padding:2px 9px;border-radius:20px;font-weight:700">Se consume primero</span>'
+        : (agotada?'Agotada':'')}</td>
+    </tr>`;
+  }).join('');
+
+  const periodos=(d.periodos||[]).map(p=>`
+    <div class="lote-item">
+      <div><div class="lote-n">${fFecha(p.desde)} al ${fFecha(p.hasta)}</div>
+        <div class="lote-d">${p.notas||''}</div></div>
+      <div class="lote-t">${p.dias} día(s)</div>
+    </div>`).join('') ||
+    '<div class="msg" style="padding:16px">Sin períodos de vacaciones registrados.</div>';
+
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Días disponibles</div>
+      <div class="kpi-v" style="color:${d.total_disponibles>0?'var(--ok)':'var(--muted)'}">${d.total_disponibles}</div>
+      <div class="kpi-s">sin vencimiento</div></div>
+    <div class="kpi"><div class="kpi-l">Días otorgados</div><div class="kpi-v">${d.total_otorgados}</div>
+      <div class="kpi-s">${res.length} resolución(es)</div></div>
+    <div class="kpi"><div class="kpi-l">Días tomados</div><div class="kpi-v">${d.total_tomados}</div>
+      <div class="kpi-s">períodos registrados</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Resoluciones</div>
+        <div class="kpi-s">${d.employee} · ordenadas de la más antigua a la más reciente</div></div>
+    </div>
+    <div style="padding:0">
+      <table>
+        <thead><tr><th>Resolución</th><th>Año</th><th>Otorgados</th>
+          <th>Consumidos</th><th>Disponibles</th><th style="text-align:left">Estado</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="aviso">
+    Las vacaciones son derecho adquirido: no vencen. El consumo es FIFO, es decir,
+    se agota primero la resolución más antigua. Si el colaborador pide 30 días y
+    tiene 15 de una resolución vieja, se toman esos 15 y los otros 15 de la siguiente.
+  </div>
+
+  <div class="panel">
+    <div class="panel-h"><div class="panel-t">Períodos tomados</div></div>
+    <div>${periodos}</div>
+  </div>`;
+}
+
+/* ── Incidencias: ausencias, tardanzas, artículos ── */
+async function cargarIncidencias(emp,desde,hasta){
+  const cont=document.getElementById('res-inc');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando incidencias…</div></div>';
+  try{
+    const url=`${GAS}?action=incidencias&token=${TOKEN}&employee=${encodeURIComponent(emp)}`+
+              `&from=${desde}&to=${hasta}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar las incidencias.'}</div></div>`; return; }
+    cont.innerHTML=pintarIncidencias(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+function pintarIncidencias(d){
+  const items=d.incidencias||[];
+  if(!items.length){
+    return `<div class="panel"><div class="msg">
+      Sin incidencias registradas en el período seleccionado.</div></div>`;
+  }
+
+  const colorTipo=t=>{
+    const u=String(t).toUpperCase();
+    if(u.includes('AUSEN')) return 'var(--bad)';
+    if(u.includes('TARDAN')) return 'var(--warn)';
+    return 'var(--blue)';
+  };
+
+  const kpis=Object.keys(d.por_tipo||{}).slice(0,4).map(k=>`
+    <div class="kpi"><div class="kpi-l">${k}</div>
+      <div class="kpi-v" style="color:${colorTipo(k)}">${d.por_tipo[k]}</div>
+      <div class="kpi-s">en el período</div></div>`).join('');
+
+  const filas=items.map(x=>`
+    <tr>
+      <td class="num">${fFecha(x.fecha)}</td>
+      <td class="l"><span style="color:${colorTipo(x.tipo)};font-weight:600">${x.tipo}</span></td>
+      <td class="l" style="font-size:12px">${x.detalle||''}</td>
+      <td class="l" style="font-size:11.5px;color:var(--muted)">${x.origen||''}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Total</div><div class="kpi-v">${d.total}</div>
+      <div class="kpi-s">incidencias</div></div>
+    ${kpis}
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Registro de incidencias</div>
+        <div class="kpi-s">${d.employee} · del ${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
+    </div>
+    <div style="padding:0">
+      <table>
+        <thead><tr><th>Fecha</th><th style="text-align:left">Tipo</th>
+          <th style="text-align:left">Detalle</th><th style="text-align:left">Origen</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="kpi-s" style="padding:0 4px 10px">
+    Las tardanzas provienen del reloj biométrico; las ausencias y permisos, del registro de RH.
+  </div>`;
 }
 
 /* ── PDF (según modo) ── */
