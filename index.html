@@ -478,6 +478,11 @@ async function pintarBienvenida(){
         <div class="kpi-s" style="margin-bottom:14px">
           Reconocimiento de alimentación y transporte del personal del almacén.
           Elige un colaborador o un área y pulsa Consultar.</div>
+        ${window.__ULTIMA_MARCACION ? `<div class="aviso">
+          El biométrico tiene marcaciones hasta el
+          <strong>${fFecha(window.__ULTIMA_MARCACION)}</strong>.
+          Los ciclos posteriores aparecerán vacíos hasta que se cargue un reporte nuevo.
+        </div>` : ''}
         <div id="bienv-areas"><span class="spin"></span> Cargando resumen del ciclo…</div>
       </div>
     </div>`;
@@ -829,7 +834,26 @@ async function generarPdf(btn){
 pintarChips();
 cargarPersonal();
 cargarAreas();
-pintarBienvenida();
+arrancar();
+
+// Preselecciona el último ciclo CON DATOS (el biométrico se alimenta por ingestas,
+// así que el ciclo del calendario puede estar vacío) y avisa hasta dónde llega.
+async function arrancar(){
+  try{
+    const r=await fetch(`${GAS}?action=ultimo_ciclo&token=${TOKEN}&_=${Date.now()}`);
+    const d=await r.json();
+    if(d&&d.ok&&d.ciclo){
+      document.getElementById('f-desde').value=d.ciclo.from;
+      document.getElementById('f-hasta').value=d.ciclo.to;
+      // Marcar el chip correspondiente si está entre los visibles
+      document.querySelectorAll('#chips .chip').forEach(b=>{
+        b.classList.toggle('on', b.dataset.d===d.ciclo.from);
+      });
+      window.__ULTIMA_MARCACION = d.ciclo.ultima_marcacion || '';
+    }
+  }catch(e){ /* si falla, queda el ciclo del calendario */ }
+  pintarBienvenida();
+}
 </script>
 </body>
 </html>
