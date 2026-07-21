@@ -23,8 +23,7 @@ body{margin:0;background:var(--bg);font-family:var(--ff);color:var(--text);font-
 /* ── Barra superior ── */
 .top{background:var(--navy);color:#fff;padding:11px 20px;display:flex;align-items:center;gap:14px;
      position:sticky;top:0;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.top img{width:40px;height:40px;background:#fff;border-radius:6px;padding:3px}  /* El escudo es azul sobre transparente: sobre el azul de la barra
-     necesita fondo claro. Se usa un recuadro, no un circulo recortado. */
+.top img{width:42px;height:42px}
 .top-t{font-size:15.5px;font-weight:700;line-height:1.2}
 .top-s{font-size:11px;color:#b9c7d9;letter-spacing:.3px}
 .top-r{font-family:var(--mono);font-size:12px;color:#b9c7d9}
@@ -1652,7 +1651,7 @@ function overlayReporte(mostrar, texto){
   el.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(11,31,58,.82);'+
     'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff';
   el.innerHTML=
-    '<img src="./icons/icon-192.png" alt="CSS" style="width:78px;height:78px">'+
+    '<img src="./icons/icon-192.png" alt="CSS" style="width:80px;height:80px">'+
     '<div class="ov-t" style="font-size:15px;font-weight:600">'+(texto||'Generando reporte…')+'</div>'+
     '<div style="font-size:12.5px;color:#b9c7d9;max-width:330px;text-align:center;line-height:1.6">'+
     'El documento se abrirá en una pestaña nueva. Si el navegador la bloquea, '+
@@ -1680,7 +1679,7 @@ async function generarDocumento(url, etiqueta){
         '.t{font-size:15px;font-weight:600}.s{font-size:12.5px;color:#b9c7d9;max-width:330px;'+
         'text-align:center;line-height:1.6}</style></head><body>'+
         '<img src="'+location.origin+location.pathname.replace(/[^/]*$/,'')+'icons/icon-192.png" '+
-        'style="width:78px;height:78px" alt="CSS">'+
+        'style="width:80px;height:80px" alt="CSS">'+
         '<div class="t">'+(etiqueta||'Generando documento…')+'</div>'+
         '<div class="sp"></div>'+
         '<div class="s">El documento se abrirá aquí en unos segundos. '+
