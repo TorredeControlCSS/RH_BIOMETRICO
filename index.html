@@ -474,18 +474,11 @@ function consultar(){
     if(!area){ cont.innerHTML='<div class="panel"><div class="msg">Selecciona un área.</div></div>'; return; }
     ULTIMA={modo:'area', valor:area, desde, hasta};
     cargarViaticosArea(area,desde,hasta);
-    document.getElementById('res-txt').innerHTML=
-      '<div class="panel"><div class="msg">El tiempo compensatorio se consulta por colaborador. '+
-      'Cambia a <strong>Vista individual</strong> para verlo.</div></div>';
-    document.getElementById('res-art18').innerHTML='';
-    const porColab='<div class="panel"><div class="msg">'+
-      'Esta información es individual de cada colaborador.<br><br>'+
-      '<button class="btn btn-2" onclick="setModo(\'uno\')">Cambiar a vista individual</button>'+
-      '</div></div>';
-    document.getElementById('res-vac').innerHTML=porColab;
-    document.getElementById('res-asi').innerHTML=porColab;
-    // En modo área, Incidencias muestra el consolidado de faltas y tardanzas
+    cargarRegistroAsistenciaArea(area,desde,hasta);
+    cargarTxtArea(area);
+    cargarVacacionesArea(area);
     cargarAsistenciaArea(area,desde,hasta);
+    document.getElementById('res-art18').innerHTML='';
   }
 }
 
@@ -726,6 +719,135 @@ function irAArea(area){
   consultar();
 }
 
+
+
+/* ══ VISTA POR ÁREA: cada sección como agregado ══ */
+
+// Registro de asistencia del área
+async function cargarRegistroAsistenciaArea(area,desde,hasta){
+  const cont=document.getElementById('res-asi');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando el área…</div></div>';
+  try{
+    const url=`${GAS}?action=asistencia_area_detalle&token=${TOKEN}`+
+              `&area=${encodeURIComponent(area)}&from=${desde}&to=${hasta}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo consolidar.'}</div></div>`; return; }
+    const filas=(d.colaboradores||[]).map(x=>`
+      <tr style="${x.sin_marcaciones?'color:var(--muted)':''}">
+        <td class="l">${x.nombre}<div style="font-size:11px;color:var(--muted)">${x.cargo||''}</div></td>
+        <td class="num">${x.dias_marcados||'—'}</td>
+        <td class="num">${x.he_calculadas}</td>
+        <td class="num">${x.txt_generado}</td>
+        <td class="num" style="color:${x.tardanzas?'var(--warn)':'var(--muted)'}">${x.tardanzas}</td>
+        <td class="num" style="color:${x.ausencias?'var(--bad)':'var(--muted)'}">${x.ausencias}</td>
+      </tr>`).join('');
+    cont.innerHTML=`
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${d.personal}</div>
+          <div class="kpi-s">en el área</div></div>
+        <div class="kpi"><div class="kpi-l">Tardanzas</div>
+          <div class="kpi-v" style="color:${d.totales.tardanzas?'var(--warn)':'var(--muted)'}">${d.totales.tardanzas}</div>
+          <div class="kpi-s">en el período</div></div>
+        <div class="kpi"><div class="kpi-l">Ausencias</div>
+          <div class="kpi-v" style="color:${d.totales.ausencias?'var(--bad)':'var(--muted)'}">${d.totales.ausencias}</div>
+          <div class="kpi-s">en el período</div></div>
+        <div class="kpi"><div class="kpi-l">Sin marcaciones</div><div class="kpi-v">${d.totales.sin_marcaciones}</div>
+          <div class="kpi-s">no aparecen en el reloj</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div><div class="panel-t">${d.area}</div>
+          <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div></div>
+        <div style="padding:0"><table>
+          <thead><tr><th style="text-align:left">Colaborador</th><th>Días</th>
+            <th>Horas extra</th><th>T. comp.</th><th>Tardanzas</th><th>Ausencias</th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+      </div>`;
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+// Tiempo compensatorio del área
+async function cargarTxtArea(area){
+  const cont=document.getElementById('res-txt');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Calculando saldos del área…</div></div>';
+  try{
+    const url=`${GAS}?action=txt_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo calcular.'}</div></div>`; return; }
+    const filas=(d.colaboradores||[]).map(x=>`
+      <tr>
+        <td class="l">${x.nombre}<div style="font-size:11px;color:var(--muted)">${x.cargo||''}</div></td>
+        <td class="num"><strong style="color:${x.sobregiro?'var(--bad)':'var(--navy)'}">${x.saldo}</strong></td>
+        <td class="num">${x.generado}</td>
+        <td class="num">${x.tomado}</td>
+        <td class="num">${x.he_pagadas}</td>
+      </tr>`).join('');
+    cont.innerHTML=`
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${d.personal}</div>
+          <div class="kpi-s">en el área</div></div>
+        <div class="kpi"><div class="kpi-l">Con saldo</div><div class="kpi-v">${d.con_saldo}</div>
+          <div class="kpi-s">tienen horas acumuladas</div></div>
+        <div class="kpi"><div class="kpi-l">Sobregirados</div>
+          <div class="kpi-v" style="color:${d.sobregirados?'var(--bad)':'var(--muted)'}">${d.sobregirados}</div>
+          <div class="kpi-s">requieren revisión</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t">Tiempo compensatorio · ${d.area}</div></div>
+        <div style="padding:0"><table>
+          <thead><tr><th style="text-align:left">Colaborador</th><th>Saldo</th>
+            <th>Generado</th><th>Tomado</th><th>H. extra pagadas</th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+      </div>
+      <div class="kpi-s" style="padding:0 4px 10px">
+        Para ver el detalle por ciclo o registrar movimientos, consulta al colaborador en vista individual.
+      </div>`;
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+// Vacaciones del área
+async function cargarVacacionesArea(area){
+  const cont=document.getElementById('res-vac');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando vacaciones…</div></div>';
+  try{
+    const url=`${GAS}?action=vacaciones_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo consolidar.'}</div></div>`; return; }
+    const filas=(d.colaboradores||[]).map(x=>`
+      <tr>
+        <td class="l">${x.nombre}<div style="font-size:11px;color:var(--muted)">${x.cargo||''}</div></td>
+        <td class="num"><strong style="color:${x.disponibles>0?'var(--ok)':'var(--muted)'}">${x.disponibles}</strong></td>
+        <td class="num">${x.otorgados}</td>
+        <td class="num">${x.tomados}</td>
+        <td class="num">${x.resoluciones||'—'}</td>
+      </tr>`).join('');
+    cont.innerHTML=`
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${d.personal}</div>
+          <div class="kpi-s">en el área</div></div>
+        <div class="kpi"><div class="kpi-l">Con resoluciones</div><div class="kpi-v">${d.con_resoluciones}</div>
+          <div class="kpi-s">tienen días otorgados</div></div>
+        <div class="kpi"><div class="kpi-l">Días disponibles</div>
+          <div class="kpi-v" style="color:var(--ok)">${d.total_disponibles}</div>
+          <div class="kpi-s">suma del área</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div class="panel-t">Vacaciones · ${d.area}</div></div>
+        <div style="padding:0"><table>
+          <thead><tr><th style="text-align:left">Colaborador</th><th>Disponibles</th>
+            <th>Otorgados</th><th>Tomados</th><th>Resoluciones</th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+      </div>
+      <div class="kpi-s" style="padding:0 4px 10px">
+        Para registrar resoluciones o días tomados, consulta al colaborador en vista individual.
+      </div>`;
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
 
 /* ── Registro de asistencia: el detalle día a día del biométrico ── */
 async function cargarRegistroAsistencia(emp,desde,hasta){
