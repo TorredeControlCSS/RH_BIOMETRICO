@@ -62,7 +62,7 @@ select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px}
              font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;
              white-space:nowrap;display:flex;align-items:center;gap:7px}
 .secs button:hover{color:var(--navy)}
-.secs button.on{color:var(--navy);border-bottom-color:var(--blue)}
+.secs button.on{color:var(--navy);border-bottom-color:var(--blue);background:var(--blue-soft)}
 .badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;
        background:var(--warn-bg);color:var(--warn);letter-spacing:.2px}
 
@@ -71,7 +71,8 @@ select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px}
 .sec.on{display:block}
 
 /* ── Panel ── */
-.panel{background:var(--white);border:1px solid var(--line);border-radius:8px;margin-bottom:16px}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:8px;margin-bottom:16px;
+       box-shadow:0 1px 3px rgba(11,31,58,.06)}
 .panel-h{padding:12px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;
          justify-content:space-between;gap:12px;flex-wrap:wrap}
 .panel-t{font-size:14px;font-weight:700;color:var(--navy)}
@@ -79,7 +80,8 @@ select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px}
 
 /* ── KPIs ── */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
-.kpi{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:13px 15px}
+.kpi{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:13px 15px;
+     box-shadow:0 1px 3px rgba(11,31,58,.06)}
 .kpi-l{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .kpi-v{font-size:24px;font-weight:700;color:var(--navy);font-family:var(--mono);margin-top:3px}
 .kpi-s{font-size:11.5px;color:var(--muted)}
@@ -177,9 +179,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
 
 <div class="wrap">
   <div class="sec on" id="sec-via">
-    <div id="res-via"><div class="panel"><div class="msg">
-      Selecciona un colaborador o un área y pulsa <strong>Consultar</strong>.
-    </div></div></div>
+    <div id="res-via"></div>
   </div>
 
   <div class="sec" id="sec-txt">
@@ -207,6 +207,7 @@ const GAS   = "https://script.google.com/macros/s/AKfycby_lXwc1VIzyj5qV2kxaZBzhi
 const TOKEN = "RH_DINALOG";
 
 let MODO='uno';          // 'uno' | 'area'
+let EMP_ACTUAL='';       // colaborador consultado
 let ULTIMA=null;         // {modo, valor, desde, hasta}
 
 /* ── Reloj ── */
@@ -461,6 +462,66 @@ function pintarArea(d){
   </div>`;
 }
 
+/* ── Bienvenida: resumen del ciclo vigente por área ── */
+async function pintarBienvenida(){
+  const cont=document.getElementById('res-via');
+  const desde=document.getElementById('f-desde').value;
+  const hasta=document.getElementById('f-hasta').value;
+  const chip=document.querySelector('#chips .chip.on');
+  const cicloTxt=chip?chip.textContent:'';
+
+  cont.innerHTML=`
+    <div class="panel">
+      <div class="panel-b">
+        <div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">
+          Ciclo ${cicloTxt}</div>
+        <div class="kpi-s" style="margin-bottom:14px">
+          Reconocimiento de alimentación y transporte del personal del almacén.
+          Elige un colaborador o un área y pulsa Consultar.</div>
+        <div id="bienv-areas"><span class="spin"></span> Cargando resumen del ciclo…</div>
+      </div>
+    </div>`;
+
+  // Resumen por área: cuántos generaron reconocimiento y cuánto suma
+  try{
+    const ra=await fetch(`${GAS}?action=areas&token=${TOKEN}&_=${Date.now()}`);
+    const da=await ra.json();
+    const areas=(da.areas||[]).slice(0,4);   // las de mayor personal
+    if(!areas.length){ document.getElementById('bienv-areas').innerHTML=''; return; }
+
+    const res=await Promise.all(areas.map(a=>
+      fetch(`${GAS}?action=viaticos_lote&token=${TOKEN}&area=${encodeURIComponent(a.area)}`+
+            `&from=${desde}&to=${hasta}&_=${Date.now()}`)
+        .then(r=>r.json()).catch(()=>null)
+    ));
+
+    const tarjetas=res.map((d,i)=>{
+      const a=areas[i];
+      if(!d||!d.ok) return `<div class="kpi"><div class="kpi-l">${a.area}</div>
+        <div class="kpi-v" style="font-size:16px">—</div>
+        <div class="kpi-s">${a.personal} colaboradores</div></div>`;
+      return `<div class="kpi" style="cursor:pointer" onclick="irAArea('${a.area}')">
+        <div class="kpi-l">${a.area}</div>
+        <div class="kpi-v">${Number(d.total_lote||0).toFixed(2)}</div>
+        <div class="kpi-s">${d.con_viaticos} de ${d.personal_evaluado} · balboas</div></div>`;
+    }).join('');
+
+    document.getElementById('bienv-areas').innerHTML=
+      `<div class="kpis" style="margin:0">${tarjetas}</div>
+       <div class="kpi-s" style="margin-top:10px">Toca un área para ver su detalle.</div>`;
+  }catch(e){
+    document.getElementById('bienv-areas').innerHTML=
+      '<div class="kpi-s">No se pudo cargar el resumen del ciclo.</div>';
+  }
+}
+
+function irAArea(area){
+  setModo('area');
+  const sel=document.getElementById('sel-area');
+  for(const o of sel.options){ if(o.value===area){ sel.value=area; break; } }
+  consultar();
+}
+
 /* ── Tiempo compensatorio: libro por ciclo ── */
 async function cargarTxt(emp){
   const cont=document.getElementById('res-txt');
@@ -496,12 +557,55 @@ function pintarTxt(d){
          El saldo está sobregirado: se ha tomado más tiempo del acumulado. Requiere revisión.
        </div>` : '';
 
-  const avisoFoto = !d.foto_encontrada
-    ? `<div class="aviso">Sin saldo inicial de empalme registrado. El acumulado parte solo
-       de lo generado desde que el biométrico tiene datos.</div>` : '';
+  const empalmeActual = d.empalme_registrado
+    ? `Registrado: <strong>${d.empalme_horas} h</strong> al ${fFecha(d.empalme_fecha_corte)}`
+      + (d.empalme_registrado_por?` · por ${d.empalme_registrado_por}`:'')
+    : 'Sin saldo previo registrado.';
+
+  const bloqueEmpalme = `
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Saldo previo al biométrico (empalme)</div>
+        <div class="kpi-s">${empalmeActual}</div></div>
+    </div>
+    <div class="panel-b">
+      <div class="aviso">
+        El cálculo arranca desde septiembre de 2025, que es cuando el biométrico
+        tiene datos. Si consta que el colaborador tenía horas acumuladas antes de
+        esa fecha, regístralas aquí con su justificación.
+      </div>
+      <div class="row">
+        <div class="fld">
+          <label for="emp-horas">Horas previas</label>
+          <input type="number" id="emp-horas" min="0" step="0.5" value="${d.empalme_horas||0}"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:120px">
+        </div>
+        <div class="fld">
+          <label for="emp-corte">Fecha de corte</label>
+          <input type="date" id="emp-corte" value="${d.empalme_fecha_corte||'2025-09-15'}">
+        </div>
+        <div class="fld grow">
+          <label for="emp-just">Justificación</label>
+          <input type="text" id="emp-just" placeholder="Origen del saldo previo"
+                 value="${(d.empalme_justificacion||'').replace(/"/g,'&quot;')}"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:100%">
+        </div>
+        <div class="fld">
+          <label for="emp-quien">Registrado por</label>
+          <input type="text" id="emp-quien" placeholder="Nombre"
+                 value="${(d.empalme_registrado_por||'').replace(/"/g,'&quot;')}"
+                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+                        font-family:inherit;font-size:13.5px;width:150px">
+        </div>
+        <button class="btn btn-2" onclick="guardarEmpalme(this)">Guardar empalme</button>
+      </div>
+    </div>
+  </div>`;
 
   return `
-  ${alertaSobregiro}${avisoFoto}
+  ${alertaSobregiro}
   <div class="kpis">
     <div class="kpi"><div class="kpi-l">Saldo disponible</div>
       <div class="kpi-v" style="${d.sobregiro?'color:var(--bad)':''}">${d.saldo_actual_hhmm}</div>
@@ -518,6 +622,7 @@ function pintarTxt(d){
     <div class="panel-h">
       <div><div class="panel-t">Registro de tiempo compensatorio</div>
         <div class="kpi-s">${d.employee} · un renglón por ciclo</div></div>
+      <button class="btn btn-main" onclick="imprimirTxt(this)">Imprimir registro</button>
     </div>
     <div style="padding:0">
       <table>
@@ -530,14 +635,44 @@ function pintarTxt(d){
       </table>
     </div>
   </div>
-  <div class="kpi-s" style="padding:0 4px 10px">
+  <div class="kpi-s" style="padding:0 4px 14px">
     El acumulado arrastra el saldo de cada ciclo. El tiempo compensatorio es distinto
     de las horas extra pagadas: son dos bolsones separados.
-  </div>`;
+  </div>
+  ${bloqueEmpalme}`;
+}
+
+async function imprimirTxt(btn){
+  if(!EMP_ACTUAL) return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  try{
+    const url=`${GAS}?action=txt_pdf&token=${TOKEN}&employee=${encodeURIComponent(EMP_ACTUAL)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok&&d.downloadUrl){ window.open(d.downloadUrl,'_blank'); }
+    else{ alert((d&&d.error)||'No se pudo generar el documento.'); }
+  }catch(e){ alert('Error de conexión al generar el documento.'); }
+  btn.disabled=false; btn.textContent=t;
+}
+
+async function guardarEmpalme(btn){
+  if(!EMP_ACTUAL) return;
+  const horas=document.getElementById('emp-horas').value||0;
+  const corte=document.getElementById('emp-corte').value||'2025-09-15';
+  const just=document.getElementById('emp-just').value||'';
+  const quien=document.getElementById('emp-quien').value||'';
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const url=`${GAS}?action=empalme_guardar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
+      `&justificacion=${encodeURIComponent(just)}&registrado_por=${encodeURIComponent(quien)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarTxt(EMP_ACTUAL); }
+    else{ alert((d&&d.error)||'No se pudo guardar el empalme.'); }
+  }catch(e){ alert('Error de conexión al guardar.'); }
+  btn.disabled=false; btn.textContent=t;
 }
 
 /* ── Artículo 18: permisos anuales (bolsón editable) ── */
-let EMP_ACTUAL = '';
 
 async function cargarArt18(emp){
   EMP_ACTUAL = emp;
@@ -689,6 +824,7 @@ async function generarPdf(btn){
 pintarChips();
 cargarPersonal();
 cargarAreas();
+pintarBienvenida();
 </script>
 </body>
 </html>
