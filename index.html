@@ -205,10 +205,25 @@ tfoot td{background:#f7f9fc;font-weight:700}
 <script>
 const GAS   = "https://script.google.com/macros/s/AKfycby_lXwc1VIzyj5qV2kxaZBzhiBiHQ3wPbRG3raRov_Ij2lFEtBnqTGb_1DmCglx37V_/exec";
 const TOKEN = "RH_DINALOG";
+// Datos precalculados publicados en GitHub Pages. Se leen del CDN en
+// milisegundos; el GAS solo se usa para escrituras y consultas puntuales.
+const RH_JSON = "./rh_data.json";
+let DATOS = null;   // JSON cargado en memoria
 
 let MODO='uno';          // 'uno' | 'area'
 let EMP_ACTUAL='';       // colaborador consultado
 let ULTIMA=null;         // {modo, valor, desde, hasta}
+
+/* ── Datos precalculados (CDN) ── */
+async function cargarDatos(){
+  if(DATOS) return DATOS;
+  try{
+    const r=await fetch(`${RH_JSON}?v=${Date.now()}`, {cache:'no-cache'});
+    if(!r.ok) return null;
+    DATOS=await r.json();
+    return DATOS;
+  }catch(e){ return null; }
+}
 
 /* ── Reloj ── */
 function reloj(){
@@ -360,13 +375,25 @@ function consultar(){
     const porColab='<div class="panel"><div class="msg">Se consulta por colaborador. '+
       'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
     document.getElementById('res-vac').innerHTML=porColab;
-    document.getElementById('res-inc').innerHTML=porColab;
+    // En modo área, Incidencias muestra el consolidado de faltas y tardanzas
+    cargarAsistenciaArea(area,desde,hasta);
   }
 }
 
 /* ── Viáticos: un colaborador ── */
 async function cargarViaticosUno(emp,desde,hasta){
   const cont=document.getElementById('res-via');
+
+  // Si el período es el del JSON publicado, se sirve de ahí (instantáneo)
+  const D=await cargarDatos();
+  if(D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta){
+    const r=D.colaboradores[emp];
+    cont.innerHTML = r ? pintarUno(r) : `<div class="panel">
+      <div class="panel-h"><div class="panel-t">${emp}</div></div>
+      <div class="msg">No trabajó fuera de su horario regular en este período.</div></div>`;
+    return;
+  }
+
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Calculando desde el registro biométrico…</div></div>';
   try{
     const url=`${GAS}?action=viaticos&token=${TOKEN}&employee=${encodeURIComponent(emp)}`+
@@ -434,6 +461,25 @@ function pintarUno(d){
 /* ── Viáticos: área completa ── */
 async function cargarViaticosArea(area,desde,hasta){
   const cont=document.getElementById('res-via');
+
+  // Del JSON publicado si coincide el período
+  const D=await cargarDatos();
+  if(D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta){
+    const info=(D.areas||[]).filter(a=>a.area.toUpperCase()===area.toUpperCase())[0]||{};
+    const reportes=Object.keys(D.colaboradores)
+      .filter(n=>String(D.area_de[n]||'').toUpperCase()===area.toUpperCase())
+      .map(n=>D.colaboradores[n]);
+    cont.innerHTML=pintarArea({
+      ok:true, area:area, periodo:D.ciclo,
+      con_viaticos:reportes.length,
+      sin_viaticos:(info.personal||0)-reportes.length,
+      personal_evaluado:info.personal||0,
+      total_lote:info.total||0,
+      reportes:reportes
+    });
+    return;
+  }
+
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Calculando el área completa. Puede tardar un momento…</div></div>';
   try{
     const url=`${GAS}?action=viaticos_lote&token=${TOKEN}&area=${encodeURIComponent(area)}`+
@@ -500,14 +546,34 @@ async function pintarBienvenida(){
       </div>
     </div>`;
 
-  // Resumen por área: cuántos generaron reconocimiento y cuánto suma
+  // Los datos vienen del JSON publicado en GitHub Pages (CDN, milisegundos).
+  // Si aún no se ha publicado, se calcula en vivo contra el script (lento).
   try{
+    const D=await cargarDatos();
+    if(D&&D.areas&&D.areas.length){
+      window.__ULTIMA_MARCACION=(D.ciclo&&D.ciclo.ultima_marcacion)||'';
+      const tj=D.areas.slice(0,4).map(a=>`
+        <div class="kpi" style="cursor:pointer" onclick="irAArea('${a.area}')">
+          <div class="kpi-l">${a.area}</div>
+          <div class="kpi-v">${Number(a.total||0).toFixed(2)}</div>
+          <div class="kpi-s">${a.con_viaticos} de ${a.personal} colaboradores</div></div>`).join('');
+      document.getElementById('bienv-areas').innerHTML=
+        `<div class="kpis" style="margin:0">${tj}</div>
+         <div class="kpi-s" style="margin-top:10px">Toca un área para ver su detalle.${
+           D.generado_en?` · Datos calculados el ${D.generado_en}`:''}</div>`;
+      return;
+    }
+
+    document.getElementById('bienv-areas').innerHTML=
+      '<div class="aviso" style="background:var(--warn-bg);border-color:#fcd34d;color:var(--warn)">'+
+      'No hay datos publicados. Ejecuta <strong>PUBLICAR_RH_JSON</strong> en el script '+
+      'para que las consultas sean inmediatas.</div><div><span class="spin"></span> Calculando en vivo…</div>';
+
     const ra=await fetch(`${GAS}?action=areas&token=${TOKEN}&_=${Date.now()}`);
     const da=await ra.json();
-    const areas=(da.areas||[]).slice(0,4);   // las de mayor personal
+    const areas=(da.areas||[]).slice(0,4);
     if(!areas.length){ document.getElementById('bienv-areas').innerHTML=''; return; }
 
-    // Cada área con su propio corte de tiempo: una lenta no bloquea al resto
     const conCorte=(url,ms)=>{
       const ctrl=new AbortController();
       const t=setTimeout(()=>ctrl.abort(), ms);
@@ -518,7 +584,7 @@ async function pintarBienvenida(){
 
     const res=await Promise.all(areas.map(a=>
       conCorte(`${GAS}?action=viaticos_lote&token=${TOKEN}&area=${encodeURIComponent(a.area)}`+
-               `&from=${desde}&to=${hasta}&_=${Date.now()}`, 15000)
+               `&from=${desde}&to=${hasta}&_=${Date.now()}`, 20000)
     ));
 
     const tarjetas=res.map((d,i)=>{
@@ -852,10 +918,7 @@ async function cargarVacaciones(emp){
 
 function pintarVacaciones(d){
   const res=d.resoluciones||[];
-  if(!res.length){
-    return `<div class="panel"><div class="msg">
-      Sin resoluciones de vacaciones registradas para ${d.employee}.</div></div>`;
-  }
+  const sinRes = !res.length;
 
   const filas=res.map(r=>{
     const agotada = r.disponibles<=0;
@@ -879,6 +942,51 @@ function pintarVacaciones(d){
       <div class="lote-t">${p.dias} día(s)</div>
     </div>`).join('') ||
     '<div class="msg" style="padding:16px">Sin períodos de vacaciones registrados.</div>';
+
+  const forms = `
+  <div class="panel">
+    <div class="panel-h"><div class="panel-t">Registrar resolución</div>
+      <div class="kpi-s">Alta de días otorgados por resolución administrativa</div></div>
+    <div class="panel-b"><div class="row">
+      <div class="fld"><label for="vr-num">N° resolución</label>
+        <input type="text" id="vr-num" placeholder="4736"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:130px"></div>
+      <div class="fld"><label for="vr-anio">Año</label>
+        <input type="number" id="vr-anio" value="${new Date().getFullYear()}" min="2000" max="2100"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100px"></div>
+      <div class="fld"><label for="vr-dias">Días otorgados</label>
+        <input type="number" id="vr-dias" value="30" min="1" max="90"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:120px"></div>
+      <div class="fld grow"><label for="vr-nota">Observación</label>
+        <input type="text" id="vr-nota" placeholder="Opcional"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
+      <div class="fld"><label for="vr-pin">PIN</label>
+        <input type="password" id="vr-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
+      <button class="btn btn-main" onclick="guardarResolucion(this)">Registrar</button>
+    </div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h"><div class="panel-t">Registrar días tomados</div>
+      <div class="kpi-s">Se descuentan por FIFO de la resolución más antigua</div></div>
+    <div class="panel-b"><div class="row">
+      <div class="fld"><label for="vu-desde">Desde</label><input type="date" id="vu-desde"></div>
+      <div class="fld"><label for="vu-hasta">Hasta</label><input type="date" id="vu-hasta"></div>
+      <div class="fld grow"><label for="vu-nota">Observación</label>
+        <input type="text" id="vu-nota" placeholder="Opcional"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
+      <div class="fld"><label for="vu-pin">PIN</label>
+        <input type="password" id="vu-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
+          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
+      <button class="btn btn-main" onclick="registrarUsoVac(this)">Registrar</button>
+    </div></div>
+  </div>`;
+
+  if(sinRes){
+    return `<div class="panel"><div class="msg">
+      Sin resoluciones registradas para ${d.employee}. Regístralas abajo.</div></div>${forms}`;
+  }
 
   return `
   <div class="kpis">
@@ -913,7 +1021,8 @@ function pintarVacaciones(d){
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Períodos tomados</div></div>
     <div>${periodos}</div>
-  </div>`;
+  </div>
+  ${forms}`;
 }
 
 /* ── Incidencias: ausencias, tardanzas, artículos ── */
@@ -931,11 +1040,40 @@ async function cargarIncidencias(emp,desde,hasta){
   }
 }
 
+function formIncidencia(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const tipos=['ausencia justificada','ausencia injustificada','tardanza',
+    'permiso art. 18','incapacidad','licencia','duelo','capacitación','comisión','otro'];
+  return `
+  <div class="panel">
+    <div class="panel-h"><div class="panel-t">Registrar incidencia</div>
+      <div class="kpi-s">Para casos que no llegaron por la app del colaborador</div></div>
+    <div class="panel-b">
+      <div class="aviso">Las tardanzas las detecta el biométrico y las ausencias
+      pueden llegar desde la app del colaborador. Este registro es para lo que
+      haya que asentar a mano.</div>
+      <div class="row">
+        <div class="fld"><label for="ic-fecha">Fecha</label>
+          <input type="date" id="ic-fecha" value="${hoy}"></div>
+        <div class="fld"><label for="ic-tipo">Tipo</label>
+          <select id="ic-tipo">${tipos.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
+        <div class="fld grow"><label for="ic-nota">Detalle</label>
+          <input type="text" id="ic-nota" placeholder="Sustento o comentario"
+            style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
+        <div class="fld"><label for="ic-pin">PIN</label>
+          <input type="password" id="ic-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
+            style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
+        <button class="btn btn-main" onclick="guardarIncidencia(this)">Registrar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function pintarIncidencias(d){
   const items=d.incidencias||[];
   if(!items.length){
     return `<div class="panel"><div class="msg">
-      Sin incidencias registradas en el período seleccionado.</div></div>`;
+      Sin incidencias en el período seleccionado.</div></div>${formIncidencia()}`;
   }
 
   const colorTipo=t=>{
@@ -978,8 +1116,137 @@ function pintarIncidencias(d){
       </table>
     </div>
   </div>
-  <div class="kpi-s" style="padding:0 4px 10px">
-    Las tardanzas provienen del reloj biométrico; las ausencias y permisos, del registro de RH.
+  <div class="kpi-s" style="padding:0 4px 14px">
+    Las tardanzas provienen del reloj biométrico; las ausencias y permisos, de la app
+    del colaborador o del registro de RH.
+  </div>
+  ${formIncidencia()}`;
+}
+
+
+/* ── Escrituras: vacaciones e incidencias ── */
+async function guardarResolucion(btn){
+  if(!EMP_ACTUAL) return;
+  const num=document.getElementById('vr-num').value.trim();
+  const anio=document.getElementById('vr-anio').value;
+  const dias=document.getElementById('vr-dias').value;
+  const nota=document.getElementById('vr-nota').value||'';
+  const pin=document.getElementById('vr-pin').value||'';
+  if(!num||!anio||!dias){ alert('Completa número de resolución, año y días.'); return; }
+  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const url=`${GAS}?action=vac_resolucion&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&num=${encodeURIComponent(num)}`+
+      `&anio=${anio}&dias=${dias}&nota=${encodeURIComponent(nota)}`+
+      `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); }
+    else{ alert((d&&d.error)||'No se pudo registrar la resolución.'); }
+  }catch(e){ alert('Error de conexión.'); }
+  btn.disabled=false; btn.textContent=t;
+}
+
+async function registrarUsoVac(btn){
+  if(!EMP_ACTUAL) return;
+  const desde=document.getElementById('vu-desde').value;
+  const hasta=document.getElementById('vu-hasta').value;
+  const nota=document.getElementById('vu-nota').value||'';
+  const pin=document.getElementById('vu-pin').value||'';
+  if(!desde||!hasta){ alert('Indica el período de vacaciones.'); return; }
+  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const url=`${GAS}?action=vac_usar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&desde=${desde}&hasta=${hasta}`+
+      `&nota=${encodeURIComponent(nota)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){
+      const det=(d.aplicado||[]).map(a=>`${a.dias} día(s) de Res. ${a.resolucion}-${a.anio}`).join(', ');
+      alert(`Registrados ${d.dias} día(s).\nDescontados así: ${det}`);
+      cargarVacaciones(EMP_ACTUAL);
+    }
+    else{ alert((d&&d.error)||'No se pudo registrar.'); }
+  }catch(e){ alert('Error de conexión.'); }
+  btn.disabled=false; btn.textContent=t;
+}
+
+async function guardarIncidencia(btn){
+  if(!EMP_ACTUAL) return;
+  const fecha=document.getElementById('ic-fecha').value;
+  const tipo=document.getElementById('ic-tipo').value;
+  const nota=document.getElementById('ic-nota').value||'';
+  const pin=document.getElementById('ic-pin').value||'';
+  if(!fecha||!tipo){ alert('Indica la fecha y el tipo.'); return; }
+  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const desde=document.getElementById('f-desde').value;
+    const hasta=document.getElementById('f-hasta').value;
+    const url=`${GAS}?action=incidencia_registrar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${fecha}`+
+      `&tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}`+
+      `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta); }
+    else{ alert((d&&d.error)||'No se pudo registrar la incidencia.'); }
+  }catch(e){ alert('Error de conexión.'); }
+  btn.disabled=false; btn.textContent=t;
+}
+
+/* ── Reporte de asistencia del área ── */
+async function cargarAsistenciaArea(area,desde,hasta){
+  const cont=document.getElementById('res-inc');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando faltas y tardanzas…</div></div>';
+  try{
+    const url=`${GAS}?action=asistencia_area&token=${TOKEN}&area=${encodeURIComponent(area)}`+
+              `&from=${desde}&to=${hasta}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo consolidar.'}</div></div>`; return; }
+    cont.innerHTML=pintarAsistenciaArea(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+function pintarAsistenciaArea(d){
+  const lista=d.colaboradores||[];
+  if(!lista.length){
+    return `<div class="panel"><div class="msg">
+      Sin faltas ni tardanzas en ${d.area} durante el período.</div></div>`;
+  }
+  const filas=lista.map(x=>`
+    <tr>
+      <td class="l">${x.nombre}</td>
+      <td class="num" style="color:${x.ausencias?'var(--bad)':'var(--muted)'}">${x.ausencias}</td>
+      <td class="num" style="color:${x.tardanzas?'var(--warn)':'var(--muted)'}">${x.tardanzas}</td>
+      <td class="num">${x.otras}</td>
+      <td class="num"><strong>${x.total}</strong></td>
+    </tr>`).join('');
+
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Con incidencias</div><div class="kpi-v">${d.con_incidencias}</div>
+      <div class="kpi-s">de ${d.personal} en el área</div></div>
+    <div class="kpi"><div class="kpi-l">Ausencias</div>
+      <div class="kpi-v" style="color:var(--bad)">${d.total_ausencias}</div>
+      <div class="kpi-s">en el período</div></div>
+    <div class="kpi"><div class="kpi-l">Tardanzas</div>
+      <div class="kpi-v" style="color:var(--warn)">${d.total_tardanzas}</div>
+      <div class="kpi-s">en el período</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Faltas y tardanzas · ${d.area}</div>
+        <div class="kpi-s">del ${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
+    </div>
+    <div style="padding:0">
+      <table>
+        <thead><tr><th style="text-align:left">Colaborador</th><th>Ausencias</th>
+          <th>Tardanzas</th><th>Otras</th><th>Total</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
   </div>`;
 }
 
@@ -1010,13 +1277,21 @@ ajustarCicloConDatos(); // en segundo plano: si responde, corrige el ciclo
 // nunca bloquea la pantalla: si tarda o falla, se queda el ciclo por defecto.
 async function ajustarCicloConDatos(){
   try{
-    const ctrl=new AbortController();
-    const corte=setTimeout(()=>ctrl.abort(), 8000);   // no esperar más de 8 s
-    const r=await fetch(`${GAS}?action=ultimo_ciclo&token=${TOKEN}&_=${Date.now()}`,
-                        {signal:ctrl.signal});
-    clearTimeout(corte);
-    const d=await r.json();
-    if(!d||!d.ok||!d.ciclo) return;
+    // Primero el JSON publicado: trae el ciclo sin consultar el script
+    let ciclo=null;
+    const D=await cargarDatos();
+    if(D&&D.ciclo){ ciclo=D.ciclo; }
+    else{
+      const ctrl=new AbortController();
+      const corte=setTimeout(()=>ctrl.abort(), 8000);
+      const r=await fetch(`${GAS}?action=ultimo_ciclo&token=${TOKEN}&_=${Date.now()}`,
+                          {signal:ctrl.signal});
+      clearTimeout(corte);
+      const d=await r.json();
+      if(!d||!d.ok||!d.ciclo) return;
+      ciclo=d.ciclo;
+    }
+    const d={ok:true, ciclo:ciclo};
 
     window.__ULTIMA_MARCACION = d.ciclo.ultima_marcacion || '';
 
