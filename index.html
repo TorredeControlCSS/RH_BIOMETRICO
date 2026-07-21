@@ -255,7 +255,7 @@ function ciclos(n){
 function pintarChips(){
   const cont=document.getElementById('chips'), cs=ciclos(6);
   cont.innerHTML=cs.map((c,i)=>
-    `<button class="chip${i===0?' on':''}" data-d="${c.desde}" data-h="${c.hasta}">${c.etiqueta}</button>`).join('');
+    `<button class="chip" data-d="${c.desde}" data-h="${c.hasta}">${c.etiqueta}</button>`).join('');
   cont.querySelectorAll('.chip').forEach(b=>{
     b.onclick=()=>{
       cont.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
@@ -264,8 +264,15 @@ function pintarChips(){
       document.getElementById('f-hasta').value=b.dataset.h;
     };
   });
-  document.getElementById('f-desde').value=cs[0].desde;
-  document.getElementById('f-hasta').value=cs[0].hasta;
+  // El ciclo en curso casi nunca tiene el mes completo cargado; se arranca en
+  // el último ciclo YA CERRADO, que es sobre el que se preparan los reportes.
+  const hoy=new Date();
+  const enCurso = hoy.getDate()>=16;   // si es >=16, cs[0] es el ciclo que apenas abrió
+  const idx = (enCurso && cs.length>1) ? 1 : 0;
+  const sel = cs[idx];
+  cont.querySelectorAll('.chip')[idx].classList.add('on');
+  document.getElementById('f-desde').value=sel.desde;
+  document.getElementById('f-hasta').value=sel.hasta;
 }
 
 /* ── Catálogos ── */
@@ -494,10 +501,18 @@ async function pintarBienvenida(){
     const areas=(da.areas||[]).slice(0,4);   // las de mayor personal
     if(!areas.length){ document.getElementById('bienv-areas').innerHTML=''; return; }
 
+    // Cada área con su propio corte de tiempo: una lenta no bloquea al resto
+    const conCorte=(url,ms)=>{
+      const ctrl=new AbortController();
+      const t=setTimeout(()=>ctrl.abort(), ms);
+      return fetch(url,{signal:ctrl.signal})
+        .then(r=>{ clearTimeout(t); return r.json(); })
+        .catch(()=>null);
+    };
+
     const res=await Promise.all(areas.map(a=>
-      fetch(`${GAS}?action=viaticos_lote&token=${TOKEN}&area=${encodeURIComponent(a.area)}`+
-            `&from=${desde}&to=${hasta}&_=${Date.now()}`)
-        .then(r=>r.json()).catch(()=>null)
+      conCorte(`${GAS}?action=viaticos_lote&token=${TOKEN}&area=${encodeURIComponent(a.area)}`+
+               `&from=${desde}&to=${hasta}&_=${Date.now()}`, 15000)
     ));
 
     const tarjetas=res.map((d,i)=>{
@@ -834,25 +849,36 @@ async function generarPdf(btn){
 pintarChips();
 cargarPersonal();
 cargarAreas();
-arrancar();
+pintarBienvenida();     // se pinta YA, sin esperar a nadie
+ajustarCicloConDatos(); // en segundo plano: si responde, corrige el ciclo
 
-// Preselecciona el último ciclo CON DATOS (el biométrico se alimenta por ingestas,
-// así que el ciclo del calendario puede estar vacío) y avisa hasta dónde llega.
-async function arrancar(){
+// El biométrico se alimenta por ingestas, así que el ciclo del calendario
+// puede estar vacío. Esta consulta ajusta al último ciclo CON datos, pero
+// nunca bloquea la pantalla: si tarda o falla, se queda el ciclo por defecto.
+async function ajustarCicloConDatos(){
   try{
-    const r=await fetch(`${GAS}?action=ultimo_ciclo&token=${TOKEN}&_=${Date.now()}`);
+    const ctrl=new AbortController();
+    const corte=setTimeout(()=>ctrl.abort(), 8000);   // no esperar más de 8 s
+    const r=await fetch(`${GAS}?action=ultimo_ciclo&token=${TOKEN}&_=${Date.now()}`,
+                        {signal:ctrl.signal});
+    clearTimeout(corte);
     const d=await r.json();
-    if(d&&d.ok&&d.ciclo){
-      document.getElementById('f-desde').value=d.ciclo.from;
-      document.getElementById('f-hasta').value=d.ciclo.to;
-      // Marcar el chip correspondiente si está entre los visibles
-      document.querySelectorAll('#chips .chip').forEach(b=>{
-        b.classList.toggle('on', b.dataset.d===d.ciclo.from);
-      });
-      window.__ULTIMA_MARCACION = d.ciclo.ultima_marcacion || '';
+    if(!d||!d.ok||!d.ciclo) return;
+
+    window.__ULTIMA_MARCACION = d.ciclo.ultima_marcacion || '';
+
+    // Si el ciclo por defecto ya es el correcto, no repintar
+    if(document.getElementById('f-desde').value===d.ciclo.from){
+      pintarBienvenida();   // solo para mostrar el aviso de hasta dónde hay datos
+      return;
     }
-  }catch(e){ /* si falla, queda el ciclo del calendario */ }
-  pintarBienvenida();
+    document.getElementById('f-desde').value=d.ciclo.from;
+    document.getElementById('f-hasta').value=d.ciclo.to;
+    document.querySelectorAll('#chips .chip').forEach(b=>{
+      b.classList.toggle('on', b.dataset.d===d.ciclo.from);
+    });
+    pintarBienvenida();
+  }catch(e){ /* la pantalla ya está pintada: no hacer nada */ }
 }
 </script>
 </body>
