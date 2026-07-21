@@ -94,6 +94,8 @@ th{background:#f7f9fc;font-weight:700;color:var(--navy);font-size:11.5px;
 td.l{text-align:left}
 td.num{font-family:var(--mono)}
 tr.doble td{background:#fffbeb}
+tr.aus td{background:#fee2e2}
+tr.tar td{background:#fef3c7}
 tr.apertura td{background:#f7f9fc;font-style:italic;color:var(--muted)}
 tfoot td{background:#f7f9fc;font-weight:700}
 
@@ -147,8 +149,8 @@ tfoot td{background:#f7f9fc;font-weight:700}
 <div class="ctx">
   <div class="ctx-in">
     <div class="modo">
-      <button class="on" id="m-uno" onclick="setModo('uno')">Un colaborador</button>
-      <button id="m-area" onclick="setModo('area')">Un área completa</button>
+      <button class="on" id="m-uno" onclick="setModo('uno')">Vista individual</button>
+      <button id="m-area" onclick="setModo('area')">Vista por área</button>
     </div>
     <div class="row">
       <div class="fld grow" id="box-emp">
@@ -177,7 +179,8 @@ tfoot td{background:#f7f9fc;font-weight:700}
 <!-- Secciones -->
 <nav class="secs">
   <div class="secs-in">
-    <button class="on" id="s-via" onclick="verSec('via')">Alimentación y transporte</button>
+    <button class="on" id="s-asi" onclick="verSec('asi')">Registro de asistencia</button>
+    <button id="s-via" onclick="verSec('via')">Alimentación y transporte</button>
     <button id="s-txt" onclick="verSec('txt')">Tiempo compensatorio</button>
     <button id="s-vac" onclick="verSec('vac')">Vacaciones</button>
     <button id="s-inc" onclick="verSec('inc')">Incidencias</button>
@@ -185,7 +188,13 @@ tfoot td{background:#f7f9fc;font-weight:700}
 </nav>
 
 <div class="wrap">
-  <div class="sec on" id="sec-via">
+  <div class="sec on" id="sec-asi">
+    <div id="res-asi"><div class="panel"><div class="msg">
+      Selecciona un colaborador y pulsa <strong>Consultar</strong>.
+    </div></div></div>
+  </div>
+
+  <div class="sec" id="sec-via">
     <div id="res-via"></div>
   </div>
 
@@ -303,7 +312,7 @@ function setModo(m){
 
 /* ── Secciones ── */
 function verSec(s){
-  ['via','txt','vac','inc'].forEach(x=>{
+  ['asi','via','txt','vac','inc'].forEach(x=>{
     document.getElementById('sec-'+x).classList.toggle('on', x===s);
     document.getElementById('s-'+x).classList.toggle('on', x===s);
   });
@@ -429,13 +438,14 @@ function limpiar(){
   // Contenidos de cada sección
   const vacio='<div class="panel"><div class="msg">'+
     'Selecciona un colaborador y pulsa <strong>Consultar</strong>.</div></div>';
+  document.getElementById('res-asi').innerHTML=vacio;
   document.getElementById('res-txt').innerHTML=vacio;
   document.getElementById('res-art18').innerHTML='';
   document.getElementById('res-vac').innerHTML=vacio;
   document.getElementById('res-inc').innerHTML=vacio;
 
   // Volver a la primera sección y a la bienvenida
-  verSec('via');
+  verSec('asi');
   EMP_ACTUAL=''; ULTIMA=null;
   pintarBienvenida();
   ajustarCicloConDatos();
@@ -453,6 +463,7 @@ function consultar(){
     const emp=document.getElementById('sel-emp').value;
     if(!emp){ cont.innerHTML='<div class="panel"><div class="msg">Selecciona un colaborador.</div></div>'; return; }
     ULTIMA={modo:'uno', valor:emp, desde, hasta};
+    cargarRegistroAsistencia(emp,desde,hasta);
     cargarViaticosUno(emp,desde,hasta);
     cargarTxt(emp);
     cargarArt18(emp);
@@ -465,11 +476,14 @@ function consultar(){
     cargarViaticosArea(area,desde,hasta);
     document.getElementById('res-txt').innerHTML=
       '<div class="panel"><div class="msg">El tiempo compensatorio se consulta por colaborador. '+
-      'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
+      'Cambia a <strong>Vista individual</strong> para verlo.</div></div>';
     document.getElementById('res-art18').innerHTML='';
-    const porColab='<div class="panel"><div class="msg">Se consulta por colaborador. '+
-      'Cambia a <strong>Un colaborador</strong> para verlo.</div></div>';
+    const porColab='<div class="panel"><div class="msg">'+
+      'Esta información es individual de cada colaborador.<br><br>'+
+      '<button class="btn btn-2" onclick="setModo(\'uno\')">Cambiar a vista individual</button>'+
+      '</div></div>';
     document.getElementById('res-vac').innerHTML=porColab;
+    document.getElementById('res-asi').innerHTML=porColab;
     // En modo área, Incidencias muestra el consolidado de faltas y tardanzas
     cargarAsistenciaArea(area,desde,hasta);
   }
@@ -650,7 +664,7 @@ async function pintarBienvenida(){
     const D=await cargarDatos();
     if(D&&D.areas&&D.areas.length){
       window.__ULTIMA_MARCACION=(D.ciclo&&D.ciclo.ultima_marcacion)||'';
-      const tj=D.areas.slice(0,4).map(a=>`
+      const tj=D.areas.map(a=>`
         <div class="kpi" style="cursor:pointer" onclick="irAArea('${a.area}')">
           <div class="kpi-l">${a.area}</div>
           <div class="kpi-v">${Number(a.total||0).toFixed(2)}</div>
@@ -669,7 +683,7 @@ async function pintarBienvenida(){
 
     const ra=await fetch(`${GAS}?action=areas&token=${TOKEN}&_=${Date.now()}`);
     const da=await ra.json();
-    const areas=(da.areas||[]).slice(0,4);
+    const areas=(da.areas||[]);
     if(!areas.length){ document.getElementById('bienv-areas').innerHTML=''; return; }
 
     const conCorte=(url,ms)=>{
@@ -710,6 +724,96 @@ function irAArea(area){
   const sel=document.getElementById('sel-area');
   for(const o of sel.options){ if(o.value===area){ sel.value=area; break; } }
   consultar();
+}
+
+
+/* ── Registro de asistencia: el detalle día a día del biométrico ── */
+async function cargarRegistroAsistencia(emp,desde,hasta){
+  const cont=document.getElementById('res-asi');
+  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Leyendo las marcaciones del reloj…</div></div>';
+  try{
+    const url=`${GAS}?action=registro_asistencia&token=${TOKEN}`+
+              `&employee=${encodeURIComponent(emp)}&from=${desde}&to=${hasta}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo leer el registro.'}</div></div>`; return; }
+    cont.innerHTML=pintarRegistroAsistencia(d);
+  }catch(e){
+    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
+  }
+}
+
+function pintarRegistroAsistencia(d){
+  const dias=d.dias||[];
+  const c=d.colaborador||{};
+  const t=d.totales||{};
+  if(!dias.length){
+    return `<div class="panel">
+      <div class="panel-h"><div class="panel-t">${c.nombre||''}</div></div>
+      <div class="msg">Sin marcaciones en el período seleccionado.</div></div>`;
+  }
+
+  const filas=dias.map(x=>{
+    const inc=String(x.incidencia||'').toUpperCase();
+    const cls = inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : '');
+    return `<tr class="${cls}">
+      <td class="num">${fFecha(x.fecha)}</td>
+      <td>${x.dia||''}</td>
+      <td class="num">${fHora(x.entrada)}</td>
+      <td class="num">${fHora(x.salida)}</td>
+      <td class="num">${x.horas_trabajadas||'—'}</td>
+      <td class="num">${x.horas_extra||'—'}</td>
+      <td class="l" style="font-size:12px">${x.incidencia||''}${
+        x.minutos_tarde?` <span style="color:var(--warn)">(${x.minutos_tarde} min)</span>`:''}${
+        x.nota?` · ${x.nota}`:''}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Días marcados</div><div class="kpi-v">${t.dias_marcados}</div>
+      <div class="kpi-s">en el período</div></div>
+    <div class="kpi"><div class="kpi-l">Horas extra</div><div class="kpi-v">${t.he_calculadas||'00:00'}</div>
+      <div class="kpi-s">calculadas</div></div>
+    <div class="kpi"><div class="kpi-l">Tiempo compensatorio</div><div class="kpi-v">${t.txt_generado||'00:00'}</div>
+      <div class="kpi-s">generado</div></div>
+    <div class="kpi"><div class="kpi-l">Tardanzas</div>
+      <div class="kpi-v" style="color:${t.tardanzas?'var(--warn)':'var(--muted)'}">${t.tardanzas}</div>
+      <div class="kpi-s">en el período</div></div>
+    <div class="kpi"><div class="kpi-l">Ausencias</div>
+      <div class="kpi-v" style="color:${t.ausencias?'var(--bad)':'var(--muted)'}">${t.ausencias}</div>
+      <div class="kpi-s">en el período</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">${c.nombre||''}</div>
+        <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
+        <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
+      <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
+    </div>
+    <div style="padding:0">
+      <table>
+        <thead><tr><th>Fecha</th><th>Día</th><th>Entrada</th><th>Salida</th>
+          <th>Trabajadas</th><th>Extra</th><th style="text-align:left">Observación</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="kpi-s" style="padding:0 4px 10px;line-height:1.7">
+    <span style="display:inline-block;width:11px;height:11px;background:#fee2e2;
+      border:1px solid var(--line);vertical-align:-1px;margin-right:5px"></span>Ausencia &nbsp;
+    <span style="display:inline-block;width:11px;height:11px;background:#fef3c7;
+      border:1px solid var(--line);vertical-align:-1px;margin:0 5px 0 10px"></span>Tardanza
+  </div>`;
+}
+
+async function imprimirAsistencia(btn){
+  if(!ULTIMA||ULTIMA.modo!=='uno') return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  const url=`${GAS}?action=registro_asistencia_pdf&token=${TOKEN}`+
+    `&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
+  await generarDocumento(url,'Generando registro de asistencia…');
+  btn.disabled=false; btn.textContent=t;
 }
 
 /* ── Tiempo compensatorio: libro por ciclo ── */
