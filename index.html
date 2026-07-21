@@ -755,6 +755,27 @@ function irAArea(area){
 
 
 
+
+/* El JSON publicado puede no traer todas las secciones (si se genero con
+   una version anterior). En vez de colgarse un minuto consultando el script,
+   se avisa y el usuario decide si quiere calcularlo ahora. */
+
+let FORZAR_VIVO = false;   // el usuario pidio calcular sin JSON
+function calcularEnVivo(){
+  FORZAR_VIVO = true;
+  consultar();
+  FORZAR_VIVO = false;
+}
+
+function avisoSinDatos(msgAccion){
+  return '<div class="panel"><div class="panel-b">'+
+    '<div class="aviso">Los datos publicados no incluyen esta seccion todavia. '+
+    'Publica de nuevo desde el libro para que quede instantanea, o calculala ahora '+
+    '(puede tardar cerca de un minuto).</div>'+
+    '<button class="btn btn-main" onclick="'+msgAccion+'">Calcular ahora</button>'+
+  '</div></div>';
+}
+
 /* ══ Vistas por área servidas desde el JSON (sin llamar al script) ══ */
 
 function _personasDelArea(D,area){
@@ -812,29 +833,23 @@ function pintarTxtAreaJson(D,area){
       <td class="l"><a href="#" onclick="verColaborador('${x.nombre.replace(/'/g,"\\'")}');return false"
         style="color:var(--blue);text-decoration:none;font-weight:600">${x.nombre}</a>
         <div style="font-size:11px;color:var(--muted)">${(x.ficha&&x.ficha.cargo)||''}</div></td>
-      <td class="num"><strong style="color:${x.txt.sobregiro?'var(--bad)':'var(--navy)'}">${x.txt.saldo}</strong></td>
-      <td class="num">${x.txt.generado}</td>
-      <td class="num">${x.txt.tomado}</td>
-      <td class="num">${x.txt.he_pagadas}</td>
+      <td class="num"><strong>${x.txt.generado||'00:00'}</strong></td>
+      <td class="num">${x.txt.he_pagadas||'00:00'}</td>
     </tr>`).join('');
-  const sob=p.filter(x=>x.txt.sobregiro).length;
+  const conGen=p.filter(x=>x.txt.generado&&x.txt.generado!=='00:00').length;
   return `
   <div class="kpis">
     <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${p.length}</div>
       <div class="kpi-s">en el área</div></div>
-    <div class="kpi"><div class="kpi-l">Con saldo</div>
-      <div class="kpi-v">${p.filter(x=>x.txt.saldo!=='00:00').length}</div>
-      <div class="kpi-s">tienen horas acumuladas</div></div>
-    <div class="kpi"><div class="kpi-l">Sobregirados</div>
-      <div class="kpi-v" style="color:${sob?'var(--bad)':'var(--muted)'}">${sob}</div>
-      <div class="kpi-s">requieren revisión</div></div>
+    <div class="kpi"><div class="kpi-l">Generaron tiempo</div><div class="kpi-v">${conGen}</div>
+      <div class="kpi-s">en este ciclo</div></div>
   </div>
   <div class="panel">
     <div class="panel-h"><div><div class="panel-t">Tiempo compensatorio · ${area}</div>
-      <div class="kpi-s">toca un nombre para ver su detalle por ciclo</div></div></div>
+      <div class="kpi-s">generado en este ciclo · toca un nombre para su saldo acumulado</div></div></div>
     <div style="padding:0"><table>
-      <thead><tr><th style="text-align:left">Colaborador</th><th>Saldo</th>
-        <th>Generado</th><th>Tomado</th><th>H. extra pagadas</th></tr></thead>
+      <thead><tr><th style="text-align:left">Colaborador</th>
+        <th>Generado en el ciclo</th><th>H. extra pagadas</th></tr></thead>
       <tbody>${filas}</tbody></table></div>
   </div>`;
 }
@@ -900,6 +915,9 @@ async function cargarRegistroAsistenciaArea(area,desde,hasta){
   // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
   const _D=await cargarDatos(document.getElementById("f-desde").value);
   if(_D&&_D.detalle){ const _h=pintarRegistroAsistenciaAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
+  if((!_D||!_D.detalle) && !FORZAR_VIVO){
+    cont.innerHTML=avisoSinDatos("calcularEnVivo()"); return;
+  }
   try{
     const url=`${GAS}?action=asistencia_area_detalle&token=${TOKEN}`+
               `&area=${encodeURIComponent(area)}&from=${desde}&to=${hasta}&_=${Date.now()}`;
@@ -948,6 +966,9 @@ async function cargarTxtArea(area){
   // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
   const _D=await cargarDatos(document.getElementById("f-desde").value);
   if(_D&&_D.detalle){ const _h=pintarTxtAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
+  if((!_D||!_D.detalle) && !FORZAR_VIVO){
+    cont.innerHTML=avisoSinDatos("calcularEnVivo()"); return;
+  }
   try{
     const url=`${GAS}?action=txt_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -993,6 +1014,9 @@ async function cargarVacacionesArea(area){
   // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
   const _D=await cargarDatos(document.getElementById("f-desde").value);
   if(_D&&_D.detalle){ const _h=pintarVacacionesAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
+  if((!_D||!_D.detalle) && !FORZAR_VIVO){
+    cont.innerHTML=avisoSinDatos("calcularEnVivo()"); return;
+  }
   try{
     const url=`${GAS}?action=vacaciones_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
