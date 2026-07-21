@@ -26,7 +26,7 @@ body{margin:0;background:var(--bg);font-family:var(--ff);color:var(--text);font-
 .top img{width:36px;height:36px;background:#fff;border-radius:50%;padding:2px}
 .top-t{font-size:15.5px;font-weight:700;line-height:1.2}
 .top-s{font-size:11px;color:#b9c7d9;letter-spacing:.3px}
-.top-r{margin-left:auto;font-family:var(--mono);font-size:12px;color:#b9c7d9}
+.top-r{font-family:var(--mono);font-size:12px;color:#b9c7d9}
 
 /* ── Selector de contexto (persona + ciclo) ── */
 .ctx{background:var(--white);border-bottom:1px solid var(--line);padding:14px 20px;
@@ -134,7 +134,13 @@ tfoot td{background:#f7f9fc;font-weight:700}
     <div class="top-t">Recursos Humanos · Almacén CEDIS Panamá</div>
     <div class="top-s">DIRECCIÓN NACIONAL DE LOGÍSTICA</div>
   </div>
-  <div class="top-r" id="reloj"></div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+    <button class="btn" id="btn-pub" onclick="publicarDatos(this)"
+      style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
+             padding:7px 14px;font-size:12.5px"
+      title="Recalcula y republica los datos del dashboard">Actualizar datos</button>
+    <div class="top-r" id="reloj"></div>
+  </div>
 </div>
 
 <!-- Contexto: a quién y de qué ciclo -->
@@ -162,6 +168,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
         <input type="date" id="f-hasta">
       </div>
       <button class="btn btn-main" onclick="consultar()">Consultar</button>
+      <button class="btn btn-2" onclick="limpiar()" title="Vuelve al inicio">Limpiar</button>
     </div>
     <div class="chips" id="chips"></div>
   </div>
@@ -223,6 +230,57 @@ async function cargarDatos(){
     DATOS=await r.json();
     return DATOS;
   }catch(e){ return null; }
+}
+
+
+
+// Tras una escritura: la sección se refresca sola, pero el JSON publicado
+// (que alimenta los totales del ciclo) queda igual hasta republicar.
+function avisarPublicar(){
+  let el=document.getElementById('aviso-pub');
+  if(!el){
+    el=document.createElement('div');
+    el.id='aviso-pub';
+    el.style.cssText='position:fixed;bottom:18px;right:18px;z-index:200;max-width:330px;'+
+      'background:var(--navy);color:#fff;padding:12px 16px;border-radius:8px;'+
+      'font-size:12.5px;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    document.body.appendChild(el);
+  }
+  el.innerHTML='Registro guardado. Para que los totales del ciclo lo reflejen, '+
+    'pulsa <strong>Actualizar datos</strong> arriba cuando termines.'+
+    '<div style="text-align:right;margin-top:8px">'+
+    '<button onclick="this.closest(\'div\').parentNode.remove()" '+
+    'style="background:none;border:1px solid rgba(255,255,255,.35);color:#fff;'+
+    'border-radius:5px;padding:4px 12px;font-size:11.5px;cursor:pointer;font-family:inherit">'+
+    'Entendido</button></div>';
+  clearTimeout(window.__avisoT);
+  window.__avisoT=setTimeout(()=>{ const e=document.getElementById('aviso-pub'); if(e) e.remove(); }, 12000);
+}
+
+/* ── Republicar datos (opción C: control explícito) ──
+   Recalcula el ciclo y republica el JSON. Se usa tras registrar
+   incidencias, permisos o resoluciones, para que el dashboard
+   refleje los cambios sin esperar a nadie. */
+async function publicarDatos(btn){
+  const pin=prompt('Ingresa tu PIN de 4 dígitos para actualizar los datos del dashboard:');
+  if(!pin) return;
+  if(String(pin).replace(/\D/g,'').length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
+
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Actualizando…';
+  try{
+    const url=`${GAS}?action=publicar&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){
+      alert(`Datos actualizados por ${d.publicado_por}.\n`+
+            `${d.colaboradores} colaboradores · ${d.kb} KB · ${d.segundos} s\n\n`+
+            `El dashboard se recargará para mostrarlos.`);
+      DATOS=null;                  // descartar el JSON viejo en memoria
+      setTimeout(()=>location.reload(), 800);
+      return;
+    }
+    alert((d&&d.error)||'No se pudo actualizar.');
+  }catch(e){ alert('Error de conexión al actualizar.'); }
+  btn.disabled=false; btn.textContent=t;
 }
 
 /* ── Reloj ── */
@@ -343,9 +401,46 @@ async function cargarAreas(){
 }
 
 /* ── Formatos ── */
+// El biométrico guarda las horas como fecha base 1899; se muestra solo la hora.
+function limpiarDetalle(t){
+  return String(t||'').replace(/\w{3}\s+\w{3}\s+\d{1,2}\s+\d{4}\s+(\d{1,2}:\d{2}):\d{2}[^·]*/g,'$1');
+}
 const money  = n => 'B/. '+Number(n||0).toFixed(2);
 const fFecha = ymd => { const p=String(ymd||'').split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:ymd; };
-const fHora  = h => { const m=String(h||'').match(/^(\d{1,2}):(\d{2})/); return m?`${+m[1]}:${m[2]}`:(h||''); };
+const fHora  = h => {
+  const s=String(h||'').trim();
+  // Sheets devuelve las horas sueltas como fecha base 1899 ("Sat Dec 30 1899 07:37:00 GMT...").
+  // Se extrae solo la hora para no mostrar esa fecha falsa.
+  const g=s.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
+  return g?`${+g[1]}:${g[2]}`:s;
+};
+
+
+/* ── Limpiar: vuelve al estado inicial ── */
+function limpiar(){
+  // Selectores
+  const se=document.getElementById('sel-emp'); if(se) se.value='';
+  const sa=document.getElementById('sel-area'); if(sa) sa.value='';
+  setModo('uno');
+
+  // Ciclo por defecto (el último cerrado)
+  pintarChips();
+
+  // Contenidos de cada sección
+  const vacio='<div class="panel"><div class="msg">'+
+    'Selecciona un colaborador y pulsa <strong>Consultar</strong>.</div></div>';
+  document.getElementById('res-txt').innerHTML=vacio;
+  document.getElementById('res-art18').innerHTML='';
+  document.getElementById('res-vac').innerHTML=vacio;
+  document.getElementById('res-inc').innerHTML=vacio;
+
+  // Volver a la primera sección y a la bienvenida
+  verSec('via');
+  EMP_ACTUAL=''; ULTIMA=null;
+  pintarBienvenida();
+  ajustarCicloConDatos();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
 /* ── Consultar (según modo) ── */
 function consultar(){
@@ -438,7 +533,8 @@ function pintarUno(d){
   <div class="panel">
     <div class="panel-h">
       <div><div class="panel-t">${c.nombre||''}</div>
-        <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div></div>
+        <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
+        <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
       <button class="btn btn-main" onclick="generarPdf(this)">Generar PDF</button>
     </div>
     <div style="padding:0">
@@ -453,8 +549,10 @@ function pintarUno(d){
       </table>
     </div>
   </div>
-  <div class="kpi-s" style="padding:0 4px 10px">
-    Las filas resaltadas son fin de semana o feriado (alimentación doble). ${d.periodo.texto}
+  <div class="kpi-s" style="padding:0 4px 10px;line-height:1.7">
+    <span style="display:inline-block;width:11px;height:11px;background:#fffbeb;
+      border:1px solid var(--line);vertical-align:-1px;margin-right:5px"></span>
+    Fin de semana o feriado · alimentación doble
   </div>`;
 }
 
@@ -714,7 +812,7 @@ function pintarTxt(d){
     <div class="panel-h">
       <div><div class="panel-t">Registro de tiempo compensatorio</div>
         <div class="kpi-s">${d.employee} · un renglón por ciclo</div></div>
-      <button class="btn btn-main" onclick="imprimirTxt(this)">Imprimir registro</button>
+      <button class="btn btn-main" onclick="imprimirTxt(this)">Generar PDF</button>
     </div>
     <div style="padding:0">
       <table>
@@ -737,12 +835,8 @@ function pintarTxt(d){
 async function imprimirTxt(btn){
   if(!EMP_ACTUAL) return;
   const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
-  try{
-    const url=`${GAS}?action=txt_pdf&token=${TOKEN}&employee=${encodeURIComponent(EMP_ACTUAL)}&_=${Date.now()}`;
-    const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok&&d.downloadUrl){ window.open(d.downloadUrl,'_blank'); }
-    else{ alert((d&&d.error)||'No se pudo generar el documento.'); }
-  }catch(e){ alert('Error de conexión al generar el documento.'); }
+  const url=`${GAS}?action=txt_pdf&token=${TOKEN}&employee=${encodeURIComponent(EMP_ACTUAL)}&_=${Date.now()}`;
+  await generarDocumento(url, 'Generando registro de tiempo compensatorio…');
   btn.disabled=false; btn.textContent=t;
 }
 
@@ -884,7 +978,7 @@ async function registrarArt18(btn){
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${fecha}&horas=${horas}`+
       `&pin=${encodeURIComponent(pin)}&nota=${encodeURIComponent(nota)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
+    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar el permiso.'); }
   }catch(e){ alert('Error de conexión al registrar.'); }
   btn.disabled=false; btn.textContent=t;
@@ -897,7 +991,7 @@ async function eliminarArt18(id){
     const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}`+
               `&employee=${encodeURIComponent(EMP_ACTUAL)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); }
+    if(d&&d.ok){ cargarArt18(EMP_ACTUAL); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo eliminar.'); }
   }catch(e){ alert('Error de conexión al eliminar.'); }
 }
@@ -932,6 +1026,10 @@ function pintarVacaciones(d){
       <td class="l" style="font-size:11.5px">${esProxima
         ? '<span style="background:var(--blue-soft);color:var(--blue);padding:2px 9px;border-radius:20px;font-weight:700">Se consume primero</span>'
         : (agotada?'Agotada':'')}</td>
+      <td>${r.consumidos>0
+        ? '<span style="font-size:11px;color:var(--muted)">en uso</span>'
+        : `<button class="btn btn-2" style="padding:4px 11px;font-size:11.5px"
+             onclick="eliminarResolucion('${r.id}')">Eliminar</button>`}</td>
     </tr>`;
   }).join('');
 
@@ -947,7 +1045,11 @@ function pintarVacaciones(d){
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar resolución</div>
       <div class="kpi-s">Alta de días otorgados por resolución administrativa</div></div>
-    <div class="panel-b"><div class="row">
+    <div class="panel-b">
+      <div class="aviso">Una resolución registrada no se edita: es un acto administrativo.
+      Si hay un error, elimínala en la tabla de arriba y regístrala de nuevo.
+      Solo pueden eliminarse las que aún no tienen días consumidos.</div>
+      <div class="row">
       <div class="fld"><label for="vr-num">N° resolución</label>
         <input type="text" id="vr-num" placeholder="4736"
           style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:130px"></div>
@@ -964,13 +1066,20 @@ function pintarVacaciones(d){
         <input type="password" id="vr-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
           style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
       <button class="btn btn-main" onclick="guardarResolucion(this)">Registrar</button>
-    </div></div>
+      </div>
+    </div>
   </div>
 
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar días tomados</div>
       <div class="kpi-s">Se descuentan por FIFO de la resolución más antigua</div></div>
     <div class="panel-b"><div class="row">
+      <div class="fld"><label for="vu-res">Aplicar a</label>
+        <select id="vu-res">
+          <option value="">Automático (la más antigua)</option>
+          ${res.filter(r=>r.disponibles>0).map(r=>
+            `<option value="${r.id}">Res. ${r.num}-${r.anio} · ${r.disponibles} días</option>`).join('')}
+        </select></div>
       <div class="fld"><label for="vu-desde">Desde</label><input type="date" id="vu-desde"></div>
       <div class="fld"><label for="vu-hasta">Hasta</label><input type="date" id="vu-hasta"></div>
       <div class="fld grow"><label for="vu-nota">Observación</label>
@@ -1007,7 +1116,8 @@ function pintarVacaciones(d){
     <div style="padding:0">
       <table>
         <thead><tr><th>Resolución</th><th>Año</th><th>Otorgados</th>
-          <th>Consumidos</th><th>Disponibles</th><th style="text-align:left">Estado</th></tr></thead>
+          <th>Consumidos</th><th>Disponibles</th><th style="text-align:left">Estado</th>
+          <th></th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
     </div>
@@ -1092,7 +1202,7 @@ function pintarIncidencias(d){
     <tr>
       <td class="num">${fFecha(x.fecha)}</td>
       <td class="l"><span style="color:${colorTipo(x.tipo)};font-weight:600">${x.tipo}</span></td>
-      <td class="l" style="font-size:12px">${x.detalle||''}</td>
+      <td class="l" style="font-size:12px">${limpiarDetalle(x.detalle)}</td>
       <td class="l" style="font-size:11.5px;color:var(--muted)">${x.origen||''}</td>
     </tr>`).join('');
 
@@ -1125,6 +1235,19 @@ function pintarIncidencias(d){
 
 
 /* ── Escrituras: vacaciones e incidencias ── */
+
+async function eliminarResolucion(id){
+  const pin=prompt('Ingresa tu PIN de 4 dígitos para eliminar esta resolución:');
+  if(!pin) return;
+  try{
+    const url=`${GAS}?action=vac_resolucion_eliminar&token=${TOKEN}`+
+      `&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); avisarPublicar(); }
+    else{ alert((d&&d.error)||'No se pudo eliminar.'); }
+  }catch(e){ alert('Error de conexión.'); }
+}
+
 async function guardarResolucion(btn){
   if(!EMP_ACTUAL) return;
   const num=document.getElementById('vr-num').value.trim();
@@ -1141,7 +1264,7 @@ async function guardarResolucion(btn){
       `&anio=${anio}&dias=${dias}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); }
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar la resolución.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
@@ -1153,18 +1276,20 @@ async function registrarUsoVac(btn){
   const hasta=document.getElementById('vu-hasta').value;
   const nota=document.getElementById('vu-nota').value||'';
   const pin=document.getElementById('vu-pin').value||'';
+  const idRes=(document.getElementById('vu-res')||{}).value||'';
   if(!desde||!hasta){ alert('Indica el período de vacaciones.'); return; }
   if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const url=`${GAS}?action=vac_usar&token=${TOKEN}`+
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&desde=${desde}&hasta=${hasta}`+
-      `&nota=${encodeURIComponent(nota)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+      `&nota=${encodeURIComponent(nota)}&pin=${encodeURIComponent(pin)}`+
+      `${idRes?'&id_res='+encodeURIComponent(idRes):''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(d&&d.ok){
       const det=(d.aplicado||[]).map(a=>`${a.dias} día(s) de Res. ${a.resolucion}-${a.anio}`).join(', ');
       alert(`Registrados ${d.dias} día(s).\nDescontados así: ${det}`);
-      cargarVacaciones(EMP_ACTUAL);
+      cargarVacaciones(EMP_ACTUAL); avisarPublicar();
     }
     else{ alert((d&&d.error)||'No se pudo registrar.'); }
   }catch(e){ alert('Error de conexión.'); }
@@ -1188,7 +1313,7 @@ async function guardarIncidencia(btn){
       `&tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta); }
+    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar la incidencia.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
@@ -1250,18 +1375,61 @@ function pintarAsistenciaArea(d){
   </div>`;
 }
 
+
+/* ── Generación de documentos ──
+   Los navegadores bloquean window.open si ocurre tras una espera (async).
+   Se abre la pestaña ANTES de la petición y luego se le pone la URL, que es
+   lo que el navegador sí permite. Mientras tanto se muestra un aviso. */
+function overlayReporte(mostrar, texto){
+  let el=document.getElementById('ov-reporte');
+  if(!mostrar){ if(el) el.remove(); return; }
+  if(el){ el.querySelector('.ov-t').textContent=texto||'Generando reporte…'; return; }
+  el=document.createElement('div');
+  el.id='ov-reporte';
+  el.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(11,31,58,.82);'+
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff';
+  el.innerHTML=
+    '<img src="./icons/icon-192.png" alt="CSS" style="width:74px;height:74px;background:#fff;'+
+    'border-radius:50%;padding:5px">'+
+    '<div class="ov-t" style="font-size:15px;font-weight:600">'+(texto||'Generando reporte…')+'</div>'+
+    '<div style="font-size:12.5px;color:#b9c7d9;max-width:330px;text-align:center;line-height:1.6">'+
+    'El documento se abrirá en una pestaña nueva. Si el navegador la bloquea, '+
+    'permite las ventanas emergentes de este sitio.</div>'+
+    '<div style="width:26px;height:26px;border:3px solid rgba(255,255,255,.25);'+
+    'border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div>';
+  document.body.appendChild(el);
+}
+
+// Pide el documento y lo abre sin que el navegador lo bloquee
+async function generarDocumento(url, etiqueta){
+  const tab = window.open('', '_blank');       // se abre YA, con el clic aún vigente
+  overlayReporte(true, etiqueta||'Generando reporte…');
+  try{
+    const r=await fetch(url); const d=await r.json();
+    overlayReporte(false);
+    if(d&&d.ok&&d.downloadUrl){
+      if(tab && !tab.closed){ tab.location.href=d.downloadUrl; }
+      else{ window.open(d.downloadUrl,'_blank'); }   // por si la bloquearon igual
+      return true;
+    }
+    if(tab && !tab.closed) tab.close();
+    alert((d&&d.error)||'No se pudo generar el documento.');
+  }catch(e){
+    overlayReporte(false);
+    if(tab && !tab.closed) tab.close();
+    alert('Error de conexión al generar el documento.');
+  }
+  return false;
+}
+
 /* ── PDF (según modo) ── */
 async function generarPdf(btn){
   if(!ULTIMA) return;
   const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
-  try{
-    const url = (ULTIMA.modo==='uno')
-      ? `${GAS}?action=viaticos_pdf&token=${TOKEN}&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`
-      : `${GAS}?action=viaticos_lote_pdf&token=${TOKEN}&area=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
-    const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok&&d.downloadUrl){ window.open(d.downloadUrl,'_blank'); }
-    else{ alert((d&&d.error)||'No se pudo generar el documento.'); }
-  }catch(e){ alert('Error de conexión al generar el documento.'); }
+  const url = (ULTIMA.modo==='uno')
+    ? `${GAS}?action=viaticos_pdf&token=${TOKEN}&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`
+    : `${GAS}?action=viaticos_lote_pdf&token=${TOKEN}&area=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
+  await generarDocumento(url, 'Generando reconocimiento de alimentación y transporte…');
   btn.disabled=false; btn.textContent=t;
 }
 
