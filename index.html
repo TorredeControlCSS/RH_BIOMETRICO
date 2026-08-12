@@ -135,6 +135,9 @@ tfoot td{background:#f7f9fc;font-weight:700}
   <div>
     <div class="top-t">Recursos Humanos · Almacén CEDIS Panamá</div>
     <div class="top-s">DIRECCIÓN NACIONAL DE LOGÍSTICA</div>
+    <div id="selloEstado" style="font-size:11.5px;color:rgba(255,255,255,.85);margin-top:3px">
+      <span style="opacity:.7">Verificando actualización del biométrico…</span>
+    </div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
     <button class="btn" id="btn-pub" onclick="publicarDatos(this)"
@@ -223,6 +226,34 @@ const TOKEN = "RH_DINALOG";
 // milisegundos; el GAS solo se usa para escrituras y consultas puntuales.
 const RH_JSON  = "./rh_data.json";     // ciclo vigente
 const RH_INDEX = "./rh_index.json";    // ciclos disponibles
+const RH_ESTADO = "./rh_estado.json";  // sello de frescura del biométrico
+
+// Lee el sello de estado y lo muestra en la cabecera para que CUALQUIERA
+// que entre sepa cuándo se actualizó el dato, sin refrescar a ciegas.
+async function cargarSelloEstado(){
+  var el = document.getElementById('selloEstado');
+  if (!el) return;
+  try{
+    var r = await fetch(RH_ESTADO + '?v=' + Date.now());
+    if (!r.ok) throw 0;
+    var e = await r.json();
+    var hasta = e.datos_hasta ? fmtFechaSello(e.datos_hasta) : 's/f';
+    var act = e.actualizado_en || '';
+    el.innerHTML =
+      '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;'+
+      'background:#4ade80;margin-right:5px;vertical-align:middle"></span>'+
+      'Datos actualizados: <strong>'+act+'</strong> · hasta '+hasta;
+  }catch(_){
+    el.innerHTML = '<span style="opacity:.6">Sin sello de actualización disponible</span>';
+  }
+}
+function fmtFechaSello(ymd){
+  var p = String(ymd).slice(0,10).split('-');
+  if (p.length!==3) return ymd;
+  var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return p[2]+'-'+(m[(+p[1])-1]||p[1])+'-'+p[0];
+}
+document.addEventListener('DOMContentLoaded', cargarSelloEstado);
 let DATOS = null;          // ciclo cargado ahora mismo
 const CACHE_CICLOS = {};   // {from: datosDelCiclo} — evita releer lo ya traído
 let INDICE = null;         // lista de ciclos publicados
