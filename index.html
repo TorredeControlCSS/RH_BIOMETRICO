@@ -1148,6 +1148,7 @@ function pintarRegistroAsistencia(d){
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
       <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
+      <button class="btn btn-main" onclick="generarPlanillaTE(this)" style="margin-left:8px">Planilla Sobretiempo (Excel)</button>
     </div>
     <div style="padding:0">
       <table>
@@ -1918,6 +1919,14 @@ async function generarPdf(btn){
     ? `${GAS}?action=viaticos_pdf&token=${TOKEN}&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`
     : `${GAS}?action=viaticos_lote_pdf&token=${TOKEN}&area=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
   await generarDocumento(url, 'Generando reconocimiento de alimentación y transporte…');
+  btn.disabled=false; btn.textContent=t;
+}
+
+async function generarPlanillaTE(btn){
+  if(!ULTIMA || ULTIMA.modo!=='uno'){ alert('Selecciona un colaborador para generar su planilla.'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  const url = `${GAS}?action=planilla_te&token=${TOKEN}&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
+  await generarDocumento(url, 'Generando planilla de sobretiempo (Form. T.E.)…');
   btn.disabled=false; btn.textContent=t;
 }
 
