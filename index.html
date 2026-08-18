@@ -224,7 +224,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
 </div>
 
 <!-- Secciones -->
-<nav class="secs">
+<nav class="secs" id="nav-secciones">
   <div class="secs-in">
     <button class="on" id="s-asi" onclick="verSec('asi')">Registro de asistencia</button>
     <button id="s-via" onclick="verSec('via')">Alimentación y transporte</button>
@@ -234,7 +234,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
   </div>
 </nav>
 
-<div class="wrap">
+<div class="wrap" id="wrap-resultados">
   <div class="sec on" id="sec-asi">
     <div id="res-asi"></div>
   </div>
@@ -414,6 +414,12 @@ function setModo(m){
   // Ocultar controles de fecha/consultar y resultados cuando estamos en planilla
   var ctrlNormales=document.getElementById('ctrl-normales');
   if(ctrlNormales) ctrlNormales.style.display = (m==='planilla') ? 'none' : '';
+  // El menú de pestañas (asistencia, alimentación…) y el área de resultados
+  // no tienen sentido en la vista de generación de planilla: se ocultan.
+  var navSec=document.getElementById('nav-secciones');
+  if(navSec) navSec.style.display = (m==='planilla') ? 'none' : '';
+  var wrapRes=document.getElementById('wrap-resultados');
+  if(wrapRes) wrapRes.style.display = (m==='planilla') ? 'none' : '';
   if(m==='planilla') inicializarPlanilla();
 }
 
