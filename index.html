@@ -154,7 +154,9 @@ tfoot td{background:#f7f9fc;font-weight:700}
     <div class="modo">
       <button class="on" id="m-uno" onclick="setModo('uno')">Vista individual</button>
       <button id="m-area" onclick="setModo('area')">Vista por área</button>
+      <button id="m-planilla" onclick="setModo('planilla')">Generar Planilla T.E.</button>
     </div>
+    <div id="ctrl-normales">
     <div class="row">
       <div class="fld grow" id="box-emp">
         <label for="sel-emp">Colaborador</label>
@@ -176,6 +178,30 @@ tfoot td{background:#f7f9fc;font-weight:700}
       <button class="btn btn-2" onclick="limpiar()" title="Vuelve al inicio">Limpiar</button>
     </div>
     <div class="chips" id="chips"></div>
+    </div>
+
+    <!-- VISTA GENERAR PLANILLA T.E. -->
+    <div id="vista-planilla" style="display:none">
+      <div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:12px">
+        <div class="fld grow">
+          <label for="pl-area">Área</label>
+          <select id="pl-area" onchange="plCargarColaboradores()"><option value="">Cargando áreas…</option></select>
+        </div>
+        <div class="fld"><label for="pl-desde">Desde</label><input type="date" id="pl-desde"></div>
+        <div class="fld"><label for="pl-hasta">Hasta</label><input type="date" id="pl-hasta"></div>
+      </div>
+      <div class="row" style="gap:12px;margin-top:8px">
+        <div class="fld"><label>COD 1</label><input type="text" id="pl-cod1" style="width:60px" placeholder="8"></div>
+        <div class="fld"><label>COD 2 (ej. 1,2)</label><input type="text" id="pl-cod2" style="width:80px" placeholder="1,2"></div>
+        <div class="fld"><label>COD 3 (ej. 0,1)</label><input type="text" id="pl-cod3" style="width:80px" placeholder="0,1"></div>
+      </div>
+      <div style="margin:12px 0;color:#555;font-size:13px">Marca de <b>1 a 5</b> colaboradores para incluir en la planilla:</div>
+      <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;padding:8px;background:#fff"></div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-main" onclick="generarPlanillaLote(this)">Generar Planilla T.E.</button>
+        <span id="pl-contador" style="color:#555;font-size:13px">0 seleccionados</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -361,8 +387,16 @@ function setModo(m){
   MODO=m;
   document.getElementById('m-uno').classList.toggle('on', m==='uno');
   document.getElementById('m-area').classList.toggle('on', m==='area');
+  var mp=document.getElementById('m-planilla'); if(mp) mp.classList.toggle('on', m==='planilla');
   document.getElementById('box-emp').style.display  = (m==='uno')  ? '' : 'none';
   document.getElementById('box-area').style.display = (m==='area') ? '' : 'none';
+  // La vista de planilla tiene su propio panel
+  var vp=document.getElementById('vista-planilla');
+  if(vp) vp.style.display = (m==='planilla') ? '' : 'none';
+  // Ocultar controles de fecha/consultar y resultados cuando estamos en planilla
+  var ctrlNormales=document.getElementById('ctrl-normales');
+  if(ctrlNormales) ctrlNormales.style.display = (m==='planilla') ? 'none' : '';
+  if(m==='planilla') inicializarPlanilla();
 }
 
 /* ── Secciones ── */
@@ -1927,6 +1961,80 @@ async function generarPlanillaTE(btn){
   const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
   const url = `${GAS}?action=planilla_te&token=${TOKEN}&employee=${encodeURIComponent(ULTIMA.valor)}&from=${ULTIMA.desde}&to=${ULTIMA.hasta}&_=${Date.now()}`;
   await generarDocumento(url, 'Generando planilla de sobretiempo (Form. T.E.)…');
+  btn.disabled=false; btn.textContent=t;
+}
+
+// ===== VISTA GENERAR PLANILLA T.E. (lote 1-5 por área) =====
+let PL_AREAS_CARGADAS=false;
+async function inicializarPlanilla(){
+  // fechas por defecto = mismas del ciclo vigente si existen
+  const d=document.getElementById('f-desde'), h=document.getElementById('f-hasta');
+  if(d && d.value) document.getElementById('pl-desde').value=d.value;
+  if(h && h.value) document.getElementById('pl-hasta').value=h.value;
+  // cargar áreas una vez
+  if(!PL_AREAS_CARGADAS){
+    try{
+      const r=await fetch(`${GAS}?action=areas&token=${TOKEN}&_=${Date.now()}`);
+      const j=await r.json();
+      const sel=document.getElementById('pl-area');
+      sel.innerHTML='<option value="">Seleccione un área…</option>';
+      (j.areas||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a.area; o.textContent=`${a.area} (${a.personal})`; sel.appendChild(o); });
+      PL_AREAS_CARGADAS=true;
+    }catch(e){ document.getElementById('pl-area').innerHTML='<option value="">Error cargando áreas</option>'; }
+  }
+  // cargar códigos actuales
+  try{
+    const r=await fetch(`${GAS}?action=planilla_codigos&token=${TOKEN}&_=${Date.now()}`);
+    const j=await r.json();
+    if(j&&j.ok){ document.getElementById('pl-cod1').value=j.cod1||''; document.getElementById('pl-cod2').value=j.cod2||''; document.getElementById('pl-cod3').value=j.cod3||''; }
+  }catch(e){}
+}
+
+async function plCargarColaboradores(){
+  const area=document.getElementById('pl-area').value;
+  const cont=document.getElementById('pl-lista');
+  if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; return; }
+  cont.innerHTML='<div style="color:#888">Cargando colaboradores…</div>';
+  try{
+    const r=await fetch(`${GAS}?action=colaboradores_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`);
+    const j=await r.json();
+    if(!j||!j.ok||!j.colaboradores.length){ cont.innerHTML='<div style="color:#888">Sin colaboradores en esta área.</div>'; return; }
+    cont.innerHTML=j.colaboradores.map((c,i)=>
+      `<label style="display:block;padding:5px 4px;border-bottom:1px solid #eee;cursor:pointer">
+        <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()">
+        <span style="margin-left:6px">${c.nombre}</span>
+        <span style="color:#888;font-size:12px"> · ${c.cargo||''}</span>
+      </label>`).join('');
+    plContar();
+  }catch(e){ cont.innerHTML='<div style="color:#c00">Error cargando colaboradores.</div>'; }
+}
+
+function plContar(){
+  const chks=[...document.querySelectorAll('.pl-chk:checked')];
+  document.getElementById('pl-contador').textContent=`${chks.length} seleccionados`;
+  // limitar a 5
+  if(chks.length>5){
+    chks[chks.length-1].checked=false;
+    alert('Máximo 5 colaboradores por planilla.');
+    document.getElementById('pl-contador').textContent='5 seleccionados';
+  }
+}
+
+async function generarPlanillaLote(btn){
+  const chks=[...document.querySelectorAll('.pl-chk:checked')];
+  if(chks.length<1){ alert('Marca al menos 1 colaborador.'); return; }
+  if(chks.length>5){ alert('Máximo 5 colaboradores.'); return; }
+  const desde=document.getElementById('pl-desde').value, hasta=document.getElementById('pl-hasta').value;
+  if(!desde||!hasta){ alert('Indica el período (Desde / Hasta).'); return; }
+  const empleados=chks.map(c=>c.value).join('||');
+  const cod1=document.getElementById('pl-cod1').value.trim();
+  const cod2=document.getElementById('pl-cod2').value.trim();
+  const cod3=document.getElementById('pl-cod3').value.trim();
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  const url=`${GAS}?action=planilla_te_lote&token=${TOKEN}`+
+    `&empleados=${encodeURIComponent(empleados)}&from=${desde}&to=${hasta}`+
+    `&cod1=${encodeURIComponent(cod1)}&cod2=${encodeURIComponent(cod2)}&cod3=${encodeURIComponent(cod3)}&_=${Date.now()}`;
+  await generarDocumento(url, `Generando planilla con ${chks.length} colaborador(es)…`);
   btn.disabled=false; btn.textContent=t;
 }
 
