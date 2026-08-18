@@ -230,6 +230,29 @@ tfoot td{background:#f7f9fc;font-weight:700}
           </div>
         </div>
       </div>
+      <div style="margin:14px 0;padding:12px 14px;background:#fff;border:1px solid #a8a8a8">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <label style="display:block;margin-bottom:3px;font-weight:600">CORRELATIVO DEL FORMULARIO (Nº)</label>
+            <div style="font-size:12.5px;color:#555">Próximo documento: <b id="seq-actual" style="font-family:Consolas,monospace;color:var(--blue)">—</b></div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px">
+            <div class="fld">
+              <label for="seq-nuevo" style="font-size:11px;color:#555">Iniciar en Nº</label>
+              <input type="text" id="seq-nuevo" maxlength="3" inputmode="numeric" placeholder="013"
+                style="width:70px;text-align:center;font-family:Consolas,monospace;font-size:15px;border:1px solid #a8a8a8;border-radius:2px;padding:6px">
+            </div>
+            <div class="fld">
+              <label for="seq-pin" style="font-size:11px;color:#555">PIN</label>
+              <input type="password" id="seq-pin" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="4 díg."
+                style="width:80px;text-align:center;font-family:Consolas,monospace;font-size:15px;letter-spacing:3px;border:1px solid #a8a8a8;border-radius:2px;padding:6px">
+            </div>
+            <button class="btn" onclick="reiniciarSecuencial(this)" style="height:34px">Fijar Nº</button>
+          </div>
+        </div>
+        <div id="seq-msg" style="margin-top:8px;font-size:12.5px"></div>
+      </div>
+
       <div style="margin:12px 0;color:#555;font-size:13px">Marca de <b>1 a 5</b> colaboradores para incluir en la planilla:</div>
       <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;padding:8px;background:#fff"></div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
@@ -2122,6 +2145,43 @@ async function inicializarPlanilla(){
     const j=await r.json();
     if(j&&j.ok){ setCodigosCasillas(j.cod1||'', j.cod2||'', j.cod3||''); }
   }catch(e){}
+  // cargar correlativo actual del formulario
+  cargarSecuencialActual();
+}
+
+/* ── Correlativo del Form T.E. (llave maestra) ── */
+async function cargarSecuencialActual(){
+  const el=document.getElementById('seq-actual');
+  if(!el) return;
+  try{
+    const r=await fetch(`${GAS}?action=planilla_te_secuencial&token=${TOKEN}&_=${Date.now()}`);
+    const j=await r.json();
+    el.textContent=(j&&j.ok)?j.ejemplo:'—';
+  }catch(e){ el.textContent='—'; }
+}
+
+async function reiniciarSecuencial(btn){
+  const nuevo=(document.getElementById('seq-nuevo').value||'').replace(/\D/g,'');
+  const pin=(document.getElementById('seq-pin').value||'').replace(/\D/g,'');
+  const msg=document.getElementById('seq-msg');
+  if(!nuevo){ msg.style.color='#b00'; msg.textContent='Escribe el número en que debe iniciar.'; return; }
+  if(pin.length!==4){ msg.style.color='#b00'; msg.textContent='El PIN debe tener 4 dígitos.'; return; }
+  btn.disabled=true; const t=btn.textContent; btn.textContent='Guardando…';
+  msg.style.color='#555'; msg.textContent='';
+  try{
+    const url=`${GAS}?action=planilla_te_reiniciar&token=${TOKEN}`+
+      `&proximo=${encodeURIComponent(nuevo)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const j=await r.json();
+    if(j&&j.ok){
+      msg.style.color='#0a7a2f';
+      msg.textContent=`Listo. El próximo documento será ${j.ejemplo}.`;
+      document.getElementById('seq-actual').textContent=j.ejemplo;
+      document.getElementById('seq-pin').value='';
+    }else{
+      msg.style.color='#b00'; msg.textContent=(j&&j.error)||'No se pudo fijar el correlativo.';
+    }
+  }catch(e){ msg.style.color='#b00'; msg.textContent='Error de conexión.'; }
+  btn.disabled=false; btn.textContent=t;
 }
 
 // Salta a la siguiente casilla al escribir un dígito (solo números)
