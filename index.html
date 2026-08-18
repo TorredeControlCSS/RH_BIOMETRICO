@@ -49,6 +49,8 @@ select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px}
 .btn{border:none;border-radius:6px;padding:9px 18px;font-family:inherit;font-size:13.5px;
      font-weight:700;cursor:pointer;white-space:nowrap}
 .btn-main{background:var(--blue);color:#fff}
+.codcel{width:30px;height:32px;text-align:center;font-family:Consolas,monospace;font-size:15px;font-weight:bold;border:1px solid #a8a8a8;border-radius:2px;padding:0}
+.codcel:focus{border-color:var(--blue);outline:2px solid rgba(12,68,124,.2)}
 .btn-main:hover{background:var(--navy)}
 .btn-2{background:var(--white);color:var(--navy);border:1px solid var(--line)}
 .btn-2:hover{border-color:var(--blue)}
@@ -190,10 +192,26 @@ tfoot td{background:#f7f9fc;font-weight:700}
         <div class="fld"><label for="pl-desde">Desde</label><input type="date" id="pl-desde"></div>
         <div class="fld"><label for="pl-hasta">Hasta</label><input type="date" id="pl-hasta"></div>
       </div>
-      <div class="row" style="gap:12px;margin-top:8px">
-        <div class="fld"><label>COD 1</label><input type="text" id="pl-cod1" style="width:60px" placeholder="8"></div>
-        <div class="fld"><label>COD 2 (ej. 1,2)</label><input type="text" id="pl-cod2" style="width:80px" placeholder="1,2"></div>
-        <div class="fld"><label>COD 3 (ej. 0,1)</label><input type="text" id="pl-cod3" style="width:80px" placeholder="0,1"></div>
+      <div class="row" style="gap:20px;margin-top:8px;align-items:flex-end">
+        <div class="fld">
+          <label style="display:block;margin-bottom:3px">CÓDIGO UNIDAD EJECUTORA</label>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:11px;color:#555;width:34px">COD</span>
+              <input type="text" id="cod-a1" maxlength="1" class="codcel" oninput="codNext(this)">
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:11px;color:#555;width:34px">COD</span>
+              <input type="text" id="cod-b1" maxlength="1" class="codcel" oninput="codNext(this)">
+              <input type="text" id="cod-b2" maxlength="1" class="codcel" oninput="codNext(this)">
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <span style="font-size:11px;color:#555;width:34px">COD</span>
+              <input type="text" id="cod-c1" maxlength="1" class="codcel" oninput="codNext(this)">
+              <input type="text" id="cod-c2" maxlength="1" class="codcel" oninput="codNext(this)">
+            </div>
+          </div>
+        </div>
       </div>
       <div style="margin:12px 0;color:#555;font-size:13px">Marca de <b>1 a 5</b> colaboradores para incluir en la planilla:</div>
       <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;padding:8px;background:#fff"></div>
@@ -1931,8 +1949,31 @@ async function generarDocumento(url, etiqueta){
     const r=await fetch(url); const d=await r.json();
     overlayReporte(false);
     if(d&&d.ok&&d.downloadUrl){
-      if(tab && !tab.closed){ tab.location.href=d.downloadUrl; }
-      else{ window.open(d.downloadUrl,'_blank'); }   // por si la bloquearon igual
+      // Disparar la descarga sin dejar la pestaña colgada con el spinner.
+      if(tab && !tab.closed){
+        try{
+          // Reemplazar el contenido por un aviso de "listo" + descarga automática
+          tab.document.open();
+          tab.document.write(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Listo</title>'+
+            '<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;'+
+            'align-items:center;justify-content:center;gap:16px;background:#0B1F3A;color:#fff;'+
+            'font-family:Segoe UI,system-ui,Arial,sans-serif}'+
+            '.t{font-size:16px;font-weight:600}.s{font-size:13px;color:#b9c7d9}'+
+            'a{color:#7db4ff}</style></head><body>'+
+            '<div class="t">✓ Documento generado</div>'+
+            '<div class="s">La descarga inició automáticamente.</div>'+
+            '<div class="s">Si no descargó, <a href="'+d.downloadUrl+'">haz clic aquí</a>.</div>'+
+            '<div class="s">Ya puedes cerrar esta pestaña.</div>'+
+            '<iframe src="'+d.downloadUrl+'" style="display:none"></iframe>'+
+            '</body></html>');
+          tab.document.close();
+        }catch(e){
+          tab.location.href=d.downloadUrl;
+        }
+      } else {
+        window.open(d.downloadUrl,'_blank');
+      }
       return true;
     }
     if(tab && !tab.closed) tab.close();
@@ -1986,8 +2027,34 @@ async function inicializarPlanilla(){
   try{
     const r=await fetch(`${GAS}?action=planilla_codigos&token=${TOKEN}&_=${Date.now()}`);
     const j=await r.json();
-    if(j&&j.ok){ document.getElementById('pl-cod1').value=j.cod1||''; document.getElementById('pl-cod2').value=j.cod2||''; document.getElementById('pl-cod3').value=j.cod3||''; }
+    if(j&&j.ok){ setCodigosCasillas(j.cod1||'', j.cod2||'', j.cod3||''); }
   }catch(e){}
+}
+
+// Salta a la siguiente casilla al escribir un dígito (solo números)
+function codNext(inp){
+  inp.value = inp.value.replace(/[^0-9]/g,'');
+  if(inp.value.length>=1){
+    const orden=['cod-a1','cod-b1','cod-b2','cod-c1','cod-c2'];
+    const i=orden.indexOf(inp.id);
+    if(i>=0 && i<orden.length-1){ const nx=document.getElementById(orden[i+1]); if(nx) nx.focus(); }
+  }
+}
+// Rellena las casillas desde los valores guardados ("8", "1,2", "0,1")
+function setCodigosCasillas(c1,c2,c3){
+  const g1=String(c1).split(','), g2=String(c2).split(','), g3=String(c3).split(',');
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v||'').trim(); };
+  set('cod-a1',g1[0]);
+  set('cod-b1',g2[0]); set('cod-b2',g2[1]);
+  set('cod-c1',g3[0]); set('cod-c2',g3[1]);
+}
+// Lee las casillas y arma los 3 códigos en formato "8" / "1,2" / "0,1"
+function getCodigosCasillas(){
+  const g=(id)=>{ const e=document.getElementById(id); return e?e.value.trim():''; };
+  const cod1=g('cod-a1');
+  const cod2=[g('cod-b1'),g('cod-b2')].filter(x=>x).join(',');
+  const cod3=[g('cod-c1'),g('cod-c2')].filter(x=>x).join(',');
+  return {cod1,cod2,cod3};
 }
 
 async function plCargarColaboradores(){
@@ -2027,9 +2094,8 @@ async function generarPlanillaLote(btn){
   const desde=document.getElementById('pl-desde').value, hasta=document.getElementById('pl-hasta').value;
   if(!desde||!hasta){ alert('Indica el período (Desde / Hasta).'); return; }
   const empleados=chks.map(c=>c.value).join('||');
-  const cod1=document.getElementById('pl-cod1').value.trim();
-  const cod2=document.getElementById('pl-cod2').value.trim();
-  const cod3=document.getElementById('pl-cod3').value.trim();
+  const cods=getCodigosCasillas();
+  const cod1=cods.cod1, cod2=cods.cod2, cod3=cods.cod3;
   const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
   const url=`${GAS}?action=planilla_te_lote&token=${TOKEN}`+
     `&empleados=${encodeURIComponent(empleados)}&from=${desde}&to=${hasta}`+
