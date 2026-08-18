@@ -128,7 +128,21 @@ tfoot td{background:#f7f9fc;font-weight:700}
   .wrap{padding:12px}
   th,td{padding:5px 6px;font-size:12px}
 }
+.graf-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.graf-box{background:#fff;border:1px solid #a8a8a8;border-radius:4px;padding:12px 14px}
+.graf-t{font-size:12.5px;font-weight:700;color:#0B1F3A;margin-bottom:8px}
+.graf-box canvas{max-height:230px}
+.area-lista-t{font-size:12px;color:#556;font-weight:600;margin:4px 0 8px}
+.area-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.area-chip{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #a8a8a8;
+  border-radius:4px;padding:7px 10px;cursor:pointer;font-size:11.5px;transition:background .12s}
+.area-chip:hover{background:#eef4fb}
+.area-chip .ac-n{font-weight:600;color:#0B1F3A;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.area-chip .ac-v{font-family:Consolas,monospace;color:#0B1F3A;font-weight:600}
+.area-chip .ac-s{font-size:10px;color:#889;min-width:34px;text-align:right}
+@media(max-width:760px){.graf-wrap{grid-template-columns:1fr}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -779,15 +793,50 @@ async function pintarBienvenida(){
     const D=await cargarDatos(desde);
     if(D&&D.areas&&D.areas.length){
       window.__ULTIMA_MARCACION=(D.ciclo&&D.ciclo.ultima_marcacion)||'';
-      const tj=D.areas.map(a=>`
-        <div class="kpi" style="cursor:pointer" onclick="irAArea('${a.area}')">
-          <div class="kpi-l">${a.area}</div>
-          <div class="kpi-v">${Number(a.total||0).toFixed(2)}</div>
-          <div class="kpi-s">${a.con_viaticos} de ${a.personal} colaboradores</div></div>`).join('');
-      document.getElementById('bienv-areas').innerHTML=
-        `<div class="kpis" style="margin:0">${tj}</div>
-         <div class="kpi-s" style="margin-top:10px">Toca un área para ver su detalle.${
-           D.generado_en?` · Datos calculados el ${D.generado_en}`:''}</div>`;
+
+      // ── HE acumulada por área (se suma del detalle, ya que el área solo
+      //    trae los viáticos). area_de mapea persona -> área. ──
+      const hhmmToH=(s)=>{ const m=String(s||'').match(/(\d+):(\d{2})/); return m?(+m[1]+ (+m[2])/60):0; };
+      const heArea={};
+      if(D.detalle && D.area_de){
+        Object.keys(D.detalle).forEach(nom=>{
+          const ar=D.area_de[nom]||'(sin área)';
+          const t=(D.detalle[nom]&&D.detalle[nom].totales)||{};
+          heArea[ar]=(heArea[ar]||0)+hhmmToH(t.he_calculadas);
+        });
+      }
+
+      // Áreas ordenadas por viáticos (para las gráficas y la lista)
+      const areasOrd=D.areas.slice().sort((a,b)=>Number(b.total||0)-Number(a.total||0));
+      // Para las gráficas: top 12 con datos, para que se lean bien
+      const conDatos=areasOrd.filter(a=>Number(a.total||0)>0 || (heArea[a.area]||0)>0).slice(0,12);
+      const labels=conDatos.map(a=>a.area);
+      const datosViat=conDatos.map(a=>Number(a.total||0));
+      const datosHE=conDatos.map(a=>Math.round((heArea[a.area]||0)*10)/10);
+
+      // Lista compacta de áreas (acceso al detalle)
+      const listaAreas=areasOrd.map(a=>`
+        <div class="area-chip" onclick="irAArea('${a.area}')">
+          <span class="ac-n">${a.area}</span>
+          <span class="ac-v">B/. ${Number(a.total||0).toFixed(2)}</span>
+          <span class="ac-s">${a.con_viaticos}/${a.personal}</span>
+        </div>`).join('');
+
+      document.getElementById('bienv-areas').innerHTML=`
+        <div class="graf-wrap">
+          <div class="graf-box"><div class="graf-t">Viáticos por área (B/.)</div>
+            <canvas id="gViaticos" height="150"></canvas></div>
+          <div class="graf-box"><div class="graf-t">Horas extra acumuladas por área</div>
+            <canvas id="gHE" height="150"></canvas></div>
+        </div>
+        <div class="area-lista-t">Áreas del ciclo · toca una para ver su detalle</div>
+        <div class="area-lista">${listaAreas}</div>
+        <div class="kpi-s" style="margin-top:10px">${
+          D.generado_en?`Datos calculados el ${D.generado_en}`:''}</div>`;
+
+      // Dibujar las gráficas
+      dibujarGraficaBarras('gViaticos', labels, datosViat, '#0B1F3A', 'B/.');
+      dibujarGraficaBarras('gHE', labels, datosHE, '#2563eb', 'h');
       return;
     }
 
@@ -1206,7 +1255,6 @@ function pintarRegistroAsistencia(d){
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
       <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
-      <button class="btn btn-main" onclick="generarPlanillaTE(this)" style="margin-left:8px">Planilla Sobretiempo (Excel)</button>
     </div>
     <div style="padding:0">
       <table>
@@ -1901,27 +1949,40 @@ function pintarAsistenciaArea(d){
 }
 
 
+/* Dibuja una gráfica de barras horizontales con Chart.js. Reutiliza el canvas
+   destruyendo cualquier gráfica previa para no duplicar al recargar. */
+const __charts={};
+function dibujarGraficaBarras(canvasId, labels, datos, color, unidad){
+  const cv=document.getElementById(canvasId);
+  if(!cv || typeof Chart==='undefined') return;
+  if(__charts[canvasId]){ try{__charts[canvasId].destroy();}catch(e){} }
+  __charts[canvasId]=new Chart(cv, {
+    type:'bar',
+    data:{ labels:labels, datasets:[{ data:datos, backgroundColor:color,
+      borderRadius:2, barThickness:'flex', maxBarThickness:18 }] },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label:(c)=>` ${unidad==='B/.'?'B/. ':''}${c.parsed.x}${unidad==='h'?' h':''}` } } },
+      scales:{
+        x:{ beginAtZero:true, grid:{color:'#eef2f7'}, ticks:{font:{size:10}} },
+        y:{ grid:{display:false}, ticks:{font:{size:10.5}} }
+      }
+    }
+  });
+}
+
 /* ── Generación de documentos ──
    Los navegadores bloquean window.open si ocurre tras una espera (async).
    Se abre la pestaña ANTES de la petición y luego se le pone la URL, que es
-   lo que el navegador sí permite. Mientras tanto se muestra un aviso. */
+   lo que el navegador sí permite. El progreso se muestra EN LA PESTAÑA NUEVA,
+   no en el dashboard, para que el dashboard NO se congele mientras se genera. */
 function overlayReporte(mostrar, texto){
-  let el=document.getElementById('ov-reporte');
-  if(!mostrar){ if(el) el.remove(); return; }
-  if(el){ el.querySelector('.ov-t').textContent=texto||'Generando reporte…'; return; }
-  el=document.createElement('div');
-  el.id='ov-reporte';
-  el.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(11,31,58,.82);'+
-    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff';
-  el.innerHTML=
-    '<img src="./icons/icon-192.png" alt="CSS" style="width:80px;height:80px">'+
-    '<div class="ov-t" style="font-size:15px;font-weight:600">'+(texto||'Generando reporte…')+'</div>'+
-    '<div style="font-size:12.5px;color:#b9c7d9;max-width:330px;text-align:center;line-height:1.6">'+
-    'El documento se abrirá en una pestaña nueva. Si el navegador la bloquea, '+
-    'permite las ventanas emergentes de este sitio.</div>'+
-    '<div style="width:26px;height:26px;border:3px solid rgba(255,255,255,.25);'+
-    'border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite"></div>';
-  document.body.appendChild(el);
+  // Desactivado a propósito: antes cubría todo el dashboard y lo congelaba
+  // hasta terminar el PDF. Ahora el aviso vive solo en la pestaña nueva, así
+  // que el usuario puede seguir trabajando en el dashboard mientras se genera.
+  return;
 }
 
 // Pide el documento y lo abre sin que el navegador lo bloquee
