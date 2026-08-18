@@ -98,6 +98,9 @@ td.num{font-family:var(--mono)}
 tr.doble td{background:#fffbeb}
 tr.aus td{background:#fee2e2}
 tr.tar td{background:#fef3c7}
+tr.trn td{background:#d1fae5}
+.badge-turno{display:inline-block;background:#059669;color:#fff;font-size:10px;font-weight:600;
+  padding:1px 7px;border-radius:10px;vertical-align:middle}
 tr.apertura td{background:#f7f9fc;font-style:italic;color:var(--muted)}
 tfoot td{background:#f7f9fc;font-weight:700}
 
@@ -559,10 +562,26 @@ const fFecha = ymd => { const p=String(ymd||'').split('-'); return p.length===3?
 const fHora  = h => {
   const s=String(h||'').trim();
   // Sheets devuelve las horas sueltas como fecha base 1899 ("Sat Dec 30 1899 07:37:00 GMT...").
-  // Se extrae solo la hora para no mostrar esa fecha falsa.
+  // Se extrae solo la hora y se muestra en formato 12h con a.m./p.m.
   const g=s.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
-  return g?`${+g[1]}:${g[2]}`:s;
+  if(!g) return s;
+  let hh=+g[1]; const mm=g[2];
+  const ap = hh<12 ? 'a.m.' : 'p.m.';
+  let h12 = hh%12; if(h12===0) h12=12;
+  return `${h12}:${mm} ${ap}`;
 };
+
+// Día de la semana corto a partir de "yyyy-mm-dd"
+function diaCortoFront(ymd){
+  const p=String(ymd||'').split('-'); if(p.length!==3) return '';
+  const dt=new Date(+p[0], +p[1]-1, +p[2]);
+  return ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dt.getDay()]||'';
+}
+// True si la fecha (yyyy-mm-dd) es sábado o domingo
+function esFindeFront(ymd){
+  const dc=diaCortoFront(ymd);
+  return dc==='Sáb'||dc==='Dom';
+}
 
 
 /* ── Limpiar: vuelve al estado inicial ── */
@@ -652,15 +671,19 @@ function pintarUno(d){
       <div class="msg">No trabajó fuera de su horario regular en este período.</div></div>`;
   }
   const base=Math.min(...d.dias.map(x=>Number(x.alimentacion)||0).filter(v=>v>0));
-  const filas=d.dias.map(x=>`
-    <tr class="${Number(x.alimentacion)>base?'doble':''}">
+  const filas=d.dias.map(x=>{
+    const finde=esFindeFront(x.fecha);
+    const cls=[Number(x.alimentacion)>base?'doble':'', finde?'fds':''].filter(s=>s).join(' ');
+    return `
+    <tr class="${cls}">
       <td class="num">${fFecha(x.fecha)}</td>
+      <td>${diaCortoFront(x.fecha)}</td>
       <td class="num">${fHora(x.entrada)}</td>
       <td class="num">${fHora(x.salida)}</td>
       <td class="num">${Number(x.alimentacion).toFixed(2)}</td>
       <td class="num">${Number(x.transporte).toFixed(2)}</td>
       <td class="num"><strong>${money(x.total_dia)}</strong></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   return `
   <div class="kpis">
@@ -682,10 +705,10 @@ function pintarUno(d){
     </div>
     <div style="padding:0">
       <table>
-        <thead><tr><th>Fecha</th><th>Entrada</th><th>Salida</th>
+        <thead><tr><th>Fecha</th><th>Día</th><th>Entrada</th><th>Salida</th>
           <th>Alimentación</th><th>Transporte</th><th>Total</th></tr></thead>
         <tbody>${filas}</tbody>
-        <tfoot><tr><td colspan="3">Subtotales</td>
+        <tfoot><tr><td colspan="4">Subtotales</td>
           <td class="num">${money(d.subtotales.alimentacion)}</td>
           <td class="num">${money(d.subtotales.transporte)}</td>
           <td class="num">${money(d.total)}</td></tr></tfoot>
@@ -1219,7 +1242,10 @@ function pintarRegistroAsistencia(d){
 
   const filas=dias.map(x=>{
     const inc=String(x.incidencia||'').toUpperCase();
-    const cls = inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : '');
+    const turno=String(x.turno_excepcion||'').trim();
+    const cls = inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : (turno ? 'trn' : ''));
+    const obs = [x.incidencia||'', (turno?`<span class="badge-turno">Turno ${turno.toLowerCase()}</span>`:'')]
+      .filter(s=>s).join(' · ');
     return `<tr class="${cls}">
       <td class="num">${fFecha(x.fecha)}</td>
       <td>${x.dia||''}</td>
@@ -1227,7 +1253,7 @@ function pintarRegistroAsistencia(d){
       <td class="num">${fHora(x.salida)}</td>
       <td class="num">${x.horas_trabajadas||'—'}</td>
       <td class="num">${x.horas_extra||'—'}</td>
-      <td class="l" style="font-size:12px">${x.incidencia||''}${
+      <td class="l" style="font-size:12px">${obs}${
         x.minutos_tarde?` <span style="color:var(--warn)">(${x.minutos_tarde} min)</span>`:''}${
         x.nota?` · ${x.nota}`:''}</td>
     </tr>`;
