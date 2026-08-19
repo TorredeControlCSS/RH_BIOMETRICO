@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RH · Almacén CEDIS Panamá</title>
+<title>RH · Dirección Nacional de Logística</title>
 <link rel="icon" href="./favicon.ico">
 <style>
 :root{
@@ -153,11 +153,8 @@ tfoot td{background:#f7f9fc;font-weight:700}
 <div class="top">
   <img src="./icons/icon-192.png" alt="CSS">
   <div>
-    <div class="top-t">Recursos Humanos · Almacén CEDIS Panamá</div>
-    <div class="top-s">DIRECCIÓN NACIONAL DE LOGÍSTICA</div>
-    <div id="selloEstado" style="font-size:11.5px;color:rgba(255,255,255,.85);margin-top:3px">
-      <span style="opacity:.7">Verificando actualización del biométrico…</span>
-    </div>
+    <div class="top-t">Recursos Humanos · Dirección Nacional de Logística</div>
+    <div class="top-s">CEDIS PANAMÁ</div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
     <span id="admin-quien" style="display:none;font-size:12px;color:#fff;background:rgba(34,197,94,.22);
@@ -1396,17 +1393,17 @@ function pintarTxt(d){
     <div class="panel-h">
       <div><div class="panel-t">Registrar uso de tiempo</div>
         <div class="kpi-s">El colaborador usa horas de su saldo · se registra cada uso con su fecha</div></div>
-      <span id="txt-saldochip" style="font-family:var(--mono);font-weight:700;padding:4px 10px;border-radius:6px;background:var(--good-bg);color:var(--good)">Saldo: ${d.saldo_actual_hhmm||'00:00'}</span>
+      <span id="txt-saldochip" style="font-family:var(--mono);font-weight:700;padding:5px 12px;border-radius:6px;background:var(--good-bg);color:var(--good)">Saldo: ${d.saldo_actual_hhmm||'00:00'}</span>
     </div>
-    <div class="row" style="align-items:flex-end">
-      <div class="fld"><label for="txt-fecha">Fecha de uso</label>
-        <input type="date" id="txt-fecha" value="${hoy}"></div>
-      <div class="fld"><label for="txt-horas">Horas</label>
-        <input type="number" id="txt-horas" min="0.5" step="0.5" value="1" style="width:90px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
-      <div class="fld grow"><label for="txt-nota">Nota (opcional)</label>
-        <input type="text" id="txt-nota" placeholder="Motivo / referencia" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
-      <div class="fld"><label>&nbsp;</label>
-        <button class="btn btn-main" onclick="txtRegistrarUso(this)">Registrar uso</button></div>
+    <div class="row" style="align-items:flex-end;padding:16px 18px;gap:16px">
+      <div class="fld" style="flex:0 0 auto"><label for="txt-fecha">Fecha de uso</label>
+        <input type="date" id="txt-fecha" value="${hoy}" style="min-width:150px"></div>
+      <div class="fld" style="flex:0 0 auto"><label for="txt-horas">Horas</label>
+        <input type="number" id="txt-horas" min="0.5" step="0.5" value="1" style="width:100px"></div>
+      <div class="fld" style="flex:1 1 auto;min-width:220px"><label for="txt-nota">Nota (opcional)</label>
+        <input type="text" id="txt-nota" placeholder="Motivo / referencia" style="width:100%"></div>
+      <div class="fld" style="flex:0 0 auto"><label style="visibility:hidden">Acción</label>
+        <button class="btn btn-main" style="height:38px" onclick="txtRegistrarUso(this)">Registrar uso</button></div>
     </div>
   </div>`;
 
@@ -1450,11 +1447,33 @@ function pintarTxt(d){
       </table>`
     : `<div class="msg" style="padding:16px">Este colaborador no tiene movimientos de tiempo compensatorio.</div>`;
 
+  const previoActual = (d.empalme_registrado && d.empalme_horas)
+    ? `Saldo anterior registrado: <strong>${d.empalme_horas} h</strong>${d.empalme_registrado_por?' · por '+d.empalme_registrado_por:''}`
+    : 'Sin saldo anterior registrado.';
   const barraModo = M.activo ? `
-    <div class="row" style="padding:12px 18px;background:#fafbfc;border-bottom:1px solid var(--line-soft);align-items:center;gap:12px">
-      <span class="kpi-s" style="color:var(--good);font-weight:700">
-        Ajuste habilitado — corrige el tiempo y el origen de los períodos que necesites.</span>
-      <button class="btn btn-main" onclick="txtGuardarAjustes(this)">Guardar y salir del modo</button>
+    <div style="background:#fafbfc;border-bottom:1px solid var(--line-soft)">
+      <div class="row" style="padding:12px 18px;align-items:center;gap:12px">
+        <span class="kpi-s" style="color:var(--good);font-weight:700">
+          Ajuste habilitado — corrige el tiempo y el origen de los períodos que necesites.</span>
+        <button class="btn" onclick="txtTogglePrevio()">Registrar saldo anterior</button>
+        <button class="btn btn-main" onclick="txtGuardarAjustes(this)">Guardar y salir del modo</button>
+      </div>
+      <div id="txt-previo-form" style="display:none;padding:0 18px 14px">
+        <div class="aviso" style="margin:0 0 10px">
+          Si el colaborador tenía tiempo compensatorio acumulado <b>antes</b> de que el biométrico
+          tenga datos, regístralo aquí. Se sumará como saldo inicial. ${previoActual}
+        </div>
+        <div class="row" style="align-items:flex-end;gap:14px">
+          <div class="fld" style="flex:0 0 auto"><label for="emp-horas">Horas previas</label>
+            <input type="number" id="emp-horas" min="0" step="0.5" value="${d.empalme_horas||0}" style="width:120px"></div>
+          <div class="fld" style="flex:0 0 auto"><label for="emp-corte">Fecha de corte</label>
+            <input type="date" id="emp-corte" value="${d.empalme_fecha_corte||'2025-09-15'}" style="min-width:150px"></div>
+          <div class="fld" style="flex:1 1 auto;min-width:200px"><label for="emp-just">Justificación</label>
+            <input type="text" id="emp-just" placeholder="Origen del saldo previo" value="${(d.empalme_justificacion||'').replace(/"/g,'&quot;')}" style="width:100%"></div>
+          <div class="fld" style="flex:0 0 auto"><label style="visibility:hidden">Acción</label>
+            <button class="btn btn-main" style="height:38px" onclick="txtGuardarPrevio(this)">Guardar saldo anterior</button></div>
+        </div>
+      </div>
     </div>` : '';
 
   const libro = `
@@ -1601,6 +1620,26 @@ async function imprimirTxt(btn){
   const url=`${GAS}?action=txt_pdf&token=${TOKEN}&employee=${encodeURIComponent(EMP_ACTUAL)}&_=${Date.now()}`;
   await generarDocumento(url, 'Generando registro de tiempo compensatorio…');
   btn.disabled=false; btn.textContent=t;
+}
+
+function txtTogglePrevio(){
+  const f=document.getElementById('txt-previo-form');
+  if(f) f.style.display = (f.style.display==='none') ? '' : 'none';
+}
+async function txtGuardarPrevio(btn){
+  const pin=adminPin(); if(!pin) return;
+  const horas=document.getElementById('emp-horas').value||0;
+  const corte=document.getElementById('emp-corte').value||'2025-09-15';
+  const just=document.getElementById('emp-just').value||'';
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    const url=`${GAS}?action=empalme_guardar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
+      `&justificacion=${encodeURIComponent(just)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL); }
+    else{ alert((d&&d.error)||'No se pudo guardar el saldo anterior.'); btn.disabled=false; btn.textContent=t; }
+  }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 
 async function guardarEmpalme(btn){
