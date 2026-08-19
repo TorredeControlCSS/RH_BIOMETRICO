@@ -254,7 +254,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
       </div>
 
       <div style="margin:12px 0;color:#555;font-size:13px">Marca de <b>1 a 5</b> colaboradores para incluir en la planilla:</div>
-      <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;padding:8px;background:#fff"></div>
+      <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;background:#fff"></div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
         <button class="btn btn-main" onclick="generarPlanillaLote(this)">Generar Planilla T.E.</button>
         <span id="pl-contador" style="color:#555;font-size:13px">0 seleccionados</span>
@@ -2252,22 +2252,38 @@ function plRenderLista(preservarSeleccion){
     return a.nombre.localeCompare(b.nombre);
   });
   const flecha = PL_ORDEN==='num_asc' ? '▲' : '▼';
-  const cab=`<div style="display:flex;align-items:center;gap:8px;padding:4px 4px 8px;border-bottom:2px solid #ccc;font-size:12px;color:#555">
-    <button class="btn" onclick="plOrdenar()" style="padding:2px 8px;font-size:12px">N° Funcionario ${flecha}</button>
-    <span>Orden ${PL_ORDEN==='num_asc'?'ascendente':'descendente'}</span>
-  </div>`;
   const filas=arr.map(c=>{
     const marcado=sel.has(c.nombre)?' checked':'';
     const nf=String(c.num_funcionario||'').trim();
-    return `<label style="display:flex;align-items:center;padding:5px 4px;border-bottom:1px solid #eee;cursor:pointer">
-      <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()"${marcado}>
-      <span style="margin-left:6px;font-family:Consolas,monospace;color:var(--blue);min-width:118px">${nf||'—'}</span>
-      <span style="margin-left:4px">${c.nombre}</span>
-      <span style="color:#888;font-size:12px;margin-left:6px"> · ${c.cargo||''}</span>
-    </label>`;
+    return `<tr style="border-bottom:1px solid #eee" onclick="plTogglaFila(event,this)">
+      <td style="width:34px;text-align:center;padding:6px 4px">
+        <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()"${marcado}></td>
+      <td style="width:130px;padding:6px 6px;font-family:Consolas,monospace;color:var(--blue);white-space:nowrap">${nf||'—'}</td>
+      <td style="padding:6px 6px">${c.nombre}</td>
+      <td style="padding:6px 6px;color:#888;font-size:12px">${c.cargo||''}</td>
+    </tr>`;
   }).join('');
-  cont.innerHTML=cab+filas;
+  cont.innerHTML=
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#f4f6f8;border-bottom:2px solid #ccc;position:sticky;top:0">
+          <th style="width:34px"></th>
+          <th style="width:130px;text-align:left;padding:6px 6px">
+            <button class="btn" onclick="plOrdenar()" style="padding:2px 8px;font-size:12px">N° Funcionario ${flecha}</button></th>
+          <th style="text-align:left;padding:6px 6px;color:#555">Nombre</th>
+          <th style="text-align:left;padding:6px 6px;color:#555">Cargo</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>`;
   plContar();
+}
+
+// Permite marcar la fila haciendo clic en cualquier parte (excepto el propio checkbox).
+function plTogglaFila(ev,tr){
+  if(ev.target && ev.target.classList.contains('pl-chk')) return;
+  const ch=tr.querySelector('.pl-chk');
+  if(ch){ ch.checked=!ch.checked; plContar(); }
 }
 
 function plContar(){
