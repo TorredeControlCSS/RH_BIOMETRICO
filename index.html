@@ -1426,6 +1426,9 @@ function pintarTxt(d){
            <option value="MIXTO"  ${m.origen==='MIXTO'?'selected':''}>Mixto</option>
          </select>`
       : chipOrigen(m.origen, m.ajustado);
+    const accionCell = (editable && esCiclo && m.ajustado)
+      ? `<button class="btn" style="padding:3px 9px;font-size:12px" title="Volver este período al valor del biométrico" onclick="txtDeshacerAjuste('${m.ciclo}',this)">Deshacer</button>`
+      : '';
     return `
     <tr class="${m.tipo==='APERTURA'?'apertura':''}" data-ciclo="${m.ciclo||''}">
       <td class="l">${m.periodo||''}</td>
@@ -1433,6 +1436,7 @@ function pintarTxt(d){
       <td class="num">${m.tomado_hhmm||'—'}</td>
       <td class="num"><strong>${m.acumulado_hhmm||''}</strong></td>
       <td class="l">${m.tipo==='APERTURA'?'<span class="chip" style="background:var(--warn-bg);color:var(--warn)">Listas físicas</span>':origenCell}</td>
+      ${editable?`<td style="text-align:center">${accionCell}</td>`:''}
     </tr>`;
   }).join('');
 
@@ -1441,7 +1445,7 @@ function pintarTxt(d){
         <thead><tr>
           <th style="text-align:left">Período</th>
           <th>Tiempo generado</th><th>Tomado</th><th>Acumulado</th>
-          <th style="text-align:left">Origen</th>
+          <th style="text-align:left">Origen</th>${editable?'<th style="width:100px"></th>':''}
         </tr></thead>
         <tbody>${filas}</tbody>
       </table>`
@@ -1552,6 +1556,19 @@ function txtHabilitarAjuste(){ window.__txtModo.habilitado=true; txtRerender(); 
 window.__txtAjustes = {};
 function txtSetTiempo(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).tiempo=val; }
 function txtSetOrigen(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).origen=val; }
+async function txtDeshacerAjuste(ciclo,btn){
+  const pin=adminPin(); if(!pin) return;
+  if(!confirm('¿Deshacer el ajuste de este período? Volverá al valor del biométrico.')) return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='…';
+  try{
+    const url=`${GAS}?action=txt_ajuste_eliminar&token=${TOKEN}`
+      +`&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(ciclo)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
+    if(window.__txtAjustes) delete window.__txtAjustes[ciclo];
+    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+  }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
+}
 async function txtGuardarAjustes(btn){
   const pin=adminPin(); if(!pin) return;
   const aj=window.__txtAjustes||{};
@@ -1839,7 +1856,10 @@ function pintarVacaciones(d){
     <div class="lote-item">
       <div><div class="lote-n">${fFecha(p.desde)} al ${fFecha(p.hasta)}</div>
         <div class="lote-d">${p.notas||''}</div></div>
-      <div class="lote-t">${p.dias} día(s)</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="lote-t">${p.dias} día(s)</div>
+        ${p.id?`<button class="btn" style="padding:3px 9px;font-size:12px" title="Deshacer este uso y devolver los días" onclick="vacDeshacerUso('${p.id}',this)">Deshacer</button>`:''}
+      </div>
     </div>`).join('') ||
     '<div class="msg" style="padding:16px">Sin períodos de vacaciones registrados.</div>';
 
@@ -2000,13 +2020,20 @@ function pintarIncidencias(d){
       <div class="kpi-v" style="color:${colorTipo(k)}">${d.por_tipo[k]}</div>
       <div class="kpi-s">en el período</div></div>`).join('');
 
-  const filas=items.map(x=>`
+  const filas=items.map(x=>{
+    const esAuto=/BIO|AUTO/i.test(String(x.origen||''));
+    const btnDes = esAuto
+      ? '<span style="font-size:11px;color:#bbb" title="Detectada por el biométrico">automática</span>'
+      : `<button class="btn" style="padding:3px 9px;font-size:12px" onclick="incDeshacer('${x.fecha}',this)">Deshacer</button>`;
+    return `
     <tr>
       <td class="num">${fFecha(x.fecha)}</td>
       <td class="l"><span style="color:${colorTipo(x.tipo)};font-weight:600">${x.tipo}</span></td>
       <td class="l" style="font-size:12px">${limpiarDetalle(x.detalle)}</td>
       <td class="l" style="font-size:11.5px;color:var(--muted)">${x.origen||''}</td>
-    </tr>`).join('');
+      <td style="text-align:center">${btnDes}</td>
+    </tr>`;
+  }).join('');
 
   return `
   <div class="kpis">
@@ -2023,7 +2050,7 @@ function pintarIncidencias(d){
     <div style="padding:0">
       <table>
         <thead><tr><th>Fecha</th><th style="text-align:left">Tipo</th>
-          <th style="text-align:left">Detalle</th><th style="text-align:left">Origen</th></tr></thead>
+          <th style="text-align:left">Detalle</th><th style="text-align:left">Origen</th><th style="width:100px"></th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
     </div>
@@ -2072,6 +2099,19 @@ async function guardarResolucion(btn){
   btn.disabled=false; btn.textContent=t;
 }
 
+async function vacDeshacerUso(id,btn){
+  const pin=adminPin(); if(!pin) return;
+  if(!confirm('¿Deshacer este uso de vacaciones? Los días se devolverán a la resolución.')) return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='…';
+  try{
+    const url=`${GAS}?action=vac_uso_eliminar&token=${TOKEN}`
+      +`&employee=${encodeURIComponent(EMP_ACTUAL)}&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
+    avisarPublicar(); cargarVacaciones(EMP_ACTUAL);
+  }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
+}
+
 async function registrarUsoVac(btn){
   if(!EMP_ACTUAL) return;
   const desde=document.getElementById('vu-desde').value;
@@ -2096,6 +2136,22 @@ async function registrarUsoVac(btn){
     else{ alert((d&&d.error)||'No se pudo registrar.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
+}
+
+async function incDeshacer(fecha,btn){
+  const pin=adminPin(); if(!pin) return;
+  if(!confirm('¿Deshacer esta incidencia registrada?')) return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='…';
+  try{
+    const url=`${GAS}?action=incidencia_eliminar&token=${TOKEN}`
+      +`&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${encodeURIComponent(fecha)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
+    avisarPublicar();
+    const desde=(ULTIMA&&ULTIMA.desde)||document.getElementById('f-desde').value;
+    const hasta=(ULTIMA&&ULTIMA.hasta)||document.getElementById('f-hasta').value;
+    cargarIncidencias(EMP_ACTUAL, desde, hasta);
+  }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 
 async function guardarIncidencia(btn){
