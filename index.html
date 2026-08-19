@@ -2210,23 +2210,64 @@ function getCodigosCasillas(){
   return {cod1,cod2,cod3};
 }
 
+let PL_COLABS=[];        // lista cruda del área
+let PL_ORDEN='num_asc';  // 'num_asc' | 'num_desc'
+
 async function plCargarColaboradores(){
   const area=document.getElementById('pl-area').value;
   const cont=document.getElementById('pl-lista');
-  if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; return; }
+  if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; PL_COLABS=[]; return; }
   cont.innerHTML='<div style="color:#888">Cargando colaboradores…</div>';
   try{
     const r=await fetch(`${GAS}?action=colaboradores_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`);
     const j=await r.json();
-    if(!j||!j.ok||!j.colaboradores.length){ cont.innerHTML='<div style="color:#888">Sin colaboradores en esta área.</div>'; return; }
-    cont.innerHTML=j.colaboradores.map((c,i)=>
-      `<label style="display:block;padding:5px 4px;border-bottom:1px solid #eee;cursor:pointer">
-        <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()">
-        <span style="margin-left:6px">${c.nombre}</span>
-        <span style="color:#888;font-size:12px"> · ${c.cargo||''}</span>
-      </label>`).join('');
-    plContar();
-  }catch(e){ cont.innerHTML='<div style="color:#c00">Error cargando colaboradores.</div>'; }
+    if(!j||!j.ok||!j.colaboradores.length){ cont.innerHTML='<div style="color:#888">Sin colaboradores en esta área.</div>'; PL_COLABS=[]; return; }
+    PL_COLABS=j.colaboradores;
+    plRenderLista();
+  }catch(e){ cont.innerHTML='<div style="color:#c00">Error cargando colaboradores.</div>'; PL_COLABS=[]; }
+}
+
+// Convierte el N° de funcionario (ej. "8-31-01-9-01927") a un valor numérico
+// comparable, usando todos sus dígitos. Los que no tienen número van al final.
+function plNumClave(c){
+  const d=String(c.num_funcionario||'').replace(/\D/g,'');
+  return d ? parseInt(d,10) : Number.POSITIVE_INFINITY;
+}
+
+function plOrdenar(){
+  PL_ORDEN = (PL_ORDEN==='num_asc') ? 'num_desc' : 'num_asc';
+  plRenderLista(true);
+}
+
+function plRenderLista(preservarSeleccion){
+  const cont=document.getElementById('pl-lista');
+  // guardar selección actual para no perderla al reordenar
+  const sel=new Set();
+  if(preservarSeleccion){
+    document.querySelectorAll('.pl-chk:checked').forEach(ch=>sel.add(ch.value));
+  }
+  const arr=PL_COLABS.slice().sort((a,b)=>{
+    const na=plNumClave(a), nb=plNumClave(b);
+    if(na!==nb) return PL_ORDEN==='num_asc' ? na-nb : nb-na;
+    return a.nombre.localeCompare(b.nombre);
+  });
+  const flecha = PL_ORDEN==='num_asc' ? '▲' : '▼';
+  const cab=`<div style="display:flex;align-items:center;gap:8px;padding:4px 4px 8px;border-bottom:2px solid #ccc;font-size:12px;color:#555">
+    <button class="btn" onclick="plOrdenar()" style="padding:2px 8px;font-size:12px">N° Funcionario ${flecha}</button>
+    <span>Orden ${PL_ORDEN==='num_asc'?'ascendente':'descendente'}</span>
+  </div>`;
+  const filas=arr.map(c=>{
+    const marcado=sel.has(c.nombre)?' checked':'';
+    const nf=String(c.num_funcionario||'').trim();
+    return `<label style="display:flex;align-items:center;padding:5px 4px;border-bottom:1px solid #eee;cursor:pointer">
+      <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()"${marcado}>
+      <span style="margin-left:6px;font-family:Consolas,monospace;color:var(--blue);min-width:118px">${nf||'—'}</span>
+      <span style="margin-left:4px">${c.nombre}</span>
+      <span style="color:#888;font-size:12px;margin-left:6px"> · ${c.cargo||''}</span>
+    </label>`;
+  }).join('');
+  cont.innerHTML=cab+filas;
+  plContar();
 }
 
 function plContar(){
