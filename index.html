@@ -2357,6 +2357,33 @@ async function ajustarCicloConDatos(){
     pintarBienvenida();
   }catch(e){ /* la pantalla ya está pintada: no hacer nada */ }
 }
+
+// -- Enter en cualquier campo PIN dispara el boton de guardado de su bloque --
+// Un solo listener global: no depende de plantillas ni de ids especificos.
+document.addEventListener('keydown', function(ev){
+  if(ev.key!=='Enter') return;
+  var el=ev.target;
+  if(!el || el.type!=='password') return;
+  ev.preventDefault();
+  // Subir por ancestros hasta un contenedor que tenga un boton de guardado,
+  // asi funciona tanto en .panel/.sec como en bloques sueltos (ej. correlativo).
+  function botonGuardadoEn(cont){
+    var bs=cont.querySelectorAll('button');
+    for(var i=0;i<bs.length;i++){
+      var t=(bs[i].getAttribute('onclick')||'');
+      if(/guardar|registrar|reiniciar|fijar/i.test(t)) return bs[i];
+    }
+    return null;
+  }
+  var node=el.parentElement, btn=null, saltos=0;
+  while(node && saltos<6){
+    btn=botonGuardadoEn(node);
+    if(btn) break;
+    node=node.parentElement; saltos++;
+  }
+  if(btn) btn.click();
+});
+
 </script>
 </body>
 </html>
