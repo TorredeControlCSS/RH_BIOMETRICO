@@ -428,58 +428,56 @@ function avisarPublicar(){
    incidencias, permisos o resoluciones, para que el dashboard
    refleje los cambios sin esperar a nadie. */
 async function publicarDatos(btn){
-  const pin=prompt('Ingresa tu PIN de 4 dígitos para actualizar los datos del dashboard:');
+  const pin=await rhPedirPin('Actualizar datos del dashboard',
+    'Esto recalcula y publica los datos del biométrico. Ingresa tu PIN para autorizar.');
   if(!pin) return;
-  if(String(pin).replace(/\D/g,'').length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
 
   const t=btn.textContent; btn.disabled=true; btn.textContent='Iniciando…';
+  const prog=rhModalProgreso('Actualizando datos',
+    'El sistema está procesando el biométrico. Continuará solo hasta terminar; puedes cerrar esta ventana y seguir trabajando.');
+  prog.avanzar(0, 1, 'Iniciando…');
   try{
     const url=`${GAS}?action=publicar_async&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo iniciar la actualización.'); btn.disabled=false; btn.textContent=t; return; }
+    if(!d||!d.ok){ prog.msg((d&&d.error)||'No se pudo iniciar la actualización.'); prog.completar('No se pudo iniciar.'); btn.disabled=false; btn.textContent=t; return; }
 
     if(d.estado==='completado'){
-      alert(`Datos actualizados por ${d.iniciado_por}.\n`+
-            `${d.colaboradores||''} colaboradores · ${d.kb||''} KB\n\n`+
-            `El dashboard se recargará para mostrarlos.`);
+      prog.completar(`Completado por ${d.iniciado_por}. ${d.colaboradores||''} colaboradores · ${d.kb||''} KB.`);
       DATOS=null;
-      setTimeout(()=>location.reload(), 800);
+      setTimeout(()=>{ prog.cerrar(); location.reload(); }, 1400);
       return;
     }
 
-    // Quedó procesando en segundo plano: aviso HONESTO + seguimiento automático.
-    const proc=d.procesadas||0, total=d.total_areas||'?';
-    alert(`Actualización iniciada por ${d.iniciado_por}.\n\n`+
-          `El sistema está procesando ${proc} de ${total} áreas y CONTINUARÁ SOLO `+
-          `en segundo plano (unos minutos). Puedes cerrar esta ventana y seguir `+
-          `trabajando: al terminar, el dashboard tendrá los datos al día.\n\n`+
-          `Te iré mostrando el avance aquí arriba.`);
+    // Procesando en segundo plano: barra de progreso real.
+    const proc=d.procesadas||0, total=d.total_areas||1;
+    prog.avanzar(proc, total);
     btn.textContent=`Procesando ${proc}/${total}…`;
-    _seguirPublicacion(btn, t);
+    _seguirPublicacion(btn, t, prog);
     return;
-  }catch(e){ alert('Error de conexión al iniciar la actualización.'); btn.disabled=false; btn.textContent=t; }
+  }catch(e){ prog.msg('Error de conexión al iniciar.'); prog.completar('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 
-// Consulta el estado cada 20s y actualiza el botón. Cuando termina, recarga.
-// No bloquea al usuario: puede seguir trabajando mientras corre.
-async function _seguirPublicacion(btn, textoOriginal){
+// Consulta el estado cada 15s y actualiza la barra. Cuando termina, ofrece recargar.
+async function _seguirPublicacion(btn, textoOriginal, prog){
   try{
     const url=`${GAS}?action=publicar_estado&token=${TOKEN}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(d&&d.ok){
       if(d.estado==='completado'){
+        if(prog) prog.completar('Datos al día. El dashboard se actualizará.');
         btn.textContent='Datos al día ✓';
         DATOS=null;
-        setTimeout(()=>{ if(confirm('La actualización terminó. ¿Recargar el dashboard para ver los datos al día?')) location.reload(); }, 400);
+        setTimeout(()=>{ if(prog) prog.cerrar(); location.reload(); }, 1600);
         setTimeout(()=>{ btn.disabled=false; btn.textContent=textoOriginal; }, 4000);
         return;
       }
       if(d.procesadas!=null && d.total_areas!=null){
+        if(prog) prog.avanzar(d.procesadas, d.total_areas);
         btn.textContent=`Procesando ${d.procesadas}/${d.total_areas}…`;
       }
     }
   }catch(e){ /* si falla una consulta, seguimos intentando */ }
-  setTimeout(()=>_seguirPublicacion(btn, textoOriginal), 20000);
+  setTimeout(()=>_seguirPublicacion(btn, textoOriginal, prog), 15000);
 }
 
 /* ── Reloj ── */
@@ -1863,7 +1861,7 @@ async function registrarArt18(btn){
 }
 
 async function eliminarArt18(id){
-  const pin=prompt('Ingresa tu PIN de 4 dígitos para eliminar este permiso:');
+  const pin=await rhPedirPin('Eliminar permiso','Ingresa tu PIN para eliminar este permiso.');
   if(!pin) return;
   try{
     const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}`+
@@ -2125,7 +2123,7 @@ function pintarIncidencias(d){
 /* ── Escrituras: vacaciones e incidencias ── */
 
 async function eliminarResolucion(id){
-  const pin=prompt('Ingresa tu PIN de 4 dígitos para eliminar esta resolución:');
+  const pin=await rhPedirPin('Eliminar resolución','Ingresa tu PIN para eliminar esta resolución.');
   if(!pin) return;
   try{
     const url=`${GAS}?action=vac_resolucion_eliminar&token=${TOKEN}`+
@@ -2680,8 +2678,9 @@ async function ajustarCicloConDatos(){
 window.ADMIN = { activo:false, nombre:'', pin:'' };
 
 async function entrarModoAdmin(){
-  const pin=(prompt('PIN de autorización (4 dígitos):')||'').replace(/\D/g,'');
-  if(pin.length!==4){ if(pin.length) alert('El PIN debe tener 4 dígitos.'); return; }
+  const pin=await rhPedirPin('Modo administrativo',
+    'Ingresa tu PIN para operar el sistema (registrar, ajustar, autorizar).');
+  if(!pin) return;
   try{
     const url=`${GAS}?action=validar_admin&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -2698,6 +2697,62 @@ function salirModoAdmin(){
   document.getElementById('btn-admin').style.display='';
 }
 // Devuelve el PIN de la sesión admin, o pide activarla.
+/* ── Modal institucional reutilizable ── */
+// Pide un PIN con el modal institucional. Devuelve una promesa con el PIN
+// (4 dígitos) o null si se cancela.
+function rhPedirPin(titulo, mensaje){
+  return new Promise(function(resolve){
+    const modal=document.getElementById('rhModal');
+    document.getElementById('rhModalTitulo').textContent=titulo||'Autorización';
+    document.getElementById('rhModalMsg').textContent=mensaje||'Ingresa tu PIN para continuar.';
+    document.getElementById('rhModalPinWrap').style.display='';
+    document.getElementById('rhModalProgreso').style.display='none';
+    document.getElementById('rhModalCancel').style.display='';
+    const pin=document.getElementById('rhModalPin'); pin.value='';
+    const ok=document.getElementById('rhModalOk'); ok.textContent='Aceptar'; ok.disabled=false;
+    modal.style.display='flex';
+    setTimeout(()=>pin.focus(),50);
+
+    function limpiar(){ ok.onclick=null; pin.onkeydown=null; }
+    function aceptar(){
+      const v=String(pin.value||'').replace(/\D/g,'');
+      if(v.length!==4){ pin.style.outline='2px solid #c0392b'; return; }
+      limpiar(); modal.style.display='none'; resolve(v);
+    }
+    window.rhModalCerrar=function(){ limpiar(); modal.style.display='none'; resolve(null); };
+    ok.onclick=aceptar;
+    pin.onkeydown=function(e){ if(e.key==='Enter') aceptar(); if(e.key==='Escape') window.rhModalCerrar(); };
+  });
+}
+// Muestra el modal en modo PROGRESO (barra). No pide PIN. Devuelve controles.
+function rhModalProgreso(titulo, mensaje){
+  const modal=document.getElementById('rhModal');
+  document.getElementById('rhModalTitulo').textContent=titulo||'Procesando';
+  document.getElementById('rhModalMsg').textContent=mensaje||'';
+  document.getElementById('rhModalPinWrap').style.display='none';
+  document.getElementById('rhModalProgreso').style.display='';
+  document.getElementById('rhModalCancel').style.display='none';
+  const ok=document.getElementById('rhModalOk'); ok.textContent='Cerrar'; ok.disabled=false;
+  ok.onclick=function(){ modal.style.display='none'; };
+  window.rhModalCerrar=function(){ modal.style.display='none'; };
+  modal.style.display='flex';
+  return {
+    // paso actual, total, texto opcional
+    avanzar:function(paso, total, texto){
+      const pct = total ? Math.round((paso/total)*100) : 0;
+      document.getElementById('rhModalBarra').style.width=Math.max(6,pct)+'%';
+      document.getElementById('rhModalProgText').textContent =
+        texto || ('Procesando '+paso+' de '+total+' áreas ('+pct+'%)');
+    },
+    completar:function(texto){
+      document.getElementById('rhModalBarra').style.width='100%';
+      document.getElementById('rhModalProgText').textContent=texto||'Completado.';
+    },
+    msg:function(t){ document.getElementById('rhModalMsg').textContent=t; },
+    cerrar:function(){ modal.style.display='none'; }
+  };
+}
+
 function adminPin(){
   if(window.ADMIN && window.ADMIN.activo) return window.ADMIN.pin;
   alert('Activa el "Modo administrativo" (arriba a la derecha) para registrar o ajustar.');
@@ -2730,6 +2785,39 @@ document.addEventListener('keydown', function(ev){
   if(btn) btn.click();
 });
 
-</script>
+</script><!-- ── Modal institucional (PIN + progreso) ── -->
+<div id="rhModal" style="display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(11,31,58,.55);backdrop-filter:blur(2px);
+  align-items:center;justify-content:center">
+  <div style="background:var(--white);width:min(420px,92vw);border-radius:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--ff)">
+    <div style="background:var(--navy);padding:18px 22px;display:flex;align-items:center;gap:12px">
+      <img src="./icons/icon-192.png" alt="CSS" style="width:38px;height:38px;border-radius:6px;background:#fff;padding:2px">
+      <div>
+        <div style="color:#fff;font-weight:700;font-size:15px;line-height:1.2" id="rhModalTitulo">Autorización</div>
+        <div style="color:#b9c7d9;font-size:11px;letter-spacing:.3px">DIRECCIÓN NACIONAL DE LOGÍSTICA · CEDIS PANAMÁ</div>
+      </div>
+    </div>
+    <div style="padding:22px">
+      <div id="rhModalMsg" style="font-size:13.5px;color:var(--text);margin-bottom:14px"></div>
+      <div id="rhModalPinWrap">
+        <label style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">PIN de 4 dígitos</label>
+        <input type="password" id="rhModalPin" maxlength="4" inputmode="numeric" autocomplete="off"
+          style="width:100%;margin-top:6px;font-family:var(--mono);font-size:18px;letter-spacing:8px;text-align:center;padding:10px">
+      </div>
+      <div id="rhModalProgreso" style="display:none;margin-top:6px">
+        <div style="height:8px;background:var(--line-soft);border-radius:6px;overflow:hidden">
+          <div id="rhModalBarra" style="height:100%;width:0;background:var(--blue);transition:width .4s"></div>
+        </div>
+        <div id="rhModalProgText" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center"></div>
+      </div>
+    </div>
+    <div style="padding:0 22px 20px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" id="rhModalCancel" onclick="rhModalCerrar(false)">Cancelar</button>
+      <button class="btn btn-main" id="rhModalOk">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
