@@ -376,6 +376,17 @@ async function cargarDatos(from){
   return null;
 }
 
+// Carga el JSON LIGERO (rh_datos.json): datos vivos, se republica en segundos.
+// Siempre pide fresco (con anti-cache) porque cambia seguido; es pequeño.
+const RH_DATOS = "./rh_datos.json";
+async function cargarDatosLigero(){
+  try{
+    const r=await fetch(`${RH_DATOS}?v=${Date.now()}`, {cache:'no-cache'});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+
 // Índice de ciclos publicados: para saber cuáles se pueden consultar rápido
 async function cargarIndice(){
   if(INDICE) return INDICE;
@@ -421,21 +432,54 @@ async function publicarDatos(btn){
   if(!pin) return;
   if(String(pin).replace(/\D/g,'').length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
 
-  const t=btn.textContent; btn.disabled=true; btn.textContent='Actualizando…';
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Iniciando…';
   try{
-    const url=`${GAS}?action=publicar&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const url=`${GAS}?action=publicar_async&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){
-      alert(`Datos actualizados por ${d.publicado_por}.\n`+
-            `${d.colaboradores} colaboradores · ${d.kb} KB · ${d.segundos} s\n\n`+
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo iniciar la actualización.'); btn.disabled=false; btn.textContent=t; return; }
+
+    if(d.estado==='completado'){
+      alert(`Datos actualizados por ${d.iniciado_por}.\n`+
+            `${d.colaboradores||''} colaboradores · ${d.kb||''} KB\n\n`+
             `El dashboard se recargará para mostrarlos.`);
-      DATOS=null;                  // descartar el JSON viejo en memoria
+      DATOS=null;
       setTimeout(()=>location.reload(), 800);
       return;
     }
-    alert((d&&d.error)||'No se pudo actualizar.');
-  }catch(e){ alert('Error de conexión al actualizar.'); }
-  btn.disabled=false; btn.textContent=t;
+
+    // Quedó procesando en segundo plano: aviso HONESTO + seguimiento automático.
+    const proc=d.procesadas||0, total=d.total_areas||'?';
+    alert(`Actualización iniciada por ${d.iniciado_por}.\n\n`+
+          `El sistema está procesando ${proc} de ${total} áreas y CONTINUARÁ SOLO `+
+          `en segundo plano (unos minutos). Puedes cerrar esta ventana y seguir `+
+          `trabajando: al terminar, el dashboard tendrá los datos al día.\n\n`+
+          `Te iré mostrando el avance aquí arriba.`);
+    btn.textContent=`Procesando ${proc}/${total}…`;
+    _seguirPublicacion(btn, t);
+    return;
+  }catch(e){ alert('Error de conexión al iniciar la actualización.'); btn.disabled=false; btn.textContent=t; }
+}
+
+// Consulta el estado cada 20s y actualiza el botón. Cuando termina, recarga.
+// No bloquea al usuario: puede seguir trabajando mientras corre.
+async function _seguirPublicacion(btn, textoOriginal){
+  try{
+    const url=`${GAS}?action=publicar_estado&token=${TOKEN}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){
+      if(d.estado==='completado'){
+        btn.textContent='Datos al día ✓';
+        DATOS=null;
+        setTimeout(()=>{ if(confirm('La actualización terminó. ¿Recargar el dashboard para ver los datos al día?')) location.reload(); }, 400);
+        setTimeout(()=>{ btn.disabled=false; btn.textContent=textoOriginal; }, 4000);
+        return;
+      }
+      if(d.procesadas!=null && d.total_areas!=null){
+        btn.textContent=`Procesando ${d.procesadas}/${d.total_areas}…`;
+      }
+    }
+  }catch(e){ /* si falla una consulta, seguimos intentando */ }
+  setTimeout(()=>_seguirPublicacion(btn, textoOriginal), 20000);
 }
 
 /* ── Reloj ── */
@@ -1202,7 +1246,17 @@ async function cargarVacacionesArea(area){
   const cont=document.getElementById('res-vac');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Consolidando vacaciones…</div></div>';
 
-  // Si el ciclo esta publicado, todo sale del JSON (instantaneo)
+  // 1) JSON LIGERO (rh_datos.json): datos vivos, instantáneo. Se republica en
+  //    segundos cada vez que una secretaria registra. Es la fuente preferida.
+  try{
+    const L=await cargarDatosLigero();
+    if(L && L.vacaciones && L.vacaciones[area]){
+      cont.innerHTML=pintarVacacionesLigero(L.vacaciones[area]);
+      return;
+    }
+  }catch(_){ /* si el ligero no está, seguimos con las otras fuentes */ }
+
+  // 2) JSON pesado del ciclo (si está publicado)
   const _D=await cargarDatos(document.getElementById("f-desde").value);
   if(_D&&_D.detalle){ const _h=pintarVacacionesAreaJson(_D,area); if(_h){ cont.innerHTML=_h; return; } }
   if((!_D||!_D.detalle) && !FORZAR_VIVO){
@@ -1212,37 +1266,42 @@ async function cargarVacacionesArea(area){
     const url=`${GAS}?action=vacaciones_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo consolidar.'}</div></div>`; return; }
-    const filas=(d.colaboradores||[]).map(x=>`
-      <tr>
-        <td class="l">${x.nombre}<div style="font-size:11px;color:var(--muted)">${x.cargo||''}</div></td>
-        <td class="num"><strong style="color:${x.disponibles>0?'var(--ok)':'var(--muted)'}">${x.disponibles}</strong></td>
-        <td class="num">${x.otorgados}</td>
-        <td class="num">${x.tomados}</td>
-        <td class="num">${x.resoluciones||'—'}</td>
-      </tr>`).join('');
-    cont.innerHTML=`
-      <div class="kpis">
-        <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${d.personal}</div>
-          <div class="kpi-s">en el área</div></div>
-        <div class="kpi"><div class="kpi-l">Con resoluciones</div><div class="kpi-v">${d.con_resoluciones}</div>
-          <div class="kpi-s">tienen días otorgados</div></div>
-        <div class="kpi"><div class="kpi-l">Días disponibles</div>
-          <div class="kpi-v" style="color:var(--ok)">${d.total_disponibles}</div>
-          <div class="kpi-s">suma del área</div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-h"><div class="panel-t">Vacaciones · ${d.area}</div></div>
-        <div style="padding:0"><table>
-          <thead><tr><th style="text-align:left">Colaborador</th><th>Disponibles</th>
-            <th>Otorgados</th><th>Tomados</th><th>Resoluciones</th></tr></thead>
-          <tbody>${filas}</tbody></table></div>
-      </div>
-      <div class="kpi-s" style="padding:0 4px 10px">
-        Para registrar resoluciones o días tomados, consulta al colaborador en vista individual.
-      </div>`;
+    cont.innerHTML=pintarVacacionesLigero(d);
   }catch(e){
     cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión.</div></div>';
   }
+}
+
+// Render de vacaciones por área (usado por el ligero y por el GAS: misma forma).
+function pintarVacacionesLigero(d){
+  const filas=(d.colaboradores||[]).map(x=>`
+    <tr>
+      <td class="l">${x.nombre}<div style="font-size:11px;color:var(--muted)">${x.cargo||''}</div></td>
+      <td class="num"><strong style="color:${x.disponibles>0?'var(--ok)':'var(--muted)'}">${x.disponibles}</strong></td>
+      <td class="num">${x.otorgados}</td>
+      <td class="num">${x.tomados}</td>
+      <td class="num">${x.resoluciones||'—'}</td>
+    </tr>`).join('');
+  return `
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-l">Personal</div><div class="kpi-v">${d.personal}</div>
+        <div class="kpi-s">en el área</div></div>
+      <div class="kpi"><div class="kpi-l">Con resoluciones</div><div class="kpi-v">${d.con_resoluciones}</div>
+        <div class="kpi-s">tienen días otorgados</div></div>
+      <div class="kpi"><div class="kpi-l">Días disponibles</div>
+        <div class="kpi-v" style="color:var(--ok)">${d.total_disponibles}</div>
+        <div class="kpi-s">suma del área</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><div class="panel-t">Vacaciones · ${d.area}</div></div>
+      <div style="padding:0"><table>
+        <thead><tr><th style="text-align:left">Colaborador</th><th>Disponibles</th>
+          <th>Otorgados</th><th>Tomados</th><th>Resoluciones</th></tr></thead>
+        <tbody>${filas}</tbody></table></div>
+    </div>
+    <div class="kpi-s" style="padding:0 4px 10px">
+      Para registrar resoluciones o días tomados, consulta al colaborador en vista individual.
+    </div>`;
 }
 
 /* ── Registro de asistencia: el detalle día a día del biométrico ── */
