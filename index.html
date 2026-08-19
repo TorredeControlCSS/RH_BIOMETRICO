@@ -1566,11 +1566,12 @@ function pintarTxt(d){
     <tr>
       <td class="num">${(u.fecha_uso||u.fecha||'').slice(0,10)}</td>
       <td class="num">${Number(u.horas_usadas||u.horas||0).toFixed(1)}</td>
+      <td class="l" style="font-size:12px">${u.periodo||'—'}</td>
       <td class="l" style="font-size:12px">${u.nota||''}</td>
       <td class="l" style="font-size:12px">${u.aprobado_por||u.por||''}</td>
       <td><button class="btn" style="padding:3px 9px;font-size:12px" onclick="txtEliminarUso('${(u.seq_num||u.seq||'')}',this)">✕</button></td>
     </tr>`).join('')
-    : '<tr><td colspan="5" style="color:#999;padding:16px">Sin usos registrados en el período.</td></tr>';
+    : '<tr><td colspan="6" style="color:#999;padding:16px">Sin usos registrados en el período.</td></tr>';
 
   const historial = `
   <div class="panel">
@@ -1580,7 +1581,7 @@ function pintarTxt(d){
         <button class="btn btn-main" onclick="imprimirTxt(this)">Comprobante para el colaborador</button>
       </div></div>
     <div style="padding:0"><table>
-      <thead><tr><th>Fecha de uso</th><th>Horas</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
+      <thead><tr><th>Fecha de uso</th><th>Horas</th><th style="text-align:left">Aplicado al período</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
       <tbody>${filasUsos}</tbody>
     </table></div>
   </div>`;
@@ -2708,20 +2709,30 @@ function rhPedirPin(titulo, mensaje){
     document.getElementById('rhModalPinWrap').style.display='';
     document.getElementById('rhModalProgreso').style.display='none';
     document.getElementById('rhModalCancel').style.display='';
-    const pin=document.getElementById('rhModalPin'); pin.value='';
+    const pin=document.getElementById('rhModalPin'); pin.value=''; pin.style.outline='';
     const ok=document.getElementById('rhModalOk'); ok.textContent='Aceptar'; ok.disabled=false;
     modal.style.display='flex';
     setTimeout(()=>pin.focus(),50);
 
-    function limpiar(){ ok.onclick=null; pin.onkeydown=null; }
     function aceptar(){
       const v=String(pin.value||'').replace(/\D/g,'');
-      if(v.length!==4){ pin.style.outline='2px solid #c0392b'; return; }
+      if(v.length!==4){ pin.style.outline='2px solid #c0392b'; pin.focus(); return; }
       limpiar(); modal.style.display='none'; resolve(v);
+    }
+    function onKey(e){
+      if(e.key==='Enter'){ e.preventDefault(); aceptar(); }
+      else if(e.key==='Escape'){ e.preventDefault(); if(window.rhModalCerrar) window.rhModalCerrar(); }
+    }
+    function limpiar(){
+      ok.onclick=null;
+      pin.removeEventListener('keydown', onKey);
+      modal.removeEventListener('keydown', onKey);
     }
     window.rhModalCerrar=function(){ limpiar(); modal.style.display='none'; resolve(null); };
     ok.onclick=aceptar;
-    pin.onkeydown=function(e){ if(e.key==='Enter') aceptar(); if(e.key==='Escape') window.rhModalCerrar(); };
+    // Escuchar Enter tanto en el input como en el modal (por si el foco se mueve).
+    pin.addEventListener('keydown', onKey);
+    modal.addEventListener('keydown', onKey);
   });
 }
 // Muestra el modal en modo PROGRESO (barra). No pide PIN. Devuelve controles.
@@ -2792,7 +2803,7 @@ document.addEventListener('keydown', function(ev){
   <div style="background:var(--white);width:min(420px,92vw);border-radius:12px;
     box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:var(--ff)">
     <div style="background:var(--navy);padding:18px 22px;display:flex;align-items:center;gap:12px">
-      <img src="./icons/icon-192.png" alt="CSS" style="width:38px;height:38px;border-radius:6px;background:#fff;padding:2px">
+      <img src="./icons/icon-192.png" alt="CSS" style="width:40px;height:40px">
       <div>
         <div style="color:#fff;font-weight:700;font-size:15px;line-height:1.2" id="rhModalTitulo">Autorización</div>
         <div style="color:#b9c7d9;font-size:11px;letter-spacing:.3px">DIRECCIÓN NACIONAL DE LOGÍSTICA · CEDIS PANAMÁ</div>
