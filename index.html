@@ -2403,6 +2403,9 @@ async function plCargarColaboradores(){
   if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; PL_COLABS=[]; return; }
   cont.innerHTML='<div style="color:#888">Cargando colaboradores…</div>';
   try{
+    // Cargar el JSON del ciclo (para mostrar las HE sin llamadas extra).
+    const desde=document.getElementById('pl-desde').value;
+    try{ await cargarDatos(desde); }catch(_){ /* si no hay JSON, las HE saldrán como — */ }
     const r=await fetch(`${GAS}?action=colaboradores_area&token=${TOKEN}&area=${encodeURIComponent(area)}&_=${Date.now()}`);
     const j=await r.json();
     if(!j||!j.ok||!j.colaboradores.length){ cont.innerHTML='<div style="color:#888">Sin colaboradores en esta área.</div>'; PL_COLABS=[]; return; }
@@ -2439,12 +2442,14 @@ function plRenderLista(preservarSeleccion){
   const filas=arr.map(c=>{
     const marcado=sel.has(c.nombre)?' checked':'';
     const nf=String(c.num_funcionario||'').trim();
+    const he=plHorasExtra(c.nombre);
     return `<tr style="border-bottom:1px solid #eee" onclick="plTogglaFila(event,this)">
       <td style="width:34px;text-align:center;padding:6px 4px">
         <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()"${marcado}></td>
       <td style="width:130px;padding:6px 6px;font-family:Consolas,monospace;color:var(--blue);white-space:nowrap">${nf||'—'}</td>
       <td style="padding:6px 6px">${c.nombre}</td>
       <td style="padding:6px 6px;color:#888;font-size:12px">${c.cargo||''}</td>
+      <td style="width:110px;padding:6px 6px;text-align:center;font-family:Consolas,monospace;${he!=='00:00'&&he!=='—'?'color:var(--blue);font-weight:700':'color:#bbb'}">${he}</td>
     </tr>`;
   }).join('');
   cont.innerHTML=
@@ -2456,11 +2461,23 @@ function plRenderLista(preservarSeleccion){
             <button class="btn" onclick="plOrdenar()" style="padding:2px 8px;font-size:12px">N° Funcionario ${flecha}</button></th>
           <th style="text-align:center;padding:6px 6px;color:#555">Nombre</th>
           <th style="text-align:center;padding:6px 6px;color:#555">Cargo</th>
+          <th style="width:110px;text-align:center;padding:6px 6px;color:#555">Horas extra</th>
         </tr>
       </thead>
       <tbody>${filas}</tbody>
     </table>`;
   plContar();
+}
+
+// Lee las HE del ciclo desde el JSON ya cargado en memoria (sin llamada al backend).
+// Muestra las horas extra CALCULADAS del ciclo publicado (último "Actualizar datos").
+function plHorasExtra(nombre){
+  try{
+    if(!DATOS || !DATOS.detalle) return '—';
+    const b = DATOS.detalle[nombre];
+    if(!b || !b.totales) return '—';
+    return b.totales.he_calculadas || '00:00';
+  }catch(e){ return '—'; }
 }
 
 // Permite marcar la fila haciendo clic en cualquier parte (excepto el propio checkbox).
