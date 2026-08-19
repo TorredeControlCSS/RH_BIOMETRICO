@@ -35,8 +35,9 @@ body{margin:0;background:var(--bg);font-family:var(--ff);color:var(--text);font-
 .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
 .fld{display:flex;flex-direction:column;gap:5px}
 .fld label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-select,input[type=date]{border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-       font-family:inherit;font-size:13.5px;background:var(--white);color:var(--text);min-width:160px}
+select,input[type=date],input[type=number],input[type=text],input[type=password]{border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+       font-family:inherit;font-size:13.5px;background:var(--white);color:var(--text);box-sizing:border-box;height:38px}
+input[type=date]{min-width:160px}
 select:focus,input:focus{outline:2px solid var(--blue);outline-offset:-1px}
 .grow{flex:1;min-width:230px}
 .grow select{width:100%}
@@ -159,6 +160,15 @@ tfoot td{background:#f7f9fc;font-weight:700}
     </div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+    <span id="admin-quien" style="display:none;font-size:12px;color:#fff;background:rgba(34,197,94,.22);
+      border:1px solid rgba(134,239,172,.5);border-radius:6px;padding:5px 12px">
+      <span style="opacity:.8">Operando como:</span> <strong id="admin-nombre"></strong>
+      <a onclick="salirModoAdmin()" style="margin-left:8px;cursor:pointer;text-decoration:underline;opacity:.85">salir</a>
+    </span>
+    <button class="btn" id="btn-admin" onclick="entrarModoAdmin()"
+      style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
+             padding:7px 14px;font-size:12.5px"
+      title="Activa el modo para registrar, ajustar o aprobar">Modo administrativo</button>
     <button class="btn" id="btn-pub" onclick="publicarDatos(this)"
       style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
              padding:7px 14px;font-size:12.5px"
@@ -1338,6 +1348,7 @@ async function cargarTxt(emp){
     const url=`${GAS}?action=txt_libro&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo reconstruir el registro.'}</div></div>`; return; }
+    window.__txtData = d;   // guardado para re-render local (toggle de modo sin refetch)
     cont.innerHTML=pintarTxt(d);
   }catch(e){
     cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión. Intenta de nuevo.</div></div>';
@@ -1354,6 +1365,13 @@ function pintarTxt(d){
   const alertaSobregiro = d.sobregiro
     ? `<div class="aviso" style="background:var(--bad-bg);border-color:#fca5a5;color:var(--bad)">
          El saldo está sobregirado: se ha tomado más tiempo del acumulado. Requiere revisión.
+       </div>` : '';
+
+  const avisoSinConfig = d.sin_config_txt
+    ? `<div class="aviso" style="background:var(--warn-bg);border-color:#fcd34d;color:var(--warn)">
+         Este colaborador no tiene configuración de tiempo compensatorio en el catálogo
+         (CALC_HE_TXT_BEN), por eso el generado aparece en cero aunque tenga horas extra.
+         Regístralo en el catálogo para que el sistema calcule su tiempo.
        </div>` : '';
 
   // KPIs: un saldo protagonista, sin realidades en tensión
@@ -1387,9 +1405,8 @@ function pintarTxt(d){
         <input type="number" id="txt-horas" min="0.5" step="0.5" value="1" style="width:90px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
       <div class="fld grow"><label for="txt-nota">Nota (opcional)</label>
         <input type="text" id="txt-nota" placeholder="Motivo / referencia" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
-      <div class="fld"><label for="txt-uso-pin">PIN</label>
-        <input type="password" id="txt-uso-pin" maxlength="4" placeholder="4 díg." inputmode="numeric" autocomplete="off" style="width:90px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);letter-spacing:3px;text-align:center"></div>
-      <button class="btn btn-main" onclick="txtRegistrarUso(this)">Registrar uso</button>
+      <div class="fld"><label>&nbsp;</label>
+        <button class="btn btn-main" onclick="txtRegistrarUso(this)">Registrar uso</button></div>
     </div>
   </div>`;
 
@@ -1434,12 +1451,10 @@ function pintarTxt(d){
     : `<div class="msg" style="padding:16px">Este colaborador no tiene movimientos de tiempo compensatorio.</div>`;
 
   const barraModo = M.activo ? `
-    <div class="row" style="padding:12px 0;background:#fafbfc;border-bottom:1px solid var(--line-soft);align-items:center">
-      <span class="kpi-s" id="txt-modo-lbl" style="${M.habilitado?'color:var(--good);font-weight:700':''}">
-        ${M.habilitado?'Ajuste habilitado — corrige el tiempo y el origen de los períodos que necesites.':'Ingresa el PIN para habilitar el ajuste'}</span>
-      <input type="password" id="txt-adj-pin" maxlength="4" placeholder="PIN" inputmode="numeric" autocomplete="off" style="width:90px;text-align:center;font-family:var(--mono);letter-spacing:3px;border:1px solid var(--line);border-radius:6px;padding:7px">
-      <button class="btn" onclick="txtHabilitarAjuste()">Habilitar</button>
-      <button class="btn btn-main" ${M.habilitado?'':'disabled'} onclick="txtGuardarAjustes(this)">Guardar y salir del modo</button>
+    <div class="row" style="padding:12px 18px;background:#fafbfc;border-bottom:1px solid var(--line-soft);align-items:center;gap:12px">
+      <span class="kpi-s" style="color:var(--good);font-weight:700">
+        Ajuste habilitado — corrige el tiempo y el origen de los períodos que necesites.</span>
+      <button class="btn btn-main" onclick="txtGuardarAjustes(this)">Guardar y salir del modo</button>
     </div>` : '';
 
   const libro = `
@@ -1490,27 +1505,39 @@ function pintarTxt(d){
     </table></div>
   </div>`;
 
-  return `${alertaSobregiro}${kpis}${formUso}${libro}${historial}`;
+  return `${alertaSobregiro}${avisoSinConfig}${kpis}${formUso}${libro}${historial}`;
 }
 
 // ── Acciones Tema B ──
+// Guarda los datos del último libro para re-render local sin refetch
+window.__txtData = null;
+function txtRerender(){
+  if(!window.__txtData) return;
+  document.getElementById('res-txt').innerHTML = pintarTxt(window.__txtData);
+}
 function txtToggleModo(){
+  // Requiere modo administrativo para ajustar
   const M=window.__txtModo||(window.__txtModo={activo:false,habilitado:false});
-  M.activo=!M.activo; if(!M.activo) M.habilitado=false;
-  cargarTxt(EMP_ACTUAL);
+  if(!M.activo){
+    if(!(window.ADMIN&&window.ADMIN.activo)){
+      alert('Activa el "Modo administrativo" (arriba a la derecha) para ajustar períodos.');
+      return;
+    }
+    M.activo=true; M.habilitado=true;   // ya está autenticado por el modo admin
+  } else {
+    M.activo=false; M.habilitado=false;
+  }
+  txtRerender();   // re-render LOCAL, sin ir al backend (sin fricción)
 }
-function txtHabilitarAjuste(){
-  const pin=(document.getElementById('txt-adj-pin').value||'').replace(/\D/g,'');
-  if(pin.length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
-  window.__txtPin=pin; window.__txtModo.habilitado=true; cargarTxt(EMP_ACTUAL);
-}
+function txtHabilitarAjuste(){ window.__txtModo.habilitado=true; txtRerender(); }
 window.__txtAjustes = {};
 function txtSetTiempo(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).tiempo=val; }
 function txtSetOrigen(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).origen=val; }
 async function txtGuardarAjustes(btn){
-  const pin=window.__txtPin||''; const aj=window.__txtAjustes||{};
+  const pin=adminPin(); if(!pin) return;
+  const aj=window.__txtAjustes||{};
   const claves=Object.keys(aj);
-  if(!claves.length){ window.__txtModo={activo:false,habilitado:false}; cargarTxt(EMP_ACTUAL); return; }
+  if(!claves.length){ window.__txtModo={activo:false,habilitado:false}; txtRerender(); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     for(const ciclo of claves){
@@ -1522,17 +1549,16 @@ async function txtGuardarAjustes(btn){
       const r=await fetch(url); const d=await r.json();
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
-    window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false}; window.__txtPin='';
-    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+    window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
+    avisarPublicar(); cargarTxt(EMP_ACTUAL);   // aquí sí refetch: hubo cambios reales
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtRegistrarUso(btn){
+  const pin=adminPin(); if(!pin) return;
   const f=document.getElementById('txt-fecha').value;
   const h=parseFloat(document.getElementById('txt-horas').value||0);
-  const pin=(document.getElementById('txt-uso-pin').value||'').replace(/\D/g,'');
   const nota=document.getElementById('txt-nota').value||'';
   if(!f||!h){ alert('Falta fecha u horas.'); return; }
-  if(pin.length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Registrando…';
   try{
     let url=`${GAS}?action=txt_uso_registrar&token=${TOKEN}`
@@ -1549,10 +1575,9 @@ async function txtRegistrarUso(btn){
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtEliminarUso(seq,btn){
+  const pin=adminPin(); if(!pin) return;
   if(!seq){ alert('Este uso no tiene identificador; elimínalo desde la hoja.'); return; }
   if(!confirm('¿Eliminar este uso de tiempo?')) return;
-  const pin=prompt('PIN de autorización (4 dígitos):')||'';
-  if(pin.replace(/\D/g,'').length!==4){ alert('PIN inválido.'); return; }
   try{
     const url=`${GAS}?action=txt_uso_eliminar&token=${TOKEN}`
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&seq_num=${encodeURIComponent(seq)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
@@ -2478,7 +2503,37 @@ async function ajustarCicloConDatos(){
   }catch(e){ /* la pantalla ya está pintada: no hacer nada */ }
 }
 
-// -- Enter en cualquier campo PIN dispara el boton de guardado de su bloque --
+// ── MODO ADMINISTRATIVO ──
+// El dashboard es de consulta abierta. Para operar (registrar/ajustar/aprobar),
+// se activa el modo una vez con PIN de un rol autorizado; queda "operando como".
+window.ADMIN = { activo:false, nombre:'', pin:'' };
+
+async function entrarModoAdmin(){
+  const pin=(prompt('PIN de autorización (4 dígitos):')||'').replace(/\D/g,'');
+  if(pin.length!==4){ if(pin.length) alert('El PIN debe tener 4 dígitos.'); return; }
+  try{
+    const url=`${GAS}?action=validar_admin&token=${TOKEN}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ alert((d&&d.error)||'PIN no reconocido.'); return; }
+    window.ADMIN={ activo:true, nombre:d.nombre, pin:pin, rol:d.rol };
+    document.getElementById('admin-nombre').textContent=d.nombre;
+    document.getElementById('admin-quien').style.display='';
+    document.getElementById('btn-admin').style.display='none';
+  }catch(e){ alert('Error de conexión al validar.'); }
+}
+function salirModoAdmin(){
+  window.ADMIN={ activo:false, nombre:'', pin:'' };
+  document.getElementById('admin-quien').style.display='none';
+  document.getElementById('btn-admin').style.display='';
+}
+// Devuelve el PIN de la sesión admin, o pide activarla.
+function adminPin(){
+  if(window.ADMIN && window.ADMIN.activo) return window.ADMIN.pin;
+  alert('Activa el "Modo administrativo" (arriba a la derecha) para registrar o ajustar.');
+  return null;
+}
+
+// ── Enter en cualquier campo PIN dispara el botón de guardado de su bloque --
 // Un solo listener global: no depende de plantillas ni de ids especificos.
 document.addEventListener('keydown', function(ev){
   if(ev.key!=='Enter') return;
