@@ -1346,109 +1346,229 @@ async function cargarTxt(emp){
 
 function pintarTxt(d){
   const movs=d.movimientos||[];
-  if(!movs.length){
-    return `<div class="panel"><div class="msg">
-      Este colaborador no tiene movimientos de tiempo compensatorio registrados.</div></div>`;
-  }
 
-  const filas=movs.map(m=>`
-    <tr class="${m.tipo==='APERTURA'?'apertura':''}">
-      <td class="l">${m.periodo||''}</td>
-      <td class="num">${m.generado_hhmm||'—'}</td>
-      <td class="num">${m.tomado_hhmm||'—'}</td>
-      <td class="num"><strong>${m.acumulado_hhmm||''}</strong></td>
-      <td class="l" style="font-size:11.5px;color:var(--muted)">${m.observaciones||''}</td>
-    </tr>`).join('');
+  // Estado del modo ajuste (por render)
+  window.__txtModo = window.__txtModo || {activo:false, habilitado:false};
+  const M = window.__txtModo;
 
   const alertaSobregiro = d.sobregiro
     ? `<div class="aviso" style="background:var(--bad-bg);border-color:#fca5a5;color:var(--bad)">
          El saldo está sobregirado: se ha tomado más tiempo del acumulado. Requiere revisión.
        </div>` : '';
 
-  const empalmeActual = d.empalme_registrado
-    ? `Registrado: <strong>${d.empalme_horas} h</strong> al ${fFecha(d.empalme_fecha_corte)}`
-      + (d.empalme_registrado_por?` · por ${d.empalme_registrado_por}`:'')
-    : 'Sin saldo previo registrado.';
+  // KPIs: un saldo protagonista, sin realidades en tensión
+  const kpis = `
+  <div class="kpis">
+    <div class="kpi" style="border:2px solid var(--blue)">
+      <div class="kpi-l">Saldo disponible</div>
+      <div class="kpi-v" style="${d.sobregiro?'color:var(--bad)':'color:var(--blue)'}">${d.saldo_actual_hhmm||'00:00'}</div>
+      <div class="kpi-s">tiempo compensatorio a favor</div></div>
+    <div class="kpi"><div class="kpi-l">Generado</div><div class="kpi-v">${d.total_generado_hhmm||'00:00'}</div>
+      <div class="kpi-s">acumulado del período</div></div>
+    <div class="kpi"><div class="kpi-l">Tomado</div><div class="kpi-v">${d.total_tomado_hhmm||'00:00'}</div>
+      <div class="kpi-s">usos registrados</div></div>
+    <div class="kpi"><div class="kpi-l">Horas extra pagadas</div><div class="kpi-v">${d.he_pagadas_hhmm||'00:00'}</div>
+      <div class="kpi-s">B/. ${Number(d.he_monto_usd||0).toFixed(2)} · bolsón aparte</div></div>
+  </div>`;
 
-  const bloqueEmpalme = `
+  // Formulario de registro de uso (evento con fecha)
+  const hoy = new Date().toISOString().slice(0,10);
+  const formUso = `
   <div class="panel">
     <div class="panel-h">
-      <div><div class="panel-t">Saldo previo al biométrico (empalme)</div>
-        <div class="kpi-s">${empalmeActual}</div></div>
+      <div><div class="panel-t">Registrar uso de tiempo</div>
+        <div class="kpi-s">El colaborador usa horas de su saldo · se registra cada uso con su fecha</div></div>
+      <span id="txt-saldochip" style="font-family:var(--mono);font-weight:700;padding:4px 10px;border-radius:6px;background:var(--good-bg);color:var(--good)">Saldo: ${d.saldo_actual_hhmm||'00:00'}</span>
     </div>
-    <div class="panel-b">
-      <div class="aviso">
-        El cálculo arranca desde septiembre de 2025, que es cuando el biométrico
-        tiene datos. Si consta que el colaborador tenía horas acumuladas antes de
-        esa fecha, regístralas aquí con su justificación.
-      </div>
-      <div class="row">
-        <div class="fld">
-          <label for="emp-horas">Horas previas</label>
-          <input type="number" id="emp-horas" min="0" step="0.5" value="${d.empalme_horas||0}"
-                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:inherit;font-size:13.5px;width:120px">
-        </div>
-        <div class="fld">
-          <label for="emp-corte">Fecha de corte</label>
-          <input type="date" id="emp-corte" value="${d.empalme_fecha_corte||'2025-09-15'}">
-        </div>
-        <div class="fld grow">
-          <label for="emp-just">Justificación</label>
-          <input type="text" id="emp-just" placeholder="Origen del saldo previo"
-                 value="${(d.empalme_justificacion||'').replace(/"/g,'&quot;')}"
-                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:inherit;font-size:13.5px;width:100%">
-        </div>
-        <div class="fld">
-          <label for="emp-pin">PIN de autorización</label>
-          <input type="password" id="emp-pin" placeholder="4 dígitos" maxlength="4"
-                 inputmode="numeric" autocomplete="off"
-                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:var(--mono);font-size:13.5px;width:120px;letter-spacing:3px">
-        </div>
-        <button class="btn btn-2" onclick="guardarEmpalme(this)">Guardar empalme</button>
-      </div>
+    <div class="row" style="align-items:flex-end">
+      <div class="fld"><label for="txt-fecha">Fecha de uso</label>
+        <input type="date" id="txt-fecha" value="${hoy}"></div>
+      <div class="fld"><label for="txt-horas">Horas</label>
+        <input type="number" id="txt-horas" min="0.5" step="0.5" value="1" style="width:90px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
+      <div class="fld grow"><label for="txt-nota">Nota (opcional)</label>
+        <input type="text" id="txt-nota" placeholder="Motivo / referencia" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px"></div>
+      <div class="fld"><label for="txt-uso-pin">PIN</label>
+        <input type="password" id="txt-uso-pin" maxlength="4" placeholder="4 díg." inputmode="numeric" autocomplete="off" style="width:90px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);letter-spacing:3px;text-align:center"></div>
+      <button class="btn btn-main" onclick="txtRegistrarUso(this)">Registrar uso</button>
     </div>
   </div>`;
 
-  return `
-  ${alertaSobregiro}
-  <div class="kpis">
-    <div class="kpi"><div class="kpi-l">Saldo disponible</div>
-      <div class="kpi-v" style="${d.sobregiro?'color:var(--bad)':''}">${d.saldo_actual_hhmm}</div>
-      <div class="kpi-s">horas : minutos</div></div>
-    <div class="kpi"><div class="kpi-l">Generado</div><div class="kpi-v">${d.total_generado_hhmm}</div>
-      <div class="kpi-s">desde el biométrico</div></div>
-    <div class="kpi"><div class="kpi-l">Tomado</div><div class="kpi-v">${d.total_tomado_hhmm}</div>
-      <div class="kpi-s">usos aprobados</div></div>
-    <div class="kpi"><div class="kpi-l">Horas extra pagadas</div><div class="kpi-v">${d.he_pagadas_hhmm}</div>
-      <div class="kpi-s">B/. ${Number(d.he_monto_usd||0).toFixed(2)} · bolsón aparte</div></div>
-  </div>
+  // Filas del libro
+  const chipOrigen = (o,ajustado)=>{
+    if(o==='LISTAS') return '<span class="chip" style="background:var(--warn-bg);color:var(--warn)">Listas físicas</span>';
+    if(o==='MIXTO')  return '<span class="chip" style="background:#e0e7ff;color:#3730a3">Mixto</span>';
+    return '<span class="chip" style="background:#eef2f7;color:#5b6b7d">Biométrico</span>';
+  };
+  const editable = M.activo && M.habilitado;
+  const filas=movs.map(m=>{
+    const esCiclo = m.tipo==='CICLO';
+    const tiempoCell = (editable && esCiclo)
+      ? `<input class="num" value="${m.generado_hhmm||'00:00'}" style="width:78px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5" onchange="txtSetTiempo('${m.ciclo}',this.value)">`
+      : `<span class="num">${m.generado_hhmm||'—'}</span>`;
+    const origenCell = (editable && esCiclo)
+      ? `<select style="font-size:12px;border:1px solid var(--blue);border-radius:5px;padding:4px 6px;background:#fffdf5" onchange="txtSetOrigen('${m.ciclo}',this.value)">
+           <option value="BIO"    ${m.origen==='BIO'?'selected':''}>Biométrico</option>
+           <option value="LISTAS" ${m.origen==='LISTAS'?'selected':''}>Listas físicas</option>
+           <option value="MIXTO"  ${m.origen==='MIXTO'?'selected':''}>Mixto</option>
+         </select>`
+      : chipOrigen(m.origen, m.ajustado);
+    return `
+    <tr class="${m.tipo==='APERTURA'?'apertura':''}" data-ciclo="${m.ciclo||''}">
+      <td class="l">${m.periodo||''}</td>
+      <td class="num">${tiempoCell}</td>
+      <td class="num">${m.tomado_hhmm||'—'}</td>
+      <td class="num"><strong>${m.acumulado_hhmm||''}</strong></td>
+      <td class="l">${m.tipo==='APERTURA'?'<span class="chip" style="background:var(--warn-bg);color:var(--warn)">Listas físicas</span>':origenCell}</td>
+    </tr>`;
+  }).join('');
 
-  <div class="panel">
-    <div class="panel-h">
-      <div><div class="panel-t">Registro de tiempo compensatorio</div>
-        <div class="kpi-s">${d.employee} · un renglón por ciclo</div></div>
-      <button class="btn btn-main" onclick="imprimirTxt(this)">Generar PDF</button>
-    </div>
-    <div style="padding:0">
+  const cuerpoLibro = movs.length ? `
       <table>
         <thead><tr>
           <th style="text-align:left">Período</th>
-          <th>Generado</th><th>Tomado</th><th>Acumulado</th>
-          <th style="text-align:left">Observaciones</th>
+          <th>Tiempo generado</th><th>Tomado</th><th>Acumulado</th>
+          <th style="text-align:left">Origen</th>
         </tr></thead>
         <tbody>${filas}</tbody>
-      </table>
+      </table>`
+    : `<div class="msg" style="padding:16px">Este colaborador no tiene movimientos de tiempo compensatorio.</div>`;
+
+  const barraModo = M.activo ? `
+    <div class="row" style="padding:12px 0;background:#fafbfc;border-bottom:1px solid var(--line-soft);align-items:center">
+      <span class="kpi-s" id="txt-modo-lbl" style="${M.habilitado?'color:var(--good);font-weight:700':''}">
+        ${M.habilitado?'Ajuste habilitado — corrige el tiempo y el origen de los períodos que necesites.':'Ingresa el PIN para habilitar el ajuste'}</span>
+      <input type="password" id="txt-adj-pin" maxlength="4" placeholder="PIN" inputmode="numeric" autocomplete="off" style="width:90px;text-align:center;font-family:var(--mono);letter-spacing:3px;border:1px solid var(--line);border-radius:6px;padding:7px">
+      <button class="btn" onclick="txtHabilitarAjuste()">Habilitar</button>
+      <button class="btn btn-main" ${M.habilitado?'':'disabled'} onclick="txtGuardarAjustes(this)">Guardar y salir del modo</button>
+    </div>` : '';
+
+  const libro = `
+  <div class="panel">
+    <div class="panel-h">
+      <div><div class="panel-t">Registro de tiempo compensatorio</div>
+        <div class="kpi-s">${d.employee||''}</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="txtToggleModo()">${M.activo?'Cerrar ajuste':'Ajustar períodos'}</button>
+        <button class="btn" onclick="imprimirTxt(this)">Generar PDF</button>
+        <button class="btn" onclick="imprimirTxtExcel(this)">Generar Excel</button>
+      </div>
     </div>
+    ${barraModo}
+    <div class="aviso">
+      Cada período muestra el <b>tiempo generado</b> a partir de los registros. Si tu
+      <b>lista de asistencia física</b> indica un valor distinto, entra en <b>“Ajustar períodos”</b>
+      y corrígelo. El <b>tomado</b> se llena solo con los usos registrados arriba.
+    </div>
+    <div style="padding:0">${cuerpoLibro}</div>
   </div>
   <div class="kpi-s" style="padding:0 4px 14px">
-    El acumulado arrastra el saldo de cada ciclo. El tiempo compensatorio es distinto
-    de las horas extra pagadas: son dos bolsones separados.
-  </div>
-  ${bloqueEmpalme}`;
+    El acumulado arrastra el saldo período a período. El tiempo compensatorio es distinto de las horas extra pagadas.
+  </div>`;
+
+  // Historial de usos
+  const usos=(d.usos_detalle||d.usos||[]);
+  const filasUsos = usos.length ? usos.slice().sort((a,b)=>String(a.fecha_uso||a.fecha).localeCompare(String(b.fecha_uso||b.fecha))).map(u=>`
+    <tr>
+      <td class="num">${(u.fecha_uso||u.fecha||'').slice(0,10)}</td>
+      <td class="num">${Number(u.horas_usadas||u.horas||0).toFixed(1)}</td>
+      <td class="l" style="font-size:12px">${u.nota||''}</td>
+      <td class="l" style="font-size:12px">${u.aprobado_por||u.por||''}</td>
+      <td><button class="btn" style="padding:3px 9px;font-size:12px" onclick="txtEliminarUso('${(u.seq_num||u.seq||'')}',this)">✕</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" style="color:#999;padding:16px">Sin usos registrados en el período.</td></tr>';
+
+  const historial = `
+  <div class="panel">
+    <div class="panel-h"><div class="panel-t">Historial de usos</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="kpi-s">cada uso individual, con su trazabilidad</span>
+        <button class="btn btn-main" onclick="imprimirTxt(this)">Comprobante para el colaborador</button>
+      </div></div>
+    <div style="padding:0"><table>
+      <thead><tr><th>Fecha de uso</th><th>Horas</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
+      <tbody>${filasUsos}</tbody>
+    </table></div>
+  </div>`;
+
+  return `${alertaSobregiro}${kpis}${formUso}${libro}${historial}`;
 }
+
+// ── Acciones Tema B ──
+function txtToggleModo(){
+  const M=window.__txtModo||(window.__txtModo={activo:false,habilitado:false});
+  M.activo=!M.activo; if(!M.activo) M.habilitado=false;
+  cargarTxt(EMP_ACTUAL);
+}
+function txtHabilitarAjuste(){
+  const pin=(document.getElementById('txt-adj-pin').value||'').replace(/\D/g,'');
+  if(pin.length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
+  window.__txtPin=pin; window.__txtModo.habilitado=true; cargarTxt(EMP_ACTUAL);
+}
+window.__txtAjustes = {};
+function txtSetTiempo(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).tiempo=val; }
+function txtSetOrigen(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).origen=val; }
+async function txtGuardarAjustes(btn){
+  const pin=window.__txtPin||''; const aj=window.__txtAjustes||{};
+  const claves=Object.keys(aj);
+  if(!claves.length){ window.__txtModo={activo:false,habilitado:false}; cargarTxt(EMP_ACTUAL); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    for(const ciclo of claves){
+      const it=aj[ciclo];
+      const url=`${GAS}?action=txt_ajuste_guardar&token=${TOKEN}`
+        +`&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(ciclo)}`
+        +`&tiempo=${encodeURIComponent(it.tiempo||'')}&origen=${encodeURIComponent(it.origen||'LISTAS')}`
+        +`&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+      const r=await fetch(url); const d=await r.json();
+      if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
+    }
+    window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false}; window.__txtPin='';
+    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+  }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
+}
+async function txtRegistrarUso(btn){
+  const f=document.getElementById('txt-fecha').value;
+  const h=parseFloat(document.getElementById('txt-horas').value||0);
+  const pin=(document.getElementById('txt-uso-pin').value||'').replace(/\D/g,'');
+  const nota=document.getElementById('txt-nota').value||'';
+  if(!f||!h){ alert('Falta fecha u horas.'); return; }
+  if(pin.length!==4){ alert('El PIN debe tener 4 dígitos.'); return; }
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Registrando…';
+  try{
+    let url=`${GAS}?action=txt_uso_registrar&token=${TOKEN}`
+      +`&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha_uso=${encodeURIComponent(f)}`
+      +`&horas=${encodeURIComponent(h)}&nota=${encodeURIComponent(nota)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    let r=await fetch(url); let d=await r.json();
+    if(d&&d.sobregiro){
+      if(confirm((d.error||'Excede el saldo.')+'\n¿Registrar de todos modos?')){
+        url+='&forzar=SI'; r=await fetch(url); d=await r.json();
+      } else { btn.disabled=false; btn.textContent=t; return; }
+    }
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo registrar el uso.'); btn.disabled=false; btn.textContent=t; return; }
+    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+  }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
+}
+async function txtEliminarUso(seq,btn){
+  if(!seq){ alert('Este uso no tiene identificador; elimínalo desde la hoja.'); return; }
+  if(!confirm('¿Eliminar este uso de tiempo?')) return;
+  const pin=prompt('PIN de autorización (4 dígitos):')||'';
+  if(pin.replace(/\D/g,'').length!==4){ alert('PIN inválido.'); return; }
+  try{
+    const url=`${GAS}?action=txt_uso_eliminar&token=${TOKEN}`
+      +`&employee=${encodeURIComponent(EMP_ACTUAL)}&seq_num=${encodeURIComponent(seq)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(!d||!d.ok){ alert((d&&d.error)||'No se pudo eliminar.'); return; }
+    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+  }catch(e){ alert('Error de conexión.'); }
+}
+async function imprimirTxtExcel(btn){
+  if(!EMP_ACTUAL) return;
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  const url=`${GAS}?action=txt_excel&token=${TOKEN}&employee=${encodeURIComponent(EMP_ACTUAL)}&_=${Date.now()}`;
+  await generarDocumento(url, 'Generando Excel de tiempo compensatorio…');
+  btn.disabled=false; btn.textContent=t;
+}
+
 
 async function imprimirTxt(btn){
   if(!EMP_ACTUAL) return;
