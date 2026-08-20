@@ -1945,9 +1945,9 @@ async function eliminarArt18(id){
 }
 
 /* ── Vacaciones: resoluciones con orden FIFO ── */
-async function cargarVacaciones(emp, fresco){
+async function cargarVacaciones(emp, fresco, silencioso){
   const cont=document.getElementById('res-vac');
-  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando resoluciones…</div></div>';
+  if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando resoluciones…</div></div>';
   try{
     const url=`${GAS}?action=vacaciones&token=${TOKEN}&employee=${encodeURIComponent(emp)}${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -2090,12 +2090,12 @@ function pintarVacaciones(d){
 }
 
 /* ── Incidencias: ausencias, tardanzas, artículos ── */
-async function cargarIncidencias(emp,desde,hasta){
+async function cargarIncidencias(emp,desde,hasta,fresco,silencioso){
   const cont=document.getElementById('res-inc');
-  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando incidencias…</div></div>';
+  if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando incidencias…</div></div>';
   try{
     const url=`${GAS}?action=incidencias&token=${TOKEN}&employee=${encodeURIComponent(emp)}`+
-              `&from=${desde}&to=${hasta}&_=${Date.now()}`;
+              `&from=${desde}&to=${hasta}${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar las incidencias.'}</div></div>`; return; }
     cont.innerHTML=pintarIncidencias(d);
@@ -2204,7 +2204,7 @@ async function eliminarResolucion(id){
     const url=`${GAS}?action=vac_resolucion_eliminar&token=${TOKEN}`+
       `&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true); avisarPublicar(); }
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true,true); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo eliminar.'); }
   }catch(e){ alert('Error de conexión.'); }
 }
@@ -2225,7 +2225,7 @@ async function guardarResolucion(btn){
       `&anio=${anio}&dias=${dias}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true); avisarPublicar(); }
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true,true); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar la resolución.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
@@ -2240,7 +2240,7 @@ async function vacDeshacerUso(id,btn){
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
-    avisarPublicar(); cargarVacaciones(EMP_ACTUAL,true);
+    avisarPublicar(); cargarVacaciones(EMP_ACTUAL,true,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 
@@ -2263,7 +2263,7 @@ async function registrarUsoVac(btn){
     if(d&&d.ok){
       const det=(d.aplicado||[]).map(a=>`${a.dias} día(s) de Res. ${a.resolucion}-${a.anio}`).join(', ');
       alert(`Registrados ${d.dias} día(s).\nDescontados así: ${det}`);
-      cargarVacaciones(EMP_ACTUAL,true); avisarPublicar();
+      cargarVacaciones(EMP_ACTUAL,true,true); avisarPublicar();
     }
     else{ alert((d&&d.error)||'No se pudo registrar.'); }
   }catch(e){ alert('Error de conexión.'); }
@@ -2303,7 +2303,7 @@ async function guardarIncidencia(btn){
       `&tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta); avisarPublicar(); }
+    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta,true,true); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar la incidencia.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
