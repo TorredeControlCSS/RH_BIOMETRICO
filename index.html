@@ -100,6 +100,8 @@ tr.doble td{background:#fffbeb}
 tr.aus td{background:#fee2e2}
 tr.tar td{background:#fef3c7}
 tr.trn td{background:#d1fae5}
+tr.ext td{background:#e8f0fb}
+tr.inc td{background:#fdf0d5}
 .badge-turno{display:inline-block;background:#059669;color:#fff;font-size:10px;font-weight:600;
   padding:1px 7px;border-radius:10px;vertical-align:middle}
 tr.apertura td{background:#f7f9fc;font-style:italic;color:var(--muted)}
@@ -1359,7 +1361,8 @@ function pintarRegistroAsistencia(d){
   const filas=dias.map(x=>{
     const inc=String(x.incidencia||'').toUpperCase();
     const turno=String(x.turno_excepcion||'').trim();
-    const cls = inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : (turno ? 'trn' : ''));
+    const tieneExtra = x.horas_extra && x.horas_extra!=='00:00' && x.horas_extra!=='—' && x.horas_extra!=='';
+    const cls = inc.includes('MARCA INCOMPLETA') ? 'inc' : (inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : (turno ? 'trn' : (tieneExtra ? 'ext' : ''))));
     const obs = [x.incidencia||'', (turno?`<span class="badge-turno">Turno ${turno.toLowerCase()}</span>`:'')]
       .filter(s=>s).join(' · ');
     return `<tr class="${cls}">
