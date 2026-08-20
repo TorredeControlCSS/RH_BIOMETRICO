@@ -344,7 +344,9 @@ function fmtFechaSello(ymd){
   var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   return p[2]+'-'+(m[(+p[1])-1]||p[1])+'-'+p[0];
 }
-document.addEventListener('DOMContentLoaded', cargarSelloEstado);
+document.addEventListener('DOMContentLoaded', function(){
+  try{ restaurarModoAdmin(); }catch(_){}
+});
 let DATOS = null;          // ciclo cargado ahora mismo
 const CACHE_CICLOS = {};   // {from: datosDelCiclo} — evita releer lo ya traído
 let INDICE = null;         // lista de ciclos publicados
@@ -407,20 +409,15 @@ function avisarPublicar(){
   if(!el){
     el=document.createElement('div');
     el.id='aviso-pub';
-    el.style.cssText='position:fixed;bottom:18px;right:18px;z-index:200;max-width:330px;'+
-      'background:var(--navy);color:#fff;padding:12px 16px;border-radius:8px;'+
-      'font-size:12.5px;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+    el.style.cssText='position:fixed;bottom:18px;right:18px;z-index:200;max-width:300px;'+
+      'background:#1e7e34;color:#fff;padding:11px 16px;border-radius:8px;'+
+      'font-size:12.5px;line-height:1.5;box-shadow:0 4px 16px rgba(0,0,0,.25);'+
+      'display:flex;align-items:center;gap:8px';
     document.body.appendChild(el);
   }
-  el.innerHTML='Registro guardado. Para que los totales del ciclo lo reflejen, '+
-    'pulsa <strong>Actualizar datos</strong> arriba cuando termines.'+
-    '<div style="text-align:right;margin-top:8px">'+
-    '<button onclick="this.closest(\'div\').parentNode.remove()" '+
-    'style="background:none;border:1px solid rgba(255,255,255,.35);color:#fff;'+
-    'border-radius:5px;padding:4px 12px;font-size:11.5px;cursor:pointer;font-family:inherit">'+
-    'Entendido</button></div>';
+  el.innerHTML='<span style="font-size:15px">✓</span> Registro guardado.';
   clearTimeout(window.__avisoT);
-  window.__avisoT=setTimeout(()=>{ const e=document.getElementById('aviso-pub'); if(e) e.remove(); }, 12000);
+  window.__avisoT=setTimeout(()=>{ const e=document.getElementById('aviso-pub'); if(e) e.remove(); }, 3500);
 }
 
 /* ── Republicar datos (opción C: control explícito) ──
@@ -1473,11 +1470,21 @@ function pintarTxt(d){
   const editable = M.activo && M.habilitado;
   const filas=movs.map(m=>{
     const esCiclo = m.tipo==='CICLO';
+    const _hhmm = (m.generado_hhmm||'00:00').split(':');
+    const _hh = _hhmm[0]||'0', _mm = _hhmm[1]||'0';
     const tiempoCell = (editable && esCiclo)
-      ? `<input class="num" value="${m.generado_hhmm||'00:00'}" style="width:78px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5" onchange="txtSetTiempo('${m.ciclo}',this.value)">`
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;justify-content:center">
+           <input type="number" min="0" class="num" value="${parseInt(_hh,10)}" title="Horas"
+             style="width:52px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5"
+             onchange="txtSetTiempoHM('${m.ciclo}','h',this.value)">
+           <span style="color:var(--muted);font-family:var(--mono)">:</span>
+           <input type="number" min="0" max="59" class="num" value="${parseInt(_mm,10)}" title="Minutos"
+             style="width:52px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5"
+             onchange="txtSetTiempoHM('${m.ciclo}','m',this.value)">
+         </span>`
       : `<span class="num">${m.generado_hhmm||'—'}</span>`;
     const origenCell = (editable && esCiclo)
-      ? `<select style="font-size:12px;border:1px solid var(--blue);border-radius:5px;padding:4px 6px;background:#fffdf5" onchange="txtSetOrigen('${m.ciclo}',this.value)">
+      ? `<select data-ciclo-origen="${m.ciclo}" style="font-size:12px;border:1px solid var(--blue);border-radius:5px;padding:4px 6px;background:#fffdf5" onchange="txtSetOrigen('${m.ciclo}',this.value)">
            <option value="BIO"    ${m.origen==='BIO'?'selected':''}>Biométrico</option>
            <option value="LISTAS" ${m.origen==='LISTAS'?'selected':''}>Listas físicas</option>
            <option value="MIXTO"  ${m.origen==='MIXTO'?'selected':''}>Mixto</option>
@@ -1599,7 +1606,7 @@ function pintarTxt(d){
         <button class="btn btn-main" onclick="imprimirTxt(this)">Comprobante para el colaborador</button>
       </div></div>
     <div style="padding:0"><table>
-      <thead><tr><th>Fecha de uso</th><th>Horas</th><th>Estado</th><th style="text-align:left">Período de la fecha</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
+      <thead><tr><th>Fecha de uso</th><th>Horas</th><th>Estado</th><th style="text-align:left">Aplicado al período</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
       <tbody>${filasUsos}</tbody>
     </table></div>
   </div>`;
@@ -1631,6 +1638,22 @@ function txtToggleModo(){
 function txtHabilitarAjuste(){ window.__txtModo.habilitado=true; txtRerender(); }
 window.__txtAjustes = {};
 function txtSetTiempo(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).tiempo=val; }
+// Arma el HH:MM a partir de dos campos (horas y minutos). Preserva el otro campo
+// leyéndolo del ajuste en curso o del dato original del período.
+function txtSetTiempoHM(ciclo,cual,val){
+  const aj = (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{});
+  // Punto de partida: lo ya editado, o el valor original del período.
+  let base = aj.tiempo;
+  if(!base){
+    const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
+    base = (orig && orig.generado_hhmm) || '00:00';
+  }
+  const p = base.split(':');
+  let h = parseInt(p[0]||'0',10)||0, m = parseInt(p[1]||'0',10)||0;
+  if(cual==='h') h = Math.max(0, parseInt(val,10)||0);
+  if(cual==='m') m = Math.min(59, Math.max(0, parseInt(val,10)||0));
+  aj.tiempo = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
 function txtSetOrigen(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).origen=val; }
 async function txtDeshacerAjuste(ciclo,btn){
   const pin=adminPin(); if(!pin) return;
@@ -1654,9 +1677,24 @@ async function txtGuardarAjustes(btn){
   try{
     for(const ciclo of claves){
       const it=aj[ciclo];
+      // Leer el origen DIRECTO del desplegable (robusto: no depende de que el
+      // onchange se haya disparado). Si no está en pantalla, preservar el original.
+      let origen = it.origen;
+      const selEl = document.querySelector(`[data-ciclo-origen="${ciclo}"]`);
+      if(selEl) origen = selEl.value;
+      if(!origen){
+        const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
+        origen = (orig && orig.origen) || 'LISTAS';
+      }
+      // Tiempo: lo editado, o el original del período si solo se tocó el origen.
+      let tiempo = it.tiempo;
+      if(!tiempo){
+        const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
+        tiempo = (orig && orig.generado_hhmm) || '';
+      }
       const url=`${GAS}?action=txt_ajuste_guardar&token=${TOKEN}`
         +`&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(ciclo)}`
-        +`&tiempo=${encodeURIComponent(it.tiempo||'')}&origen=${encodeURIComponent(it.origen||'LISTAS')}`
+        +`&tiempo=${encodeURIComponent(tiempo)}&origen=${encodeURIComponent(origen)}`
         +`&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
       const r=await fetch(url); const d=await r.json();
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
@@ -1939,7 +1977,7 @@ function pintarVacaciones(d){
     </div>`).join('') ||
     '<div class="msg" style="padding:16px">Sin períodos de vacaciones registrados.</div>';
 
-  const forms = `
+  const formResolucion = `
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar resolución</div>
       <div class="kpi-s">Alta de días otorgados por resolución administrativa</div></div>
@@ -1966,8 +2004,9 @@ function pintarVacaciones(d){
       <button class="btn btn-main" onclick="guardarResolucion(this)">Registrar</button>
       </div>
     </div>
-  </div>
+  </div>`;
 
+  const formDias = `
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar días tomados</div>
       <div class="kpi-s">Se descuentan por FIFO de la resolución más antigua</div></div>
@@ -1992,7 +2031,7 @@ function pintarVacaciones(d){
 
   if(sinRes){
     return `<div class="panel"><div class="msg">
-      Sin resoluciones registradas para ${d.employee}. Regístralas abajo.</div></div>${forms}`;
+      Sin resoluciones registradas para ${d.employee}. Regístralas abajo.</div></div>${formResolucion}`;
   }
 
   return `
@@ -2005,6 +2044,8 @@ function pintarVacaciones(d){
     <div class="kpi"><div class="kpi-l">Días tomados</div><div class="kpi-v">${d.total_tomados}</div>
       <div class="kpi-s">períodos registrados</div></div>
   </div>
+
+  ${formDias}
 
   <div class="panel">
     <div class="panel-h">
@@ -2030,7 +2071,7 @@ function pintarVacaciones(d){
     <div class="panel-h"><div class="panel-t">Períodos tomados</div></div>
     <div>${periodos}</div>
   </div>
-  ${forms}`;
+  ${formResolucion}`;
 }
 
 /* ── Incidencias: ausencias, tardanzas, artículos ── */
@@ -2705,6 +2746,7 @@ async function entrarModoAdmin(){
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'PIN no reconocido.'); return; }
     window.ADMIN={ activo:true, nombre:d.nombre, pin:pin, rol:d.rol };
+    try{ localStorage.setItem('RH_ADMIN', JSON.stringify(window.ADMIN)); }catch(_){}
     document.getElementById('admin-nombre').textContent=d.nombre;
     document.getElementById('admin-quien').style.display='';
     document.getElementById('btn-admin').style.display='none';
@@ -2712,8 +2754,23 @@ async function entrarModoAdmin(){
 }
 function salirModoAdmin(){
   window.ADMIN={ activo:false, nombre:'', pin:'' };
+  try{ localStorage.removeItem('RH_ADMIN'); }catch(_){}
   document.getElementById('admin-quien').style.display='none';
   document.getElementById('btn-admin').style.display='';
+}
+// Restaura la sesión admin desde localStorage al cargar (sobrevive al refresco).
+function restaurarModoAdmin(){
+  try{
+    const raw=localStorage.getItem('RH_ADMIN');
+    if(!raw) return;
+    const a=JSON.parse(raw);
+    if(a&&a.activo&&a.pin){
+      window.ADMIN=a;
+      const el=document.getElementById('admin-nombre'); if(el) el.textContent=a.nombre||'';
+      const q=document.getElementById('admin-quien'); if(q) q.style.display='';
+      const b=document.getElementById('btn-admin'); if(b) b.style.display='none';
+    }
+  }catch(_){}
 }
 // Devuelve el PIN de la sesión admin, o pide activarla.
 /* ── Modal institucional reutilizable ── */
