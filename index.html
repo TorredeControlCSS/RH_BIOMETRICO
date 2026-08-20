@@ -1463,6 +1463,27 @@ function pintarTxt(d){
       <div class="fld" style="flex:0 0 auto"><label style="visibility:hidden">Acción</label>
         <button class="btn btn-main" style="height:38px" onclick="txtRegistrarUso(this)">Registrar uso</button></div>
     </div>
+    <div style="padding:0 18px 16px">
+      <div class="aviso">
+        El tiempo compensatorio se usa dentro de la jornada regular. Se consume
+        el saldo más antiguo vigente primero (como las vacaciones).
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfd4ee;font-size:11.5px">
+          <strong>Artículo 100 · Uso del tiempo compensatorio (RIP 2026):</strong>
+          «El tiempo compensatorio acumulado por el servidor público deberá ser
+          utilizado dentro de su jornada regular de trabajo, y durante el mismo
+          año fiscal en que se haya generado. De manera excepcional, únicamente
+          podrá trasladarse a la vigencia fiscal siguiente el tiempo extraordinario
+          acumulado durante el último trimestre del año fiscal; en estos casos,
+          deberá utilizarse dentro de los tres (3) primeros meses del nuevo año
+          fiscal. La postergación deberá estar debidamente justificada por el jefe
+          inmediato y contar con la autorización del superior jerárquico.»
+          <br><span style="color:var(--muted)">
+          El sistema aplica el consumo por antigüedad (FIFO). El vencimiento por
+          año fiscal aún no descuenta del saldo: durante esta etapa de implementación
+          se muestran los saldos reales (incluidos negativos) para el corte inicial.</span>
+        </div>
+      </div>
+    </div>
   </div>`;
 
   // Filas del libro
@@ -1893,13 +1914,6 @@ function pintarArt18(d){
                  style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
                         font-family:inherit;font-size:13.5px;width:110px">
         </div>
-        <div class="fld">
-          <label for="a18-pin">PIN de autorización</label>
-          <input type="password" id="a18-pin" placeholder="4 dígitos" maxlength="4"
-                 inputmode="numeric" autocomplete="off"
-                 style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;
-                        font-family:var(--mono);font-size:13.5px;width:120px;letter-spacing:3px">
-        </div>
         <div class="fld grow">
           <label for="a18-nota">Observación</label>
           <input type="text" id="a18-nota" placeholder="Opcional"
@@ -1917,10 +1931,9 @@ async function registrarArt18(btn){
   if(!EMP_ACTUAL) return;
   const fecha=document.getElementById('a18-fecha').value;
   const horas=document.getElementById('a18-horas').value;
-  const pin=document.getElementById('a18-pin').value||'';
+  const pin=adminPin(); if(!pin) return;
   const nota=document.getElementById('a18-nota').value||'';
   if(!fecha||!horas){ alert('Indica la fecha y las horas del permiso.'); return; }
-  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar el registro.'); return; }
 
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
@@ -1935,8 +1948,7 @@ async function registrarArt18(btn){
 }
 
 async function eliminarArt18(id){
-  const pin=await rhPedirPin('Eliminar permiso','Ingresa tu PIN para eliminar este permiso.');
-  if(!pin) return;
+  const pin=adminPin(); if(!pin) return;
   try{
     const url=`${GAS}?action=art18_eliminar&token=${TOKEN}&id=${encodeURIComponent(id)}`+
               `&employee=${encodeURIComponent(EMP_ACTUAL)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
@@ -2015,9 +2027,6 @@ function pintarVacaciones(d){
       <div class="fld grow"><label for="vr-nota">Observación</label>
         <input type="text" id="vr-nota" placeholder="Opcional"
           style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
-      <div class="fld"><label for="vr-pin">PIN</label>
-        <input type="password" id="vr-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
-          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
       <button class="btn btn-main" onclick="guardarResolucion(this)">Registrar</button>
       </div>
     </div>
@@ -2039,9 +2048,6 @@ function pintarVacaciones(d){
       <div class="fld grow"><label for="vu-nota">Observación</label>
         <input type="text" id="vu-nota" placeholder="Opcional"
           style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
-      <div class="fld"><label for="vu-pin">PIN</label>
-        <input type="password" id="vu-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
-          style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
       <button class="btn btn-main" onclick="registrarUsoVac(this)">Registrar</button>
     </div></div>
   </div>`;
@@ -2128,9 +2134,6 @@ function formIncidencia(){
         <div class="fld grow"><label for="ic-nota">Detalle</label>
           <input type="text" id="ic-nota" placeholder="Sustento o comentario"
             style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13.5px;width:100%"></div>
-        <div class="fld"><label for="ic-pin">PIN</label>
-          <input type="password" id="ic-pin" maxlength="4" placeholder="4 dígitos" inputmode="numeric" autocomplete="off"
-            style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:13.5px;width:110px;letter-spacing:3px"></div>
         <button class="btn btn-main" onclick="guardarIncidencia(this)">Registrar</button>
       </div>
     </div>
@@ -2203,8 +2206,7 @@ function pintarIncidencias(d){
 /* ── Escrituras: vacaciones e incidencias ── */
 
 async function eliminarResolucion(id){
-  const pin=await rhPedirPin('Eliminar resolución','Ingresa tu PIN para eliminar esta resolución.');
-  if(!pin) return;
+  const pin=adminPin(); if(!pin) return;
   try{
     const url=`${GAS}?action=vac_resolucion_eliminar&token=${TOKEN}`+
       `&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
@@ -2220,9 +2222,8 @@ async function guardarResolucion(btn){
   const anio=document.getElementById('vr-anio').value;
   const dias=document.getElementById('vr-dias').value;
   const nota=document.getElementById('vr-nota').value||'';
-  const pin=document.getElementById('vr-pin').value||'';
+  const pin=adminPin(); if(!pin) return;
   if(!num||!anio||!dias){ alert('Completa número de resolución, año y días.'); return; }
-  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const url=`${GAS}?action=vac_resolucion&token=${TOKEN}`+
@@ -2254,10 +2255,9 @@ async function registrarUsoVac(btn){
   const desde=document.getElementById('vu-desde').value;
   const hasta=document.getElementById('vu-hasta').value;
   const nota=document.getElementById('vu-nota').value||'';
-  const pin=document.getElementById('vu-pin').value||'';
+  const pin=adminPin(); if(!pin) return;
   const idRes=(document.getElementById('vu-res')||{}).value||'';
   if(!desde||!hasta){ alert('Indica el período de vacaciones.'); return; }
-  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const url=`${GAS}?action=vac_usar&token=${TOKEN}`+
@@ -2296,9 +2296,8 @@ async function guardarIncidencia(btn){
   const fecha=document.getElementById('ic-fecha').value;
   const tipo=document.getElementById('ic-tipo').value;
   const nota=document.getElementById('ic-nota').value||'';
-  const pin=document.getElementById('ic-pin').value||'';
+  const pin=adminPin(); if(!pin) return;
   if(!fecha||!tipo){ alert('Indica la fecha y el tipo.'); return; }
-  if(pin.length!==4){ alert('Ingresa tu PIN de 4 dígitos para autorizar.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     const desde=document.getElementById('f-desde').value;
@@ -2695,6 +2694,11 @@ function plContar(){
 }
 
 async function generarPlanillaLote(btn){
+  // La planilla contiene datos del personal: requiere estar en Modo administrativo.
+  if(!(window.ADMIN && window.ADMIN.activo)){
+    alert('Activa el "Modo administrativo" (arriba a la derecha) para generar planillas.');
+    return;
+  }
   const chks=[...document.querySelectorAll('.pl-chk:checked')];
   if(chks.length<1){ alert('Marca al menos 1 colaborador.'); return; }
   if(chks.length>5){ alert('Máximo 5 colaboradores.'); return; }
