@@ -2294,6 +2294,10 @@ function pintarIncidencias(d){
       Sin incidencias en el historial.</div></div>`;
   }
 
+  const capTipo=t=>{
+    const s=String(t||'').trim().toLowerCase();
+    return s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
+  };
   const colorTipo=t=>{
     const u=String(t).toUpperCase();
     if(u.includes('VACACION')) return '#1e7e34';           // vacaciones: verde (derecho)
@@ -2319,7 +2323,7 @@ function pintarIncidencias(d){
     return `
     <tr>
       <td class="num">${fFecha(x.fecha)}</td>
-      <td class="l"><span style="color:${colorTipo(x.tipo)};font-weight:600">${x.tipo}</span></td>
+      <td class="l"><span style="color:${colorTipo(x.tipo)};font-weight:600">${capTipo(x.tipo)}</span></td>
       <td class="l" style="font-size:12px">${limpiarDetalle(x.detalle)}</td>
       <td class="l" style="font-size:11.5px;color:var(--muted)">${x.origen||''}</td>
       <td style="text-align:center">${btnDes}</td>
