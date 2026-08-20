@@ -3062,22 +3062,35 @@ const TOUR_STEPS = [
   { sel:null, titulo:"Bienvenida al Panel de Recursos Humanos",
     texto:"Este panel le permite consultar y registrar la asistencia, la alimentación, el tiempo compensatorio, las vacaciones y las incidencias del personal. Le mostraremos cada sección en un minuto. Puede salir cuando quiera." },
   { sel:"#box-emp", titulo:"Primero, elija a la persona",
+    accion:()=>{ try{ setModo('uno'); }catch(_){} },
     texto:"Aquí selecciona al colaborador que desea consultar. Todo lo que vea abajo corresponde a esa persona." },
   { sel:"#chips", titulo:"El período de consulta",
     texto:"Estos botones cambian el ciclo (del día 16 al 15 del mes siguiente). Importante: el período solo afecta a la asistencia y a la alimentación. El tiempo compensatorio, las vacaciones y las incidencias muestran siempre todo el historial." },
   { sel:"#btn-admin", titulo:"Modo administrativo",
     texto:"Para registrar o corregir algo, active este modo con su PIN (los últimos 4 dígitos de su cédula). Se lo pide una sola vez; después puede trabajar sin volver a escribirlo." },
   { sel:"#s-asi", titulo:"Registro de asistencia",
+    accion:()=>{ try{ verSec('asi'); }catch(_){} },
     texto:"Muestra las marcaciones del reloj de cada día: entrada, salida, horas trabajadas y extra. Los colores señalan tardanzas, ausencias y turnos especiales. Puede descargarlo en PDF o Excel." },
   { sel:"#s-via", titulo:"Alimentación y transporte",
+    accion:()=>{ try{ verSec('via'); }catch(_){} },
     texto:"Calcula el reconocimiento de alimentación y transporte según los días trabajados fuera de horario. También lo descarga en PDF o Excel." },
   { sel:"#s-txt", titulo:"Tiempo compensatorio",
+    accion:()=>{ try{ verSec('txt'); }catch(_){} },
     texto:"El tiempo que la persona acumula por trabajar de más y luego usa. Se consume el saldo más antiguo primero. Aquí registra los usos y, en modo administrativo, ajusta cuánto va a pago." },
   { sel:"#s-vac", titulo:"Vacaciones",
+    accion:()=>{ try{ verSec('vac'); }catch(_){} },
     texto:"Registra las resoluciones que otorgan días y los períodos tomados. El sistema calcula solo los días disponibles, agotando primero la resolución más antigua." },
   { sel:"#s-inc", titulo:"Incidencias",
+    accion:()=>{ try{ verSec('inc'); }catch(_){} },
     texto:"El historial de tardanzas, ausencias y permisos. Cuando una ausencia coincide con vacaciones o un permiso, aparece justificada en verde y no cuenta como falta." },
+  { sel:"#m-area", titulo:"Vista por área",
+    accion:()=>{ try{ setModo('area'); }catch(_){} },
+    texto:"En lugar de una persona, consulta a todo un área a la vez (Medicamentos, Administración, etc.). Útil para ver el panorama del equipo completo." },
+  { sel:"#m-planilla", titulo:"Generar Planilla T.E.",
+    accion:()=>{ try{ setModo('planilla'); }catch(_){} },
+    texto:"Arma la planilla de tiempo extraordinario de hasta cinco colaboradores a la vez, lista para el trámite. Requiere estar en modo administrativo." },
   { sel:"#btn-pub", titulo:"Actualizar datos",
+    accion:()=>{ try{ setModo('uno'); }catch(_){} },
     texto:"Este botón recalcula todo desde el reloj biométrico. Solo hace falta usarlo cuando se cargan marcaciones nuevas del reloj. En el día a día no es necesario: cada madrugada el sistema se actualiza solo. Lo que usted registra (usos, vacaciones, incidencias) se ve al momento." }
 ];
 let _tourIdx = 0;
@@ -3105,6 +3118,16 @@ function iniciarTour(){
   }
   ov.style.display = 'block';
   window.addEventListener('resize', _tourReposicionar_);
+  // Para que el recorrido muestre las pestañas con contenido real, garantizar
+  // que haya un colaborador consultado. Si no lo hay, elegir el primero de la
+  // lista y consultarlo automáticamente.
+  try{
+    const se = document.getElementById('sel-emp');
+    if(se && !se.value){
+      const primera = Array.from(se.options).find(o=>o.value);
+      if(primera){ se.value = primera.value; if(typeof setModo==='function') setModo('uno'); consultar(); }
+    }
+  }catch(_){}
   pintarTourPaso_();
 }
 
@@ -3123,12 +3146,17 @@ function tourMover(d){
 
 function pintarTourPaso_(){
   const p = TOUR_STEPS[_tourIdx];
+  // Si el paso abre una sección (pestaña o modo), ejecutarla primero para que
+  // el contenido sea visible y el recuadro resalte algo real.
+  if(typeof p.accion === 'function'){ try{ p.accion(); }catch(_){} }
   document.getElementById('tourTitulo').textContent = p.titulo;
   document.getElementById('tourTexto').textContent = p.texto;
   document.getElementById('tourPaso').textContent = 'Paso '+(_tourIdx+1)+' de '+TOUR_STEPS.length;
   document.getElementById('tourPrev').style.visibility = _tourIdx===0 ? 'hidden' : 'visible';
   document.getElementById('tourNext').textContent = _tourIdx===TOUR_STEPS.length-1 ? 'Terminar' : 'Siguiente';
-  _tourReposicionar_();
+  // Pequeña espera para que la sección recién abierta termine de renderizar
+  // antes de calcular la posición del recuadro.
+  setTimeout(_tourReposicionar_, 60);
 }
 
 function _tourReposicionar_(){
