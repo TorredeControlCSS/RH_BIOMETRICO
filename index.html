@@ -710,9 +710,11 @@ function consultar(){
 async function cargarViaticosUno(emp,desde,hasta){
   const cont=document.getElementById('res-via');
 
-  // Se pide el archivo del ciclo consultado (instantáneo si está publicado)
+  // Solo usar el JSON publicado si es EXACTAMENTE del ciclo consultado. Para
+  // ciclos pasados (sin JSON propio) se va directo al GAS, que calcula fresco.
   const D=await cargarDatos(desde);
-  if(D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta){
+  const jsonSirve = D && D.ciclo && D.ciclo.from===desde && D.ciclo.to===hasta;
+  if(jsonSirve){
     const r=D.colaboradores[emp];
     cont.innerHTML = r ? pintarUno(r) : `<div class="panel">
       <div class="panel-h"><div class="panel-t">${emp}</div></div>
@@ -2094,8 +2096,10 @@ async function cargarIncidencias(emp,desde,hasta,fresco,silencioso){
   const cont=document.getElementById('res-inc');
   if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando incidencias…</div></div>';
   try{
+    // Incidencias es un LOG histórico: se piden TODAS, sin filtrar por el período
+    // de arriba (ese período solo aplica a asistencia y alimentación).
     const url=`${GAS}?action=incidencias&token=${TOKEN}&employee=${encodeURIComponent(emp)}`+
-              `&from=${desde}&to=${hasta}${fresco?'&nocache=1':''}&_=${Date.now()}`;
+              `${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar las incidencias.'}</div></div>`; return; }
     cont.innerHTML=pintarIncidencias(d);
@@ -2150,7 +2154,7 @@ function pintarIncidencias(d){
   const kpis=Object.keys(d.por_tipo||{}).slice(0,4).map(k=>`
     <div class="kpi"><div class="kpi-l">${k}</div>
       <div class="kpi-v" style="color:${colorTipo(k)}">${d.por_tipo[k]}</div>
-      <div class="kpi-s">en el período</div></div>`).join('');
+      <div class="kpi-s">en total</div></div>`).join('');
 
   const filas=items.map(x=>{
     const esAuto=/BIO|AUTO/i.test(String(x.origen||''));
@@ -2177,7 +2181,7 @@ function pintarIncidencias(d){
   <div class="panel">
     <div class="panel-h">
       <div><div class="panel-t">Registro de incidencias</div>
-        <div class="kpi-s">${d.employee} · del ${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
+        <div class="kpi-s">${d.employee} · historial completo (todas las fechas)</div></div>
     </div>
     <div style="padding:0">
       <table>
@@ -2303,7 +2307,10 @@ async function guardarIncidencia(btn){
       `&tipo=${encodeURIComponent(tipo)}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarIncidencias(EMP_ACTUAL,desde,hasta,true,true); avisarPublicar(); }
+    if(d&&d.ok){
+      // Incidencias es un log histórico: la nueva aparece siempre (no depende del período).
+      cargarIncidencias(EMP_ACTUAL,null,null,true,true); avisarPublicar();
+    }
     else{ alert((d&&d.error)||'No se pudo registrar la incidencia.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
