@@ -1402,13 +1402,6 @@ async function cargarTxt(emp, fresco, silencioso){
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo reconstruir el registro.'}</div></div>`; return; }
     window.__txtData = d;   // guardado para re-render local (toggle de modo sin refetch)
-    if(window.__diagTxt){
-      window.__diagTxt=false;
-      alert('DIAGNÓSTICO al leer el libro:\n\n'+
-        'Empleado (normalizado): '+(d._diag_empleado||'?')+'\n\n'+
-        'Ajustes encontrados en la hoja:\n'+(d._diag_ajustes||'{}')+'\n\n'+
-        'Claves de ciclos del biométrico:\n'+(d._diag_claves_ciclos||'?'));
-    }
     cont.innerHTML=pintarTxt(d);
   }catch(e){
     if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión. Intenta de nuevo.</div></div>';
@@ -1722,7 +1715,6 @@ async function txtGuardarAjustes(btn){
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+c.ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
-    window.__diagTxt=true;
     avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
