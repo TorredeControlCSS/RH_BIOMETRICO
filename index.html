@@ -1392,9 +1392,11 @@ async function imprimirAsistencia(btn){
 }
 
 /* ── Tiempo compensatorio: libro por ciclo ── */
-async function cargarTxt(emp, fresco){
+async function cargarTxt(emp, fresco, silencioso){
   const cont=document.getElementById('res-txt');
-  cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Reconstruyendo el registro desde el biométrico…</div></div>';
+  if(!silencioso){
+    cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Reconstruyendo el registro desde el biométrico…</div></div>';
+  }
   try{
     const url=`${GAS}?action=txt_libro&token=${TOKEN}&employee=${encodeURIComponent(emp)}${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
@@ -1402,7 +1404,7 @@ async function cargarTxt(emp, fresco){
     window.__txtData = d;   // guardado para re-render local (toggle de modo sin refetch)
     cont.innerHTML=pintarTxt(d);
   }catch(e){
-    cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión. Intenta de nuevo.</div></div>';
+    if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg err">Error de conexión. Intenta de nuevo.</div></div>';
   }
 }
 
@@ -1474,11 +1476,11 @@ function pintarTxt(d){
     const _hh = _hhmm[0]||'0', _mm = _hhmm[1]||'0';
     const tiempoCell = (editable && esCiclo)
       ? `<span style="display:inline-flex;align-items:center;gap:3px;justify-content:center">
-           <input type="number" min="0" class="num" value="${parseInt(_hh,10)}" title="Horas"
+           <input type="number" min="0" class="num" value="${parseInt(_hh,10)}" title="Horas" data-ciclo-h="${m.ciclo}"
              style="width:52px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5"
              onchange="txtSetTiempoHM('${m.ciclo}','h',this.value)">
            <span style="color:var(--muted);font-family:var(--mono)">:</span>
-           <input type="number" min="0" max="59" class="num" value="${parseInt(_mm,10)}" title="Minutos"
+           <input type="number" min="0" max="59" class="num" value="${parseInt(_mm,10)}" title="Minutos" data-ciclo-m="${m.ciclo}"
              style="width:52px;text-align:center;font-family:var(--mono);border:1px solid var(--blue);border-radius:5px;padding:5px 4px;background:#fffdf5"
              onchange="txtSetTiempoHM('${m.ciclo}','m',this.value)">
          </span>`
@@ -1665,7 +1667,7 @@ async function txtDeshacerAjuste(ciclo,btn){
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
     if(window.__txtAjustes) delete window.__txtAjustes[ciclo];
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtGuardarAjustes(btn){
@@ -1676,7 +1678,7 @@ async function txtGuardarAjustes(btn){
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
     for(const ciclo of claves){
-      const it=aj[ciclo];
+      const it=aj[ciclo]||{};
       // Leer el origen DIRECTO del desplegable (robusto: no depende de que el
       // onchange se haya disparado). Si no está en pantalla, preservar el original.
       let origen = it.origen;
@@ -1686,8 +1688,15 @@ async function txtGuardarAjustes(btn){
         const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
         origen = (orig && orig.origen) || 'LISTAS';
       }
-      // Tiempo: lo editado, o el original del período si solo se tocó el origen.
+      // Tiempo: leer DIRECTO de los inputs del DOM (robusto, no depende del onchange).
       let tiempo = it.tiempo;
+      const hEl = document.querySelector(`[data-ciclo-h="${ciclo}"]`);
+      const mEl = document.querySelector(`[data-ciclo-m="${ciclo}"]`);
+      if(hEl && mEl){
+        const h = Math.max(0, parseInt(hEl.value,10)||0);
+        const mm = Math.min(59, Math.max(0, parseInt(mEl.value,10)||0));
+        tiempo = String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+      }
       if(!tiempo){
         const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
         tiempo = (orig && orig.generado_hhmm) || '';
@@ -1700,7 +1709,7 @@ async function txtGuardarAjustes(btn){
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);   // aquí sí refetch: hubo cambios reales
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);   // aquí sí refetch: hubo cambios reales
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtRegistrarUso(btn){
@@ -1721,7 +1730,7 @@ async function txtRegistrarUso(btn){
       } else { btn.disabled=false; btn.textContent=t; return; }
     }
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo registrar el uso.'); btn.disabled=false; btn.textContent=t; return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtEliminarUso(seq,btn){
@@ -1733,7 +1742,7 @@ async function txtEliminarUso(seq,btn){
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&seq_num=${encodeURIComponent(seq)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo eliminar.'); return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
   }catch(e){ alert('Error de conexión.'); }
 }
 async function imprimirTxtExcel(btn){
@@ -1768,7 +1777,7 @@ async function txtGuardarPrevio(btn){
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
       `&justificacion=${encodeURIComponent(just)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL,true); }
+    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true); }
     else{ alert((d&&d.error)||'No se pudo guardar el saldo anterior.'); btn.disabled=false; btn.textContent=t; }
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
