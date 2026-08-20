@@ -1672,44 +1672,39 @@ async function txtDeshacerAjuste(ciclo,btn){
 }
 async function txtGuardarAjustes(btn){
   const pin=adminPin(); if(!pin) return;
-  const aj=window.__txtAjustes||{};
-  const claves=Object.keys(aj);
-  if(!claves.length){ window.__txtModo={activo:false,habilitado:false}; txtRerender(); return; }
+  // Recolectar los ajustes DIRECTAMENTE de los inputs en pantalla, sin depender
+  // de que el onchange se haya disparado. Se guarda un período solo si su tiempo
+  // u origen cambió respecto al valor original mostrado.
+  const cambios=[];
+  document.querySelectorAll('[data-ciclo-h]').forEach(function(hEl){
+    const ciclo=hEl.getAttribute('data-ciclo-h');
+    const mEl=document.querySelector(`[data-ciclo-m="${ciclo}"]`);
+    const selEl=document.querySelector(`[data-ciclo-origen="${ciclo}"]`);
+    const h=Math.max(0, parseInt(hEl.value,10)||0);
+    const mm=Math.min(59, Math.max(0, parseInt(mEl?mEl.value:0,10)||0));
+    const tiempo=String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+    const origen=selEl?selEl.value:'BIO';
+    // Valor original de este período (para saber si cambió).
+    const orig=(window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
+    const tiempoOrig=(orig && orig.generado_hhmm)||'00:00';
+    const origenOrig=(orig && orig.origen)||'BIO';
+    if(tiempo!==tiempoOrig || origen!==origenOrig){
+      cambios.push({ciclo,tiempo,origen});
+    }
+  });
+  if(!cambios.length){ window.__txtModo={activo:false,habilitado:false}; window.__txtAjustes={}; txtRerender(); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
-    for(const ciclo of claves){
-      const it=aj[ciclo]||{};
-      // Leer el origen DIRECTO del desplegable (robusto: no depende de que el
-      // onchange se haya disparado). Si no está en pantalla, preservar el original.
-      let origen = it.origen;
-      const selEl = document.querySelector(`[data-ciclo-origen="${ciclo}"]`);
-      if(selEl) origen = selEl.value;
-      if(!origen){
-        const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
-        origen = (orig && orig.origen) || 'LISTAS';
-      }
-      // Tiempo: leer DIRECTO de los inputs del DOM (robusto, no depende del onchange).
-      let tiempo = it.tiempo;
-      const hEl = document.querySelector(`[data-ciclo-h="${ciclo}"]`);
-      const mEl = document.querySelector(`[data-ciclo-m="${ciclo}"]`);
-      if(hEl && mEl){
-        const h = Math.max(0, parseInt(hEl.value,10)||0);
-        const mm = Math.min(59, Math.max(0, parseInt(mEl.value,10)||0));
-        tiempo = String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
-      }
-      if(!tiempo){
-        const orig = (window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
-        tiempo = (orig && orig.generado_hhmm) || '';
-      }
+    for(const c of cambios){
       const url=`${GAS}?action=txt_ajuste_guardar&token=${TOKEN}`
-        +`&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(ciclo)}`
-        +`&tiempo=${encodeURIComponent(tiempo)}&origen=${encodeURIComponent(origen)}`
+        +`&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(c.ciclo)}`
+        +`&tiempo=${encodeURIComponent(c.tiempo)}&origen=${encodeURIComponent(c.origen)}`
         +`&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
       const r=await fetch(url); const d=await r.json();
-      if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
+      if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+c.ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);   // aquí sí refetch: hubo cambios reales
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtRegistrarUso(btn){
