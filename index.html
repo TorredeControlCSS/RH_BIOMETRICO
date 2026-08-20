@@ -1469,7 +1469,7 @@ function exportarAsistenciaExcel(){
     const obs = [x.incidencia||'', x.nota||''].filter(s=>String(s).trim()).join(' · ');
     return `<tr>
       <td>${esc(x.fecha)}</td><td>${esc(x.dia)}</td>
-      <td>${esc(x.entrada)}</td><td>${esc(x.salida)}</td>
+      <td>${esc(fHora(x.entrada))}</td><td>${esc(fHora(x.salida))}</td>
       <td>${esc(x.horas_trabajadas||'')}</td><td>${esc(x.horas_extra||'')}</td>
       <td>${esc(obs)}</td></tr>`;
   }).join('');
@@ -1487,7 +1487,7 @@ function exportarViaticosExcel(){
   const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const filas = d.dias.map(x=>`<tr>
       <td>${esc(fFecha(x.fecha))}</td><td>${esc(diaCortoFront(x.fecha))}</td>
-      <td>${esc(x.entrada)}</td><td>${esc(x.salida)}</td>
+      <td>${esc(fHora(x.entrada))}</td><td>${esc(fHora(x.salida))}</td>
       <td>${Number(x.alimentacion).toFixed(2)}</td>
       <td>${Number(x.transporte).toFixed(2)}</td>
       <td>${Number(x.total_dia).toFixed(2)}</td></tr>`).join('') +
