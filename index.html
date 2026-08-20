@@ -1561,7 +1561,9 @@ function pintarTxt(d){
     <div class="aviso">
       Cada período muestra el <b>tiempo generado</b> a partir de los registros. Si tu
       <b>lista de asistencia física</b> indica un valor distinto, entra en <b>“Ajustar períodos”</b>
-      y corrígelo. El <b>tomado</b> se llena solo con los usos registrados arriba.
+      y corrígelo. El tiempo usado se descuenta del <b>período más antiguo con saldo</b> (primero en
+      entrar, primero en salir), igual que las vacaciones: por eso el <b>tomado</b> y el
+      <b>planificado</b> aparecen en los períodos viejos, no en la fecha en que se usó.
     </div>
     <div style="padding:0">${cuerpoLibro}</div>
   </div>
@@ -1597,7 +1599,7 @@ function pintarTxt(d){
         <button class="btn btn-main" onclick="imprimirTxt(this)">Comprobante para el colaborador</button>
       </div></div>
     <div style="padding:0"><table>
-      <thead><tr><th>Fecha de uso</th><th>Horas</th><th>Estado</th><th style="text-align:left">Aplicado al período</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
+      <thead><tr><th>Fecha de uso</th><th>Horas</th><th>Estado</th><th style="text-align:left">Período de la fecha</th><th style="text-align:left">Nota</th><th style="text-align:left">Registró</th><th></th></tr></thead>
       <tbody>${filasUsos}</tbody>
     </table></div>
   </div>`;
