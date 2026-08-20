@@ -2146,7 +2146,8 @@ function pintarIncidencias(d){
 
   const colorTipo=t=>{
     const u=String(t).toUpperCase();
-    if(u.includes('AUSEN')) return 'var(--bad)';
+    if(u.includes('JUSTIFIC')) return '#1e7e34';   // ausencia justificada: verde
+    if(u.includes('AUSEN')) return 'var(--bad)';    // falta real: rojo
     if(u.includes('TARDAN')) return 'var(--warn)';
     return 'var(--blue)';
   };
