@@ -1317,6 +1317,7 @@ async function cargarRegistroAsistencia(emp,desde,hasta){
 }
 
 function pintarRegistroAsistencia(d){
+  window.__asistData = d;   // guardado para exportar a Excel
   const dias=d.dias||[];
   const c=d.colaborador||{};
   const t=d.totales||{};
@@ -1367,6 +1368,7 @@ function pintarRegistroAsistencia(d){
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
       <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
+      <button class="btn" onclick="exportarAsistenciaExcel()">Generar Excel</button>
     </div>
     <div style="padding:0">
       <table>
@@ -1382,6 +1384,44 @@ function pintarRegistroAsistencia(d){
     <span style="display:inline-block;width:11px;height:11px;background:#fef3c7;
       border:1px solid var(--line);vertical-align:-1px;margin:0 5px 0 10px"></span>Tardanza
   </div>`;
+}
+
+// Exporta la tabla de asistencia que ya se ve en pantalla a un archivo Excel
+// editable, generado en el navegador (instantáneo, sin tocar el backend). Útil
+// para que la secretaria corrija registros biométricos inconsistentes.
+function exportarAsistenciaExcel(){
+  const d = window.__asistData;
+  if(!d || !d.dias || !d.dias.length){ alert('No hay datos de asistencia para exportar.'); return; }
+  const c = d.colaborador || {};
+  const per = d.periodo || {};
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const filas = d.dias.map(x=>{
+    const obs = [x.incidencia||'', x.nota||''].filter(s=>String(s).trim()).join(' · ');
+    return `<tr>
+      <td>${esc(x.fecha)}</td><td>${esc(x.dia)}</td>
+      <td>${esc(x.entrada)}</td><td>${esc(x.salida)}</td>
+      <td>${esc(x.horas_trabajadas||'')}</td><td>${esc(x.horas_extra||'')}</td>
+      <td>${esc(obs)}</td></tr>`;
+  }).join('');
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+  <head><meta charset="UTF-8"></head><body>
+  <table border="1">
+    <tr><td colspan="7"><b>Registro de asistencia — ${esc(c.nombre||'')}</b></td></tr>
+    <tr><td colspan="7">${esc(c.cedula||'')} · ${esc(c.cargo||'')} · ${esc(c.area||'')}</td></tr>
+    <tr><td colspan="7">Período: ${esc(per.desde||'')} al ${esc(per.hasta||'')}</td></tr>
+    <tr></tr>
+    <tr style="background:#0C447C;color:#fff;font-weight:bold">
+      <td>Fecha</td><td>Día</td><td>Entrada</td><td>Salida</td>
+      <td>Trabajadas</td><td>Extra</td><td>Observación</td></tr>
+    ${filas}
+  </table></body></html>`;
+  const blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const nombre = (c.nombre||'asistencia').replace(/[^\w]+/g,'_');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Asistencia_${nombre}_${(per.desde||'').slice(0,10)}.xls`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
 async function imprimirAsistencia(btn){
@@ -2182,6 +2222,7 @@ function pintarIncidencias(d){
     if(u.includes('COMPENSATORIO')) return '#1e7e34';      // tiempo compensatorio: verde
     if(u.includes('PERMISO')) return '#1e7e34';            // permiso Art.18: verde
     if(u.includes('JUSTIFIC')) return '#1e7e34';           // ausencia justificada: verde
+    if(u.includes('MARCA INCOMPLETA')) return '#B8860B';   // aviso para auditar: ámbar
     if(u.includes('AUSEN')) return 'var(--bad)';           // falta real: rojo
     if(u.includes('TARDAN')) return 'var(--warn)';
     return 'var(--blue)';
@@ -2220,6 +2261,7 @@ function pintarIncidencias(d){
     <div class="panel-h">
       <div><div class="panel-t">Registro de incidencias</div>
         <div class="kpi-s">${d.employee} · historial completo (todas las fechas)</div></div>
+      <button class="btn" style="padding:6px 12px;font-size:12.5px" title="Vuelve a leer las incidencias con los datos más recientes (vacaciones, permisos, etc.)" onclick="cargarIncidencias(EMP_ACTUAL,null,null,true,false)">↻ Recargar</button>
     </div>
     <div style="padding:0">
       <table>
