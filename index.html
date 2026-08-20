@@ -1692,8 +1692,20 @@ async function txtGuardarAjustes(btn){
       cambios.push({ciclo,tiempo,origen});
     }
   });
-  if(!cambios.length){ window.__txtModo={activo:false,habilitado:false}; window.__txtAjustes={}; txtRerender(); return; }
+  if(!cambios.length){
+    // Diagnóstico: mostrar qué se leyó de los inputs para entender por qué no detectó cambios.
+    let diag='No se detectaron cambios. Lo que leí de la pantalla:\n\n';
+    document.querySelectorAll('[data-ciclo-h]').forEach(function(hEl){
+      const ciclo=hEl.getAttribute('data-ciclo-h');
+      const mEl=document.querySelector(`[data-ciclo-m="${ciclo}"]`);
+      const orig=(window.__txtData && window.__txtData.movimientos || []).find(m=>m.ciclo===ciclo);
+      diag+=`${(orig&&orig.periodo)||ciclo}: pantalla=${hEl.value}:${mEl?mEl.value:'?'} | original=${(orig&&orig.generado_hhmm)||'?'}\n`;
+    });
+    alert(diag);
+    window.__txtModo={activo:false,habilitado:false}; window.__txtAjustes={}; txtRerender(); return;
+  }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  alert('Voy a guardar:\n\n'+cambios.map(function(c){return c.ciclo+'\n  tiempo='+c.tiempo+'  origen='+c.origen;}).join('\n\n'));
   try{
     for(const c of cambios){
       const url=`${GAS}?action=txt_ajuste_guardar&token=${TOKEN}`
@@ -1702,6 +1714,7 @@ async function txtGuardarAjustes(btn){
         +`&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
       const r=await fetch(url); const d=await r.json();
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+c.ciclo); btn.disabled=false; btn.textContent=t; return; }
+      alert('El backend confirmó:\n\nperíodo='+d.ciclo+'\ntiempo guardado='+d.tiempo+'\norigen='+d.origen);
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
     avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
