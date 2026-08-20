@@ -741,6 +741,7 @@ async function cargarViaticosUno(emp,desde,hasta){
 }
 
 function pintarUno(d){
+  window.__viaticosData = d;   // guardado para exportar a Excel
   const c=d.colaborador||{};
   if(!d.dias||!d.dias.length){
     return `<div class="panel">
@@ -778,7 +779,10 @@ function pintarUno(d){
       <div><div class="panel-t">${c.nombre||''}</div>
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
-      <button class="btn btn-main" onclick="generarPdf(this)">Generar PDF</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-main" onclick="generarPdf(this)">Generar PDF</button>
+        <button class="btn" onclick="exportarViaticosExcel()">Generar Excel</button>
+      </div>
     </div>
     <div style="padding:0">
       <table>
@@ -1373,8 +1377,10 @@ function pintarRegistroAsistencia(d){
       <div><div class="panel-t">${c.nombre||''}</div>
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
-      <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
-      <button class="btn" onclick="exportarAsistenciaExcel()">Generar Excel</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
+        <button class="btn" onclick="exportarAsistenciaExcel()">Generar Excel</button>
+      </div>
     </div>
     <div style="padding:0">
       <table>
@@ -1392,14 +1398,50 @@ function pintarRegistroAsistencia(d){
   </div>`;
 }
 
-// Exporta la tabla de asistencia que ya se ve en pantalla a un archivo Excel
-// editable, generado en el navegador (instantáneo, sin tocar el backend). Útil
-// para que la secretaria corrija registros biométricos inconsistentes.
+// URL absoluta del logo institucional (para documentos que se abren fuera del sitio).
+const LOGO_XLS_URL = 'https://raw.githubusercontent.com/TorredeControlCSS/REPOSICION_UE_CSS/main/icons/icon-192.png';
+
+// Construye un archivo .xls (HTML que Excel abre) con cabecera institucional y logo.
+function _construirXls_(titulo, c, per, encabezados, filasHtml){
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const n = encabezados.length;
+  const ths = encabezados.map(h=>`<td>${esc(h)}</td>`).join('');
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+  <head><meta charset="UTF-8"></head><body>
+  <table border="0">
+    <tr>
+      <td rowspan="3" style="width:60px"><img src="${LOGO_XLS_URL}" width="48" height="48"></td>
+      <td colspan="${n-1}" style="font-size:14px;font-weight:bold;color:#0C447C">Recursos Humanos · Dirección Nacional de Logística</td></tr>
+    <tr><td colspan="${n-1}" style="color:#555">CEDIS Panamá</td></tr>
+    <tr><td colspan="${n-1}" style="font-weight:bold">${esc(titulo)}</td></tr>
+  </table>
+  <table border="0">
+    <tr><td><b>${esc(c.nombre||'')}</b></td></tr>
+    <tr><td>${esc(c.cedula||'')} · ${esc(c.cargo||'')} · ${esc(c.area||'')}</td></tr>
+    <tr><td>Período: ${esc(per.desde||'')} al ${esc(per.hasta||'')}</td></tr>
+  </table>
+  <table border="1">
+    <tr style="background:#0C447C;color:#fff;font-weight:bold">${ths}</tr>
+    ${filasHtml}
+  </table></body></html>`;
+  return html;
+}
+
+function _descargarXls_(html, nombreArchivo){
+  const blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombreArchivo;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+// Exporta la tabla de asistencia que ya se ve en pantalla a un Excel editable
+// (instantáneo, sin backend). Útil para corregir registros biométricos inconsistentes.
 function exportarAsistenciaExcel(){
   const d = window.__asistData;
   if(!d || !d.dias || !d.dias.length){ alert('No hay datos de asistencia para exportar.'); return; }
-  const c = d.colaborador || {};
-  const per = d.periodo || {};
+  const c = d.colaborador || {}, per = d.periodo || {};
   const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const filas = d.dias.map(x=>{
     const obs = [x.incidencia||'', x.nota||''].filter(s=>String(s).trim()).join(' · ');
@@ -1409,25 +1451,33 @@ function exportarAsistenciaExcel(){
       <td>${esc(x.horas_trabajadas||'')}</td><td>${esc(x.horas_extra||'')}</td>
       <td>${esc(obs)}</td></tr>`;
   }).join('');
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
-  <head><meta charset="UTF-8"></head><body>
-  <table border="1">
-    <tr><td colspan="7"><b>Registro de asistencia — ${esc(c.nombre||'')}</b></td></tr>
-    <tr><td colspan="7">${esc(c.cedula||'')} · ${esc(c.cargo||'')} · ${esc(c.area||'')}</td></tr>
-    <tr><td colspan="7">Período: ${esc(per.desde||'')} al ${esc(per.hasta||'')}</td></tr>
-    <tr></tr>
-    <tr style="background:#0C447C;color:#fff;font-weight:bold">
-      <td>Fecha</td><td>Día</td><td>Entrada</td><td>Salida</td>
-      <td>Trabajadas</td><td>Extra</td><td>Observación</td></tr>
-    ${filas}
-  </table></body></html>`;
-  const blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const html = _construirXls_('Registro de asistencia', c, per,
+    ['Fecha','Día','Entrada','Salida','Trabajadas','Extra','Observación'], filas);
   const nombre = (c.nombre||'asistencia').replace(/[^\w]+/g,'_');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `Asistencia_${nombre}_${(per.desde||'').slice(0,10)}.xls`;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  _descargarXls_(html, `Asistencia_${nombre}_${(per.desde||'').slice(0,10)}.xls`);
+}
+
+// Exporta la tabla de alimentación y transporte a un Excel editable.
+function exportarViaticosExcel(){
+  const d = window.__viaticosData;
+  if(!d || !d.dias || !d.dias.length){ alert('No hay datos de alimentación para exportar.'); return; }
+  const c = d.colaborador || {}, per = d.periodo || {};
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const filas = d.dias.map(x=>`<tr>
+      <td>${esc(fFecha(x.fecha))}</td><td>${esc(diaCortoFront(x.fecha))}</td>
+      <td>${esc(x.entrada)}</td><td>${esc(x.salida)}</td>
+      <td>${Number(x.alimentacion).toFixed(2)}</td>
+      <td>${Number(x.transporte).toFixed(2)}</td>
+      <td>${Number(x.total_dia).toFixed(2)}</td></tr>`).join('') +
+    `<tr style="font-weight:bold;background:#eef3f9">
+      <td colspan="4">Subtotales</td>
+      <td>${Number(d.subtotales.alimentacion).toFixed(2)}</td>
+      <td>${Number(d.subtotales.transporte).toFixed(2)}</td>
+      <td>${Number(d.total).toFixed(2)}</td></tr>`;
+  const html = _construirXls_('Alimentación y transporte', c, per,
+    ['Fecha','Día','Entrada','Salida','Alimentación','Transporte','Total'], filas);
+  const nombre = (c.nombre||'alimentacion').replace(/[^\w]+/g,'_');
+  _descargarXls_(html, `Alimentacion_${nombre}_${(per.desde||'').slice(0,10)}.xls`);
 }
 
 async function imprimirAsistencia(btn){
