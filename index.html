@@ -1667,7 +1667,7 @@ async function txtDeshacerAjuste(ciclo,btn){
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
     if(window.__txtAjustes) delete window.__txtAjustes[ciclo];
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtGuardarAjustes(btn){
@@ -1709,7 +1709,7 @@ async function txtGuardarAjustes(btn){
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);   // aquí sí refetch: hubo cambios reales
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);   // aquí sí refetch: hubo cambios reales
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtRegistrarUso(btn){
@@ -1730,7 +1730,7 @@ async function txtRegistrarUso(btn){
       } else { btn.disabled=false; btn.textContent=t; return; }
     }
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo registrar el uso.'); btn.disabled=false; btn.textContent=t; return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtEliminarUso(seq,btn){
@@ -1742,7 +1742,7 @@ async function txtEliminarUso(seq,btn){
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&seq_num=${encodeURIComponent(seq)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo eliminar.'); return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true);
   }catch(e){ alert('Error de conexión.'); }
 }
 async function imprimirTxtExcel(btn){
@@ -1777,7 +1777,7 @@ async function txtGuardarPrevio(btn){
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
       `&justificacion=${encodeURIComponent(just)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL,true,true); }
+    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL,false,true); }
     else{ alert((d&&d.error)||'No se pudo guardar el saldo anterior.'); btn.disabled=false; btn.textContent=t; }
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
