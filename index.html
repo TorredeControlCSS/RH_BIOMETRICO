@@ -1518,10 +1518,17 @@ function pintarTxt(d){
     const accionCell = (editable && esCiclo && m.ajustado)
       ? `<button class="btn" style="padding:3px 9px;font-size:12px" title="Volver este período al valor del biométrico" onclick="txtDeshacerAjuste('${m.ciclo}',this)">Deshacer</button>`
       : '';
+    const capCell = (editable && esCiclo)
+      ? `<input type="number" min="0" step="0.5" value="${m.cap_pago!=null?m.cap_pago:''}" placeholder="40"
+           data-ciclo-cap="${m.ciclo}" title="Horas de este ciclo que van a pago; el resto va a tiempo compensatorio. Vacío = automático (40 h)."
+           style="width:64px;text-align:center;font-family:var(--mono);border:1px solid ${m.cap_pago!=null?'#BA7517':'var(--line)'};border-radius:6px;padding:5px 4px;background:${m.cap_pago!=null?'#FAEEDA':'#fff'}"
+           onchange="txtGuardarCap('${m.ciclo}',this.value,this)">`
+      : '';
     return `
     <tr class="${m.tipo==='APERTURA'?'apertura':''}" data-ciclo="${m.ciclo||''}">
       <td class="l">${m.periodo||''}</td>
       <td class="num">${tiempoCell}</td>
+      ${editable?`<td class="num">${capCell}</td>`:''}
       <td class="num" style="color:${m.tomado_hhmm?'#1e7e34':'#bbb'};font-weight:${m.tomado_hhmm?'700':'400'}">${m.tomado_hhmm||'—'}</td>
       <td class="num" style="color:${m.planificado_hhmm?'#b8860b':'#bbb'};font-weight:${m.planificado_hhmm?'700':'400'}">${m.planificado_hhmm||'—'}</td>
       <td class="num"><strong style="color:${m.acumulado_negativo?'#c0392b':'inherit'}">${m.acumulado_hhmm||''}</strong></td>
@@ -1535,6 +1542,7 @@ function pintarTxt(d){
         <thead><tr>
           <th style="text-align:left">Período</th>
           <th>Tiempo generado</th>
+          ${editable?'<th title="Horas de este ciclo que van a pago; el resto va a tiempo compensatorio. Vacío = automático (40 h).">Tope pago</th>':''}
           <th title="Tiempo ya usado (fecha pasada)">Tomado</th>
           <th title="Tiempo pedido por anticipado (fecha futura)">Planificado</th>
           <th>Acumulado</th>
@@ -1680,6 +1688,27 @@ function txtSetTiempoHM(ciclo,cual,val){
   aj.tiempo = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
 }
 function txtSetOrigen(ciclo,val){ (window.__txtAjustes[ciclo]=window.__txtAjustes[ciclo]||{}).origen=val; }
+async function txtGuardarCap(ciclo,valor,inp){
+  const pin=adminPin(); if(!pin) return;
+  const horas=String(valor||'').trim();   // vacío = restablecer a automático
+  try{
+    const url=`${GAS}?action=txt_cap_guardar&token=${TOKEN}`+
+      `&employee=${encodeURIComponent(EMP_ACTUAL)}&ciclo=${encodeURIComponent(ciclo)}`+
+      `&horas=${encodeURIComponent(horas)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d&&d.ok){
+      // Reflejar visualmente si quedó partido (ámbar) o automático (normal).
+      if(inp){
+        const partido = horas!=='';
+        inp.style.borderColor = partido?'#BA7517':'var(--line)';
+        inp.style.background = partido?'#FAEEDA':'#fff';
+      }
+      // Recalcular el libro (fresco) para ver el nuevo T.C. del ciclo.
+      cargarTxt(EMP_ACTUAL,true,true); avisarPublicar();
+    } else { alert((d&&d.error)||'No se pudo guardar la partición.'); }
+  }catch(e){ alert('Error de conexión.'); }
+}
+
 async function txtDeshacerAjuste(ciclo,btn){
   const pin=adminPin(); if(!pin) return;
   if(!confirm('¿Deshacer el ajuste de este período? Volverá al valor del biométrico.')) return;
@@ -2143,14 +2172,17 @@ function formIncidencia(){
 function pintarIncidencias(d){
   const items=d.incidencias||[];
   if(!items.length){
-    return `<div class="panel"><div class="msg">
-      Sin incidencias en el período seleccionado.</div></div>${formIncidencia()}`;
+    return `${formIncidencia()}<div class="panel"><div class="msg">
+      Sin incidencias en el historial.</div></div>`;
   }
 
   const colorTipo=t=>{
     const u=String(t).toUpperCase();
-    if(u.includes('JUSTIFIC')) return '#1e7e34';   // ausencia justificada: verde
-    if(u.includes('AUSEN')) return 'var(--bad)';    // falta real: rojo
+    if(u.includes('VACACION')) return '#1e7e34';           // vacaciones: verde (derecho)
+    if(u.includes('COMPENSATORIO')) return '#1e7e34';      // tiempo compensatorio: verde
+    if(u.includes('PERMISO')) return '#1e7e34';            // permiso Art.18: verde
+    if(u.includes('JUSTIFIC')) return '#1e7e34';           // ausencia justificada: verde
+    if(u.includes('AUSEN')) return 'var(--bad)';           // falta real: rojo
     if(u.includes('TARDAN')) return 'var(--warn)';
     return 'var(--blue)';
   };
@@ -2182,6 +2214,8 @@ function pintarIncidencias(d){
     ${kpis}
   </div>
 
+  ${formIncidencia()}
+
   <div class="panel">
     <div class="panel-h">
       <div><div class="panel-t">Registro de incidencias</div>
@@ -2198,8 +2232,7 @@ function pintarIncidencias(d){
   <div class="kpi-s" style="padding:0 4px 14px">
     Las tardanzas provienen del reloj biométrico; las ausencias y permisos, de la app
     del colaborador o del registro de RH.
-  </div>
-  ${formIncidencia()}`;
+  </div>`;
 }
 
 
