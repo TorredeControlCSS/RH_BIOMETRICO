@@ -1502,6 +1502,28 @@ function exportarViaticosExcel(){
   _descargarXls_(html, `Alimentacion_${nombre}_${(per.desde||'').slice(0,10)}.xls`);
 }
 
+// Exporta el historial de incidencias que ya se ve en pantalla a un Excel
+// editable con logo (instantáneo, sin backend).
+function exportarIncidenciasExcel(){
+  const d = window.__incData;
+  if(!d || !d.incidencias || !d.incidencias.length){ alert('No hay incidencias para exportar.'); return; }
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cap = t => { const s=String(t||'').trim().toLowerCase(); return s? s.charAt(0).toUpperCase()+s.slice(1):''; };
+  const filas = d.incidencias.map(x=>`<tr>
+      <td>${esc(x.fecha)}</td>
+      <td>${esc(cap(x.tipo))}</td>
+      <td>${esc(x.detalle||'')}</td>
+      <td>${esc(x.origen||'')}</td></tr>`).join('');
+  // Reusa el mismo constructor con cabecera institucional. Incidencias es
+  // histórico: se usa el nombre del colaborador y no un período de ciclo.
+  const c = { nombre:d.employee||'', cedula:'', cargo:'', area:'' };
+  const per = { desde:'Historial 2026 en adelante', hasta:'' };
+  const html = _construirXls_('Registro de incidencias', c, per,
+    ['Fecha','Tipo','Detalle','Origen'], filas);
+  const nombre = (d.employee||'incidencias').replace(/[^\w]+/g,'_');
+  _descargarXls_(html, `Incidencias_${nombre}.xls`);
+}
+
 async function imprimirAsistencia(btn){
   if(!ULTIMA||ULTIMA.modo!=='uno') return;
   const t=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
@@ -2288,6 +2310,7 @@ function formIncidencia(){
 }
 
 function pintarIncidencias(d){
+  window.__incData = d;   // guardado para exportar a Excel
   const items=d.incidencias||[];
   if(!items.length){
     return `${formIncidencia()}<div class="panel"><div class="msg">
@@ -2301,6 +2324,7 @@ function pintarIncidencias(d){
   const colorTipo=t=>{
     const u=String(t).toUpperCase();
     if(u.includes('VACACION')) return '#1e7e34';           // vacaciones: verde (derecho)
+    if(u.includes('COMISI')||u.includes('VIAJE')) return '#1e7e34';  // en comisión: verde (trabajando)
     if(u.includes('COMPENSATORIO')) return '#1e7e34';      // tiempo compensatorio: verde
     if(u.includes('PERMISO')) return '#1e7e34';            // permiso Art.18: verde
     if(u.includes('JUSTIFIC')) return '#1e7e34';           // ausencia justificada: verde
@@ -2344,6 +2368,7 @@ function pintarIncidencias(d){
       <div><div class="panel-t">Registro de incidencias</div>
         <div class="kpi-s">${d.employee} · historial completo (todas las fechas)</div></div>
       <button class="btn" style="padding:6px 12px;font-size:12.5px" title="Vuelve a leer las incidencias con los datos más recientes (vacaciones, permisos, etc.)" onclick="cargarIncidencias(EMP_ACTUAL,null,null,true,false)">↻ Recargar</button>
+      <button class="btn" style="padding:6px 12px;font-size:12.5px" onclick="exportarIncidenciasExcel()">Generar Excel</button>
     </div>
     <div style="padding:0">
       <table>
