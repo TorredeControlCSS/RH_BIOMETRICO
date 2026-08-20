@@ -145,6 +145,24 @@ tfoot td{background:#f7f9fc;font-weight:700}
 .area-chip .ac-v{font-family:Consolas,monospace;color:#0B1F3A;font-weight:600}
 .area-chip .ac-s{font-size:10px;color:#889;min-width:34px;text-align:right}
 @media(max-width:760px){.graf-wrap{grid-template-columns:1fr}}
+/* ===== Tutorial guiado (tour) ===== */
+#tourOverlay{position:fixed;inset:0;z-index:4000;display:none}
+#tourBackdrop{position:absolute;inset:0}
+.tour-spot{position:absolute;border:3px solid #0C447C;border-radius:6px;
+  box-shadow:0 0 0 3px rgba(255,255,255,.7),0 0 0 9999px rgba(15,25,40,.55);
+  transition:all .25s ease;pointer-events:none;z-index:4001}
+#tourBox{position:absolute;z-index:4002;background:#fff;border:1px solid #a8a8a8;
+  border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:16px 18px;
+  width:min(360px,92vw);box-sizing:border-box}
+#tourTitulo{font-size:16px;font-weight:700;color:#0C447C;margin-bottom:8px;font-family:Cambria,Georgia,serif}
+#tourTexto{font-size:13.5px;line-height:1.55;color:#333;font-family:Calibri,Segoe UI,sans-serif}
+#tourNav{display:flex;align-items:center;gap:8px;margin-top:14px}
+#tourPaso{font-size:12px;color:#6b7280;margin-right:auto}
+#tourNav button{font-size:13px;padding:7px 13px;border:1px solid #a8a8a8;border-radius:6px;background:#ececec;cursor:pointer;font-family:Calibri,Segoe UI,sans-serif}
+#tourSalir{background:#fff}
+#tourNext{background:#0C447C !important;color:#fff;font-weight:700;border-color:#0C447C !important;padding:8px 16px !important}
+#btnTour{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);
+  border-radius:6px;padding:7px 12px;cursor:pointer;font-family:Calibri,Segoe UI,sans-serif;font-size:12.5px;font-weight:700}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -176,6 +194,7 @@ tfoot td{background:#f7f9fc;font-weight:700}
       style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
              padding:7px 14px;font-size:12.5px"
       title="Recalcula y republica los datos del dashboard">Actualizar datos</button>
+    <button id="btnTour" onclick="iniciarTour()" title="Ver una guía rápida del panel">Guía</button>
     <div class="top-r" id="reloj"></div>
   </div>
 </div>
@@ -3030,6 +3049,106 @@ document.addEventListener('keydown', function(ev){
   }
   if(btn) btn.click();
 });
+
+/* ===== Tutorial guiado (tour) ===== */
+const TOUR_STEPS = [
+  { sel:null, titulo:"Bienvenida al Panel de Recursos Humanos",
+    texto:"Este panel le permite consultar y registrar la asistencia, la alimentación, el tiempo compensatorio, las vacaciones y las incidencias del personal. Le mostraremos cada sección en un minuto. Puede salir cuando quiera." },
+  { sel:"#box-emp", titulo:"Primero, elija a la persona",
+    texto:"Aquí selecciona al colaborador que desea consultar. Todo lo que vea abajo corresponde a esa persona." },
+  { sel:"#chips", titulo:"El período de consulta",
+    texto:"Estos botones cambian el ciclo (del día 16 al 15 del mes siguiente). Importante: el período solo afecta a la asistencia y a la alimentación. El tiempo compensatorio, las vacaciones y las incidencias muestran siempre todo el historial." },
+  { sel:"#btn-admin", titulo:"Modo administrativo",
+    texto:"Para registrar o corregir algo, active este modo con su PIN (los últimos 4 dígitos de su cédula). Se lo pide una sola vez; después puede trabajar sin volver a escribirlo." },
+  { sel:"#s-asi", titulo:"Registro de asistencia",
+    texto:"Muestra las marcaciones del reloj de cada día: entrada, salida, horas trabajadas y extra. Los colores señalan tardanzas, ausencias y turnos especiales. Puede descargarlo en PDF o Excel." },
+  { sel:"#s-via", titulo:"Alimentación y transporte",
+    texto:"Calcula el reconocimiento de alimentación y transporte según los días trabajados fuera de horario. También lo descarga en PDF o Excel." },
+  { sel:"#s-txt", titulo:"Tiempo compensatorio",
+    texto:"El tiempo que la persona acumula por trabajar de más y luego usa. Se consume el saldo más antiguo primero. Aquí registra los usos y, en modo administrativo, ajusta cuánto va a pago." },
+  { sel:"#s-vac", titulo:"Vacaciones",
+    texto:"Registra las resoluciones que otorgan días y los períodos tomados. El sistema calcula solo los días disponibles, agotando primero la resolución más antigua." },
+  { sel:"#s-inc", titulo:"Incidencias",
+    texto:"El historial de tardanzas, ausencias y permisos. Cuando una ausencia coincide con vacaciones o un permiso, aparece justificada en verde y no cuenta como falta." },
+  { sel:"#btn-pub", titulo:"Actualizar datos",
+    texto:"Este botón recalcula todo desde el reloj biométrico. Solo hace falta usarlo cuando se cargan marcaciones nuevas del reloj. En el día a día no es necesario: cada madrugada el sistema se actualiza solo. Lo que usted registra (usos, vacaciones, incidencias) se ve al momento." }
+];
+let _tourIdx = 0;
+
+function iniciarTour(){
+  _tourIdx = 0;
+  let ov = document.getElementById('tourOverlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'tourOverlay';
+    ov.innerHTML =
+      '<div id="tourBackdrop"></div>'+
+      '<div class="tour-spot" id="tourSpot" style="display:none"></div>'+
+      '<div id="tourBox">'+
+        '<div id="tourTitulo"></div>'+
+        '<div id="tourTexto"></div>'+
+        '<div id="tourNav">'+
+          '<span id="tourPaso"></span>'+
+          '<button id="tourSalir" onclick="cerrarTour()">Salir</button>'+
+          '<button id="tourPrev" onclick="tourMover(-1)">Anterior</button>'+
+          '<button id="tourNext" onclick="tourMover(1)">Siguiente</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'block';
+  window.addEventListener('resize', _tourReposicionar_);
+  pintarTourPaso_();
+}
+
+function cerrarTour(){
+  const ov = document.getElementById('tourOverlay');
+  if(ov) ov.style.display = 'none';
+  window.removeEventListener('resize', _tourReposicionar_);
+}
+
+function tourMover(d){
+  _tourIdx += d;
+  if(_tourIdx < 0) _tourIdx = 0;
+  if(_tourIdx >= TOUR_STEPS.length){ cerrarTour(); return; }
+  pintarTourPaso_();
+}
+
+function pintarTourPaso_(){
+  const p = TOUR_STEPS[_tourIdx];
+  document.getElementById('tourTitulo').textContent = p.titulo;
+  document.getElementById('tourTexto').textContent = p.texto;
+  document.getElementById('tourPaso').textContent = 'Paso '+(_tourIdx+1)+' de '+TOUR_STEPS.length;
+  document.getElementById('tourPrev').style.visibility = _tourIdx===0 ? 'hidden' : 'visible';
+  document.getElementById('tourNext').textContent = _tourIdx===TOUR_STEPS.length-1 ? 'Terminar' : 'Siguiente';
+  _tourReposicionar_();
+}
+
+function _tourReposicionar_(){
+  const p = TOUR_STEPS[_tourIdx];
+  const spot = document.getElementById('tourSpot');
+  const box = document.getElementById('tourBox');
+  const el = p.sel ? document.querySelector(p.sel) : null;
+  if(el){
+    try{ el.scrollIntoView({behavior:'smooth', block:'center', inline:'nearest'}); }catch(_){}
+    const r = el.getBoundingClientRect();
+    spot.style.display = 'block';
+    spot.style.left = (r.left-6)+'px'; spot.style.top = (r.top-6)+'px';
+    spot.style.width = (r.width+12)+'px'; spot.style.height = (r.height+12)+'px';
+    // Colocar la caja debajo del elemento; si no cabe, arriba.
+    const bw = box.offsetWidth, bh = box.offsetHeight;
+    let left = r.left; if(left+bw > window.innerWidth-12) left = window.innerWidth-bw-12;
+    if(left < 12) left = 12;
+    let top = r.bottom+14; if(top+bh > window.innerHeight-12) top = r.top-bh-14;
+    if(top < 12) top = 12;
+    box.style.left = left+'px'; box.style.top = top+'px';
+  } else {
+    // Paso sin ancla: centrar la caja, sin spotlight.
+    spot.style.display = 'none';
+    box.style.left = Math.max(12,(window.innerWidth-box.offsetWidth)/2)+'px';
+    box.style.top = Math.max(12,(window.innerHeight-box.offsetHeight)/2)+'px';
+  }
+}
 
 </script><!-- ── Modal institucional (PIN + progreso) ── -->
 <div id="rhModal" style="display:none;position:fixed;inset:0;z-index:9999;
