@@ -1392,11 +1392,11 @@ async function imprimirAsistencia(btn){
 }
 
 /* ── Tiempo compensatorio: libro por ciclo ── */
-async function cargarTxt(emp){
+async function cargarTxt(emp, fresco){
   const cont=document.getElementById('res-txt');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Reconstruyendo el registro desde el biométrico…</div></div>';
   try{
-    const url=`${GAS}?action=txt_libro&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
+    const url=`${GAS}?action=txt_libro&token=${TOKEN}&employee=${encodeURIComponent(emp)}${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudo reconstruir el registro.'}</div></div>`; return; }
     window.__txtData = d;   // guardado para re-render local (toggle de modo sin refetch)
@@ -1665,7 +1665,7 @@ async function txtDeshacerAjuste(ciclo,btn){
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
     if(window.__txtAjustes) delete window.__txtAjustes[ciclo];
-    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtGuardarAjustes(btn){
@@ -1700,7 +1700,7 @@ async function txtGuardarAjustes(btn){
       if(!d||!d.ok){ alert((d&&d.error)||'No se pudo guardar el ajuste del período '+ciclo); btn.disabled=false; btn.textContent=t; return; }
     }
     window.__txtAjustes={}; window.__txtModo={activo:false,habilitado:false};
-    avisarPublicar(); cargarTxt(EMP_ACTUAL);   // aquí sí refetch: hubo cambios reales
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);   // aquí sí refetch: hubo cambios reales
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtRegistrarUso(btn){
@@ -1721,7 +1721,7 @@ async function txtRegistrarUso(btn){
       } else { btn.disabled=false; btn.textContent=t; return; }
     }
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo registrar el uso.'); btn.disabled=false; btn.textContent=t; return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 async function txtEliminarUso(seq,btn){
@@ -1733,7 +1733,7 @@ async function txtEliminarUso(seq,btn){
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&seq_num=${encodeURIComponent(seq)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo eliminar.'); return; }
-    avisarPublicar(); cargarTxt(EMP_ACTUAL);
+    avisarPublicar(); cargarTxt(EMP_ACTUAL,true);
   }catch(e){ alert('Error de conexión.'); }
 }
 async function imprimirTxtExcel(btn){
@@ -1768,7 +1768,7 @@ async function txtGuardarPrevio(btn){
       `&employee=${encodeURIComponent(EMP_ACTUAL)}&horas=${horas}&fecha_corte=${corte}`+
       `&justificacion=${encodeURIComponent(just)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL); }
+    if(d&&d.ok){ avisarPublicar(); cargarTxt(EMP_ACTUAL,true); }
     else{ alert((d&&d.error)||'No se pudo guardar el saldo anterior.'); btn.disabled=false; btn.textContent=t; }
   }catch(e){ alert('Error de conexión al guardar.'); btn.disabled=false; btn.textContent=t; }
 }
@@ -1930,11 +1930,11 @@ async function eliminarArt18(id){
 }
 
 /* ── Vacaciones: resoluciones con orden FIFO ── */
-async function cargarVacaciones(emp){
+async function cargarVacaciones(emp, fresco){
   const cont=document.getElementById('res-vac');
   cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Cargando resoluciones…</div></div>';
   try{
-    const url=`${GAS}?action=vacaciones&token=${TOKEN}&employee=${encodeURIComponent(emp)}&_=${Date.now()}`;
+    const url=`${GAS}?action=vacaciones&token=${TOKEN}&employee=${encodeURIComponent(emp)}${fresco?'&nocache=1':''}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ cont.innerHTML=`<div class="panel"><div class="msg err">${(d&&d.error)||'No se pudieron cargar las vacaciones.'}</div></div>`; return; }
     cont.innerHTML=pintarVacaciones(d);
@@ -2189,7 +2189,7 @@ async function eliminarResolucion(id){
     const url=`${GAS}?action=vac_resolucion_eliminar&token=${TOKEN}`+
       `&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); avisarPublicar(); }
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo eliminar.'); }
   }catch(e){ alert('Error de conexión.'); }
 }
@@ -2210,7 +2210,7 @@ async function guardarResolucion(btn){
       `&anio=${anio}&dias=${dias}&nota=${encodeURIComponent(nota)}`+
       `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL); avisarPublicar(); }
+    if(d&&d.ok){ cargarVacaciones(EMP_ACTUAL,true); avisarPublicar(); }
     else{ alert((d&&d.error)||'No se pudo registrar la resolución.'); }
   }catch(e){ alert('Error de conexión.'); }
   btn.disabled=false; btn.textContent=t;
@@ -2225,7 +2225,7 @@ async function vacDeshacerUso(id,btn){
       +`&employee=${encodeURIComponent(EMP_ACTUAL)}&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
     if(!d||!d.ok){ alert((d&&d.error)||'No se pudo deshacer.'); btn.disabled=false; btn.textContent=t; return; }
-    avisarPublicar(); cargarVacaciones(EMP_ACTUAL);
+    avisarPublicar(); cargarVacaciones(EMP_ACTUAL,true);
   }catch(e){ alert('Error de conexión.'); btn.disabled=false; btn.textContent=t; }
 }
 
@@ -2248,7 +2248,7 @@ async function registrarUsoVac(btn){
     if(d&&d.ok){
       const det=(d.aplicado||[]).map(a=>`${a.dias} día(s) de Res. ${a.resolucion}-${a.anio}`).join(', ');
       alert(`Registrados ${d.dias} día(s).\nDescontados así: ${det}`);
-      cargarVacaciones(EMP_ACTUAL); avisarPublicar();
+      cargarVacaciones(EMP_ACTUAL,true); avisarPublicar();
     }
     else{ alert((d&&d.error)||'No se pudo registrar.'); }
   }catch(e){ alert('Error de conexión.'); }
