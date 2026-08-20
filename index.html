@@ -2286,7 +2286,7 @@ async function cargarIncidencias(emp,desde,hasta,fresco,silencioso){
 function formIncidencia(){
   const hoy=new Date().toISOString().slice(0,10);
   const tipos=['ausencia justificada','ausencia injustificada','tardanza',
-    'permiso art. 18','incapacidad','licencia','duelo','capacitación','comisión','otro'];
+    'permiso art. 18','incapacidad','licencia','duelo','capacitación','viaje','otro'];
   return `
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar incidencia</div>
