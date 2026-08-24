@@ -1367,17 +1367,24 @@ function asistRepintar(){
 }
 async function asistGuardarAjustes(btn){
   const pin=adminPin(); if(!pin) return;
-  // Recolectar solo los días con al menos un input con valor.
+  // Recolectar SOLO los días donde el usuario cambió alguna hora (comparando
+  // contra el valor inicial). Así no se guardan los 20+ días del período.
   const inputs=[...document.querySelectorAll('input[data-fecha][data-campo]')];
   const porFecha={};
+  const cambiada={};
   inputs.forEach(i=>{
     const f=i.getAttribute('data-fecha'), c=i.getAttribute('data-campo');
+    const ini=i.getAttribute('data-inicial')||'';
+    const val=i.value.trim();
     if(!porFecha[f]) porFecha[f]={entrada:'',salida:''};
-    porFecha[f][c]=i.value.trim();
+    porFecha[f][c]=val;
+    if(val!==ini) cambiada[f]=true;
   });
+  const fechas=Object.keys(cambiada);
+  if(!fechas.length){ alert('No cambiaste ninguna hora.'); return; }
   const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
   try{
-    for(const f of Object.keys(porFecha)){
+    for(const f of fechas){
       const {entrada,salida}=porFecha[f];
       const url=`${GAS}?action=asistencia_ajuste_guardar&token=${TOKEN}`+
         `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${f}`+
@@ -1416,7 +1423,7 @@ function pintarRegistroAsistencia(d){
     const celdaHora = (valor, orig, campo) => {
       const v = fHora(valor);
       if(edit){
-        return `<input type="text" value="${hhmmInput(valor)}" placeholder="HH:MM" data-fecha="${x.fecha}" data-campo="${campo}"
+        return `<input type="text" value="${hhmmInput(valor)}" data-inicial="${hhmmInput(valor)}" placeholder="HH:MM" data-fecha="${x.fecha}" data-campo="${campo}"
           style="width:64px;text-align:center;font-family:var(--mono);border:1px solid #185FA5;border-radius:5px;padding:4px">`;
       }
       if(orig){
