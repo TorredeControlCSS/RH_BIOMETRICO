@@ -102,6 +102,7 @@ tr.tar td{background:#fef3c7}
 tr.trn td{background:#d1fae5}
 tr.ext td{background:#e8f0fb}
 tr.inc td{background:#fdf0d5}
+tr.aj td{background:#dbeafe}
 .badge-turno{display:inline-block;background:#059669;color:#fff;font-size:10px;font-weight:600;
   padding:1px 7px;border-radius:10px;vertical-align:middle}
 tr.apertura td{background:#f7f9fc;font-style:italic;color:var(--muted)}
@@ -1347,6 +1348,47 @@ async function cargarRegistroAsistencia(emp,desde,hasta){
   }
 }
 
+// Convierte una hora (Date-1899 texto o "HH:MM:SS") a "HH:MM" para el input.
+function hhmmInput(v){
+  const s=String(v||'').trim();
+  const m=s.match(/(\d{1,2}):(\d{2})/);
+  return m ? (m[1].padStart(2,'0')+':'+m[2]) : '';
+}
+function asistEditar(){
+  if(!(window.ADMIN&&window.ADMIN.activo)){ alert('Activa el "Modo administrativo" para ajustar horas.'); return; }
+  window.ASIST_EDIT=true; asistRepintar();
+}
+function asistRepintar(){
+  const cont=document.getElementById('res-via');
+  if(cont && window.__asistData) cont.innerHTML=pintarRegistroAsistencia(window.__asistData);
+}
+async function asistGuardarAjustes(btn){
+  const pin=adminPin(); if(!pin) return;
+  // Recolectar solo los días con al menos un input con valor.
+  const inputs=[...document.querySelectorAll('input[data-fecha][data-campo]')];
+  const porFecha={};
+  inputs.forEach(i=>{
+    const f=i.getAttribute('data-fecha'), c=i.getAttribute('data-campo');
+    if(!porFecha[f]) porFecha[f]={entrada:'',salida:''};
+    porFecha[f][c]=i.value.trim();
+  });
+  const t=btn.textContent; btn.disabled=true; btn.textContent='Guardando…';
+  try{
+    for(const f of Object.keys(porFecha)){
+      const {entrada,salida}=porFecha[f];
+      const url=`${GAS}?action=asistencia_ajuste_guardar&token=${TOKEN}`+
+        `&employee=${encodeURIComponent(EMP_ACTUAL)}&fecha=${f}`+
+        `&entrada=${encodeURIComponent(entrada)}&salida=${encodeURIComponent(salida)}`+
+        `&pin=${encodeURIComponent(pin)}&_=${Date.now()}`;
+      await fetch(url);
+    }
+    window.ASIST_EDIT=false;
+    // Recargar fresco para ver las horas recalculadas.
+    const desde=document.getElementById('f-desde').value, hasta=document.getElementById('f-hasta').value;
+    cargarRegistroAsistencia(EMP_ACTUAL,desde,hasta); avisarPublicar();
+  }catch(e){ alert('Error al guardar.'); btn.disabled=false; btn.textContent=t; }
+}
+
 function pintarRegistroAsistencia(d){
   window.__asistData = d;   // guardado para exportar a Excel
   const dias=d.dias||[];
@@ -1358,23 +1400,37 @@ function pintarRegistroAsistencia(d){
       <div class="msg">Sin marcaciones en el período seleccionado.</div></div>`;
   }
 
+  const edit = !!window.ASIST_EDIT;
   const filas=dias.map(x=>{
     const inc=String(x.incidencia||'').toUpperCase();
     const turno=String(x.turno_excepcion||'').trim();
     const tieneExtra = x.horas_extra && x.horas_extra!=='00:00' && x.horas_extra!=='—' && x.horas_extra!=='';
-    const cls = inc.includes('MARCA INCOMPLETA') ? 'inc' : (inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : (turno ? 'trn' : (tieneExtra ? 'ext' : ''))));
+    const cls = x.ajustado ? 'aj' : (inc.includes('MARCA INCOMPLETA') ? 'inc' : (inc.includes('AUSEN') ? 'aus' : (inc.includes('TARDAN') ? 'tar' : (turno ? 'trn' : (tieneExtra ? 'ext' : '')))));
     const obs = [x.incidencia||'', (turno?`<span class="badge-turno">Turno ${turno.toLowerCase()}</span>`:'')]
       .filter(s=>s).join(' · ');
+    // Celda de hora: en modo edición, input editable; si hay ajuste, muestra la
+    // original tachada arriba de la corregida.
+    const celdaHora = (valor, orig, campo) => {
+      const v = fHora(valor);
+      if(edit){
+        return `<input type="text" value="${hhmmInput(valor)}" placeholder="HH:MM" data-fecha="${x.fecha}" data-campo="${campo}"
+          style="width:64px;text-align:center;font-family:var(--mono);border:1px solid #185FA5;border-radius:5px;padding:4px">`;
+      }
+      if(orig){
+        return `<span style="text-decoration:line-through;color:#b00;font-size:11px">${fHora(orig)}</span><br><span style="color:#1e5a9e;font-weight:600">${v}</span>`;
+      }
+      return v;
+    };
     return `<tr class="${cls}">
       <td class="num">${fFecha(x.fecha)}</td>
       <td>${x.dia||''}</td>
-      <td class="num">${fHora(x.entrada)}</td>
-      <td class="num">${fHora(x.salida)}</td>
+      <td class="num">${celdaHora(x.entrada, x.entrada_original, 'entrada')}</td>
+      <td class="num">${celdaHora(x.salida, x.salida_original, 'salida')}</td>
       <td class="num">${x.horas_trabajadas||'—'}</td>
       <td class="num">${x.horas_extra||'—'}</td>
       <td class="l" style="font-size:12px">${obs}${
         x.minutos_tarde?` <span style="color:var(--warn)">(${x.minutos_tarde} min)</span>`:''}${
-        x.nota?` · ${x.nota}`:''}</td>
+        x.nota?` · ${x.nota}`:''}${x.ajustado?' <span style="color:#1e5a9e;font-weight:600">· corregido manualmente</span>':''}</td>
     </tr>`;
   }).join('');
 
@@ -1400,8 +1456,12 @@ function pintarRegistroAsistencia(d){
         <div class="kpi-s">${c.cedula||''} · ${c.cargo||''} · ${c.area||''}</div>
         <div class="kpi-s">${fFecha(d.periodo.desde)} al ${fFecha(d.periodo.hasta)}</div></div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
-        <button class="btn" onclick="exportarAsistenciaExcel()">Generar Excel</button>
+        ${edit
+          ? `<button class="btn btn-main" onclick="asistGuardarAjustes(this)">Guardar horas</button>
+             <button class="btn" onclick="window.ASIST_EDIT=false;asistRepintar()">Cancelar</button>`
+          : `<button class="btn btn-main" onclick="imprimirAsistencia(this)">Generar PDF</button>
+             <button class="btn" onclick="exportarAsistenciaExcel()">Generar Excel</button>
+             <button class="btn" onclick="asistEditar()">Ajustar horas</button>`}
       </div>
     </div>
     <div style="padding:0">
@@ -2286,7 +2346,7 @@ async function cargarIncidencias(emp,desde,hasta,fresco,silencioso){
 function formIncidencia(){
   const hoy=new Date().toISOString().slice(0,10);
   const tipos=['ausencia justificada','ausencia injustificada','tardanza',
-    'permiso art. 18','incapacidad','licencia','duelo','capacitación','viaje','otro'];
+    'permiso art. 18','incapacidad','licencia','duelo','capacitación','comisión / viaje','otro'];
   return `
   <div class="panel">
     <div class="panel-h"><div class="panel-t">Registrar incidencia</div>
@@ -2820,7 +2880,7 @@ function plRenderLista(preservarSeleccion){
     const marcado=sel.has(c.nombre)?' checked':'';
     const nf=String(c.num_funcionario||'').trim();
     const he=plHorasExtra(c.nombre);
-    return `<tr style="border-bottom:1px solid #eee" onclick="plTogglaFila(event,this)">
+    return `<tr style="border-bottom:1px solid #eee" data-buscar="${(c.nombre+' '+nf).toLowerCase().replace(/"/g,'&quot;')}" onclick="plTogglaFila(event,this)">
       <td style="width:34px;text-align:center;padding:6px 4px">
         <input type="checkbox" class="pl-chk" value="${c.nombre.replace(/"/g,'&quot;')}" onchange="plContar()"${marcado}></td>
       <td style="width:130px;padding:6px 6px;font-family:Consolas,monospace;color:var(--blue);white-space:nowrap">${nf||'—'}</td>
@@ -2830,7 +2890,12 @@ function plRenderLista(preservarSeleccion){
     </tr>`;
   }).join('');
   cont.innerHTML=
-    `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    `<div style="margin-bottom:10px">
+      <input type="text" id="pl-buscar" placeholder="Buscar por nombre o número de funcionario…"
+        oninput="plFiltrar(this.value)" autocomplete="off"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #a8a8a8;border-radius:6px;font-size:13.5px;font-family:inherit">
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:#f4f6f8;border-bottom:2px solid #ccc;position:sticky;top:0">
           <th style="width:34px"></th>
@@ -2862,6 +2927,18 @@ function plTogglaFila(ev,tr){
   if(ev.target && ev.target.classList.contains('pl-chk')) return;
   const ch=tr.querySelector('.pl-chk');
   if(ch){ ch.checked=!ch.checked; plContar(); }
+}
+
+// Filtra las filas de la tabla de planilla por nombre o número, sin perder los
+// checkmarks ya marcados (las filas marcadas siempre se muestran).
+function plFiltrar(q){
+  const t=String(q||'').trim().toLowerCase();
+  document.querySelectorAll('#vista-planilla tbody tr').forEach(function(tr){
+    const chk=tr.querySelector('.pl-chk');
+    const marcado=chk && chk.checked;
+    const txt=tr.getAttribute('data-buscar')||'';
+    tr.style.display=(!t || marcado || txt.indexOf(t)>=0) ? '' : 'none';
+  });
 }
 
 function plContar(){
