@@ -289,6 +289,9 @@ tfoot td{background:#f7f9fc;font-weight:700}
       </div>
 
       <div style="margin:12px 0;color:#555;font-size:13px">Marca de <b>1 a 5</b> colaboradores para incluir en la planilla:</div>
+      <input type="text" id="pl-buscar" placeholder="Buscar por nombre o número de funcionario…"
+        oninput="plFiltrar(this.value)" autocomplete="off"
+        style="width:100%;box-sizing:border-box;padding:9px 12px;margin-bottom:8px;border:1px solid #a8a8a8;border-radius:6px;font-size:13.5px;font-family:inherit">
       <div id="pl-lista" style="max-height:340px;overflow:auto;border:1px solid #a8a8a8;background:#fff"></div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
         <button class="btn btn-main" onclick="generarPlanillaLote(this)">Generar Planilla T.E.</button>
@@ -1359,7 +1362,7 @@ function asistEditar(){
   window.ASIST_EDIT=true; asistRepintar();
 }
 function asistRepintar(){
-  const cont=document.getElementById('res-via');
+  const cont=document.getElementById('res-asi');
   if(cont && window.__asistData) cont.innerHTML=pintarRegistroAsistencia(window.__asistData);
 }
 async function asistGuardarAjustes(btn){
@@ -2837,6 +2840,7 @@ let PL_ORDEN='num_asc';  // 'num_asc' | 'num_desc'
 async function plCargarColaboradores(){
   const area=document.getElementById('pl-area').value;
   const cont=document.getElementById('pl-lista');
+  const bus=document.getElementById('pl-buscar'); if(bus) bus.value='';
   if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; PL_COLABS=[]; return; }
   cont.innerHTML='<div style="color:#888">Cargando colaboradores…</div>';
   try{
@@ -2890,12 +2894,7 @@ function plRenderLista(preservarSeleccion){
     </tr>`;
   }).join('');
   cont.innerHTML=
-    `<div style="margin-bottom:10px">
-      <input type="text" id="pl-buscar" placeholder="Buscar por nombre o número de funcionario…"
-        oninput="plFiltrar(this.value)" autocomplete="off"
-        style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #a8a8a8;border-radius:6px;font-size:13.5px;font-family:inherit">
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
         <tr style="background:#f4f6f8;border-bottom:2px solid #ccc;position:sticky;top:0">
           <th style="width:34px"></th>
