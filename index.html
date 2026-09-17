@@ -205,7 +205,12 @@ tfoot td{background:#f7f9fc;font-weight:700}
              padding:7px 14px;font-size:12.5px"
       title="Recalcula y republica los datos del dashboard">Actualizar datos</button>
     <button id="btnTour" onclick="iniciarTour()" title="Ver una guía rápida del panel">Guía</button>
-    <div class="top-r" id="reloj"></div>
+    <!-- 17-sep-2026 · Se retiró el reloj del navegador que iba aquí. Mostraba
+         la hora de la MÁQUINA del usuario, no del dato, y al lado de la marca
+         de frescura invitaba a leerse como "los datos son de esta hora". Un
+         tablero que parece fresco porque muestra algo con hora es justo el
+         error que hay que evitar. La marca de arriba sí dice lo que importa:
+         cuándo se publicó, cuánto hace y hasta qué fecha llegan los datos. -->
   </div>
 </div>
 
@@ -544,14 +549,9 @@ async function _seguirPublicacion(btn, textoOriginal, prog){
   setTimeout(()=>_seguirPublicacion(btn, textoOriginal, prog), 15000);
 }
 
-/* ── Reloj ── */
-function reloj(){
-  const d=new Date();
-  document.getElementById('reloj').textContent =
-    d.toLocaleDateString('es-PA',{day:'2-digit',month:'2-digit',year:'2-digit'})+' · '+
-    d.toLocaleTimeString('es-PA',{hour:'2-digit',minute:'2-digit'});
-}
-setInterval(reloj,30000); reloj();
+/* ── Reloj retirado · 17-sep-2026 ──
+   Ver la nota en la barra superior. Si algún día hace falta la hora local,
+   que no vaya junto a la marca de frescura del dato. */
 
 /* ── Modo: un colaborador o un área ── */
 function setModo(m){
