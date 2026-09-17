@@ -177,13 +177,6 @@ tfoot td{background:#f7f9fc;font-weight:700}
     <div class="top-t">Recursos Humanos · Dirección Nacional de Logística</div>
     <div class="top-s">CEDIS PANAMÁ</div>
   </div>
-  <!-- 17-sep-2026 · cargarSelloEstado() ya existía y buscaba este elemento con
-       getElementById; al no encontrarlo salía en su primera línea, así que la
-       marca de frescura estaba escrita pero nunca se veía. -->
-  <div id="selloEstado" style="margin-left:22px;font-size:12px;color:#e8f0fb;
-       background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
-       border-radius:8px;padding:6px 12px;line-height:1.45;white-space:nowrap">
-  </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
     <span id="admin-quien" style="display:none;align-items:center;gap:10px;font-size:12.5px;color:#0C447C;background:#fff;
       border:1px solid #d8e2f0;border-radius:8px;padding:5px 6px 5px 12px">
@@ -205,6 +198,14 @@ tfoot td{background:#f7f9fc;font-weight:700}
              padding:7px 14px;font-size:12.5px"
       title="Recalcula y republica los datos del dashboard">Actualizar datos</button>
     <button id="btnTour" onclick="iniciarTour()" title="Ver una guía rápida del panel">Guía</button>
+    <!-- 17-sep-2026 · Marca de frescura en la ESQUINA DERECHA, con el mismo
+         patrón de Curvas y Kardex: dos líneas, alineadas a la derecha, después
+         de las acciones. Aquí ocupa el espacio que dejó el reloj del navegador,
+         que mostraba la hora de la máquina y no decía nada del dato.
+         cargarSelloEstado() ya existía y buscaba este elemento por id; al no
+         encontrarlo salía en su primera línea y la marca nunca se veía. -->
+    <div id="selloEstado" style="margin-left:14px;font-size:11px;line-height:1.5;
+         text-align:right;color:#e8f0fb;white-space:nowrap"></div>
     <!-- 17-sep-2026 · Se retiró el reloj del navegador que iba aquí. Mostraba
          la hora de la MÁQUINA del usuario, no del dato, y al lado de la marca
          de frescura invitaba a leerse como "los datos son de esta hora". Un
@@ -376,7 +377,8 @@ async function cargarSelloEstado(){
     el.innerHTML =
       '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;'+
       'background:#4ade80;margin-right:5px;vertical-align:middle"></span>'+
-      'Datos actualizados: <strong>'+act+'</strong> · hasta '+hasta;
+      'Actualizado: <strong>'+act+'</strong>'+
+      '<br>Datos hasta: <strong>'+hasta+'</strong>';
   }catch(_){
     /* Respaldo: si rh_estado.json no está publicado, el sello sale de
        rh_data.json, que siempre se publica y trae generado_en y el ciclo.
@@ -401,8 +403,8 @@ async function cargarSelloEstado(){
       el.innerHTML =
         '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;'+
         'background:'+col+';margin-right:5px;vertical-align:middle"></span>'+
-        'Datos actualizados: <strong>'+(gen||'s/f')+'</strong>'+hace+
-        (h2 ? (' · hasta ' + fmtFechaSello(h2)) : '');
+        'Actualizado: <strong>'+(gen||'s/f')+'</strong>'+hace+
+        (h2 ? ('<br>Datos hasta: <strong>' + fmtFechaSello(h2) + '</strong>') : '');
     }catch(__){
       el.innerHTML = '<span style="opacity:.6">Sin sello de actualización disponible</span>';
     }
