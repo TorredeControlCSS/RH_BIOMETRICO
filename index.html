@@ -177,6 +177,13 @@ tfoot td{background:#f7f9fc;font-weight:700}
     <div class="top-t">Recursos Humanos · Dirección Nacional de Logística</div>
     <div class="top-s">CEDIS PANAMÁ</div>
   </div>
+  <!-- 17-sep-2026 · cargarSelloEstado() ya existía y buscaba este elemento con
+       getElementById; al no encontrarlo salía en su primera línea, así que la
+       marca de frescura estaba escrita pero nunca se veía. -->
+  <div id="selloEstado" style="margin-left:22px;font-size:12px;color:#e8f0fb;
+       background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);
+       border-radius:8px;padding:6px 12px;line-height:1.45;white-space:nowrap">
+  </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
     <span id="admin-quien" style="display:none;align-items:center;gap:10px;font-size:12.5px;color:#0C447C;background:#fff;
       border:1px solid #d8e2f0;border-radius:8px;padding:5px 6px 5px 12px">
@@ -366,7 +373,34 @@ async function cargarSelloEstado(){
       'background:#4ade80;margin-right:5px;vertical-align:middle"></span>'+
       'Datos actualizados: <strong>'+act+'</strong> · hasta '+hasta;
   }catch(_){
-    el.innerHTML = '<span style="opacity:.6">Sin sello de actualización disponible</span>';
+    /* Respaldo: si rh_estado.json no está publicado, el sello sale de
+       rh_data.json, que siempre se publica y trae generado_en y el ciclo.
+       Antes se rendía con 'sin sello disponible' teniendo el dato al lado. */
+    try{
+      var r2 = await fetch(RH_JSON + '?v=' + Date.now());
+      var d2 = await r2.json();
+      var gen = d2.generado_en || (d2.meta && d2.meta.generado_en) || '';
+      var cic = d2.ciclo || (d2.meta && d2.meta.ciclo) || null;
+      var h2  = cic ? (cic.ultima_marcacion || cic.to || '') : '';
+      var horas = null;
+      if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(gen)) {
+        var dt = new Date(String(gen).replace(' ','T') + '-05:00');
+        if (!isNaN(dt)) horas = (Date.now() - dt.getTime())/3600000;
+      }
+      /* Ámbar pasadas 30 horas: si nadie actualizó desde ayer, se ve. */
+      var col = (horas !== null && horas > 30) ? '#ffd9a0' : '#4ade80';
+      var hace = '';
+      if (horas !== null) hace = horas < 1 ? (' · hace ' + Math.max(1, Math.round(horas*60)) + ' min')
+                                 : (horas < 48 ? (' · hace ' + Math.round(horas) + ' h')
+                                               : (' · hace ' + Math.round(horas/24) + ' días'));
+      el.innerHTML =
+        '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;'+
+        'background:'+col+';margin-right:5px;vertical-align:middle"></span>'+
+        'Datos actualizados: <strong>'+(gen||'s/f')+'</strong>'+hace+
+        (h2 ? (' · hasta ' + fmtFechaSello(h2)) : '');
+    }catch(__){
+      el.innerHTML = '<span style="opacity:.6">Sin sello de actualización disponible</span>';
+    }
   }
 }
 function fmtFechaSello(ymd){
@@ -377,6 +411,8 @@ function fmtFechaSello(ymd){
 }
 document.addEventListener('DOMContentLoaded', function(){
   try{ restaurarModoAdmin(); }catch(_){}
+  /* La marca de frescura no se llamaba desde ningún sitio. */
+  try{ cargarSelloEstado(); }catch(_){}
 });
 let DATOS = null;          // ciclo cargado ahora mismo
 const CACHE_CICLOS = {};   // {from: datosDelCiclo} — evita releer lo ya traído
