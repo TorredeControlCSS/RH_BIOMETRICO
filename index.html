@@ -408,6 +408,10 @@ mjx-container{color:inherit}
 .nx-yvm .tt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .nx-yvm .tt .nx-btn{margin-left:auto}
 .nx-yvsug[hidden]{display:none}
+
+.nt tr.nx-edit td{background:var(--nx-surface2)}
+.nt tr.nx-edit input[type=time]{font:600 14px var(--nx-mono,monospace);padding:6px 8px;border:1px solid var(--nx-accent);border-radius:8px;background:var(--nx-surface);color:var(--nx-fg)}
+.nx-flag[disabled]{opacity:.35;cursor:not-allowed}
 </style>
 </head>
 <body class="nx">
@@ -4014,6 +4018,8 @@ const NX_ESCRITURAS=['art18_registrar','art18_eliminar','vac_resolucion','vac_us
 function nxSync(estado){
   const s=document.getElementById('nxSync');
   if(NX.pend>0){ s.hidden=false; s.className='nx-sync'; s.textContent='Guardando y publicando '+NX.pend+' cambio'+(NX.pend>1?'s':'')+'…'; return; }
+  const rc=Object.keys(typeof NX_AJ==='object'?NX_AJ:{}).filter(k=>NX_AJ[k].estado==='recalculando').length;
+  if(rc){ s.hidden=false; s.className='nx-sync'; s.textContent='Recalculando '+rc+' ajuste'+(rc>1?'s':'')+' · se actualiza solo en 1 a 3 min'; return; }
   s.className='nx-sync '+(estado==='err'?'err':'ok'); s.textContent=estado==='err'?'Un cambio no se pudo guardar':'Todo guardado y publicado';
   clearTimeout(nxSync._t); nxSync._t=setTimeout(()=>{ if(!NX.pend) s.hidden=true; },estado==='err'?8000:3000);
 }
@@ -4039,7 +4045,7 @@ window.addEventListener('beforeunload',e=>{ if(NX.pend>0){ e.preventDefault(); e
 function nxFicha(n, pane){
   const p=NX.P.find(x=>x.n===n); if(!p){ nxToast('No se encontró a '+n+' en este ciclo.'); return; }
   if(NX.emp!==n){ NX.cargados={}; ['res-asi','res-txt','res-art18','res-vac','res-inc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=''; }); document.getElementById('nxAsiEdit').hidden=true; }
-  NX.emp=n; NX.ft=pane||NX.ft||'asi';
+  if(NX.emp!==n) NX.editFecha=''; NX.emp=n; NX.ft=pane||NX.ft||'asi';
   EMP_ACTUAL=n; document.getElementById('sel-emp').value=n;
   ULTIMA={modo:'uno', valor:n, desde:NX.D.ciclo.from, hasta:NX.D.ciclo.to};
   document.getElementById('nxDName').textContent=p.n;
@@ -4075,24 +4081,101 @@ function nxPrefijarFecha(){ if(!NX.prefFecha) return; const f=NX.prefFecha; let 
     if(t>40){ clearInterval(iv); NX.prefFecha=''; } },250); }
 const nxFlag=(f,c,sis,r)=>'<button type="button" class="nx-flag" title="Reportar que este valor no es correcto" aria-label="Reportar discrepancia" data-nxflag="1" data-f="'+nxEsc(f)+'" data-c="'+nxEsc(c)+'" data-s="'+nxEsc(sis)+'" data-r="'+nxEsc(r||'')+'"><svg class="nx-ic"><use href="#i-flag"/></svg></button>';
 function nxEnlazarFlags(host){ host.querySelectorAll('[data-nxflag]').forEach(b=>b.onclick=()=>nxAbrirDisc({n:NX.emp,f:b.dataset.f,c:b.dataset.c,sis:b.dataset.s,r:b.dataset.r},'disc')); }
+/* ══ Asistencia con ajuste de marcas en la misma fila (16-oct-2026) ══
+   El lápiz abre entrada y salida en la fila. Al guardar se advierte que se recalcula todo; el día se
+   guarda en segundo plano y el servidor recalcula a la persona (horas extra, alimentación y transporte,
+   pagadas y TXT) en 1 a 3 minutos. La pantalla sigue disponible y se actualiza sola. */
+const NX_AJ={};   // 'NOMBRE|fecha' → {entrada, salida, estado: guardando | recalculando | error, err}
+const nxHM=t=>{const m=String(t||'').match(/(\d{1,2}):(\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:'';};
+function nxConfirmar(titulo, html, si){ return new Promise(res=>{
+  const sc=document.createElement('div'); sc.className='nx-scrim';
+  const d=document.createElement('div'); d.className='nx-dialog'; d.setAttribute('role','alertdialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="nx-dlh"><h3>'+nxEsc(titulo)+'</h3></div><div class="nx-dform"><div class="nx-callout p-warn">'+html+'</div>'+
+    '<div class="nx-dfoot" style="justify-content:flex-end;gap:8px"><button type="button" class="nx-btn" data-v="0">Cancelar</button><button type="button" class="nx-btn main" data-v="1">'+nxEsc(si||'Continuar')+'</button></div></div>';
+  const fin=v=>{ sc.remove(); d.remove(); document.removeEventListener('keydown',k); res(v); };
+  const k=e=>{ if(e.key==='Escape'){ e.stopPropagation(); fin(false); } };
+  d.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>fin(b.dataset.v==='1')); sc.onclick=()=>fin(false);
+  document.addEventListener('keydown',k); document.body.appendChild(sc); document.body.appendChild(d); setTimeout(()=>d.querySelector('[data-v="1"]').focus(),30); }); }
 function nxPintarAsistencia(){
   const p=NX.P.find(x=>x.n===NX.emp); const host=document.getElementById('nxAsiJson'); if(!p) return;
   if(!p.asi.length){ host.innerHTML='<div class="nx-callout p-bad">Sin marcaciones en el ciclo. Registre en Incidencias la causa (vacaciones, licencia, marca en otro reloj, etc.).</div>'; return; }
-  host.innerHTML='<div class="nx-panel"><div class="nx-ph"><h3>Marcaciones del reloj</h3><span class="sub">'+p.asi.length+' días · '+p.asi.filter(nxUna).length+' con una sola marca</span><span class="nx-sp"></span>'+
-    '<button type="button" class="nx-btn" id="nxAsiEditBtn" title="Registro con ajustes de marcas (guardar requiere modo administrativo)"><svg class="nx-ic"><use href="#i-edit"/></svg>Ajustar marcas</button>'+
+  const enCola=Object.keys(NX_AJ).filter(k=>k.indexOf(p.n+'|')===0&&NX_AJ[k].estado!=='error').length;
+  host.innerHTML=(enCola?'<div class="nx-callout p-info" style="margin-bottom:10px"><b>Recalculando a '+nxEsc(p.n)+'.</b> Horas extra, alimentación y transporte, pagadas y tiempo compensatorio se actualizan solos en 1 a 3 minutos. Puede seguir trabajando.</div>':'')+
+    '<div class="nx-panel"><div class="nx-ph"><h3>Marcaciones del reloj</h3><span class="sub">'+p.asi.length+' días · '+p.asi.filter(nxUna).length+' con una sola marca · el lápiz ajusta la entrada o la salida</span><span class="nx-sp"></span>'+
     '<button type="button" class="nx-btn" id="nxAsiPdf"><svg class="nx-ic"><use href="#i-pdf"/></svg>PDF</button><button type="button" class="nx-btn" id="nxAsiXls"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel</button></div>'+
-    '<div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Fecha</th><th class="ns">Día</th><th class="ns">Entrada</th><th class="ns">Salida</th><th class="r ns">Trabajadas</th><th class="r ns">HE del día</th><th class="ns">Estado</th><th class="r ns">¿No es correcto?</th></tr></thead><tbody>'+
-    p.asi.map(a=>{ const u=nxUna(a), t=String(a.tipo_dia||'').toUpperCase().replace(/_/g,' ');
-      return '<tr><td class="nx-n nw">'+nxFdl(a.fecha)+'</td><td>'+nxEsc(a.dia||'')+'</td><td class="nx-n nw">'+nxHora(a.entrada)+'</td><td class="nx-n nw">'+(u?'—':nxHora(a.salida))+'</td><td class="r nx-n">'+(a.horas_trabajadas||'—')+'</td><td class="r nx-n">'+(a.horas_extra&&a.horas_extra!=='00:00'?a.horas_extra:'—')+'</td><td>'+
-        (u?'<span class="nx-pill p-warn">una sola marca</span>':(t&&t!=='LABORABLE'?'<span class="nx-pill p-info">'+nxEsc(t.toLowerCase())+'</span>':'<span class="nx-pill p-ok">completo</span>'))+'</td><td class="r">'+
-        nxFlag(a.fecha,u?'Marca de entrada o salida':'Horas extra del día',u?('Una sola marca '+nxHora(a.entrada)):((a.horas_extra||'00:00')+' h'),u?'R2':(t==='LABORABLE'?'R4':'R5'))+'</td></tr>'; }).join('')+
+    '<div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Fecha</th><th class="ns">Día</th><th class="ns">Entrada</th><th class="ns">Salida</th><th class="r ns">Trabajadas</th><th class="r ns">HE del día</th><th class="ns">Estado</th><th class="r ns">Acciones</th></tr></thead><tbody>'+
+    p.asi.map(a=>{ const key=p.n+'|'+a.fecha, L=NX_AJ[key], ed=NX.editFecha===a.fecha, t=String(a.tipo_dia||'').toUpperCase().replace(/_/g,' ');
+      const ent=L&&L.estado!=='error'?L.entrada:a.entrada, sal=L&&L.estado!=='error'?L.salida:a.salida, una=!L&&nxUna(a);
+      let est;
+      if(L&&L.estado==='guardando') est='<span class="nx-pill p-run">guardando…</span>';
+      else if(L&&L.estado==='recalculando') est='<span class="nx-pill p-info">ajustado · recalculando</span>';
+      else if(L&&L.estado==='error') est='<span class="nx-pill p-bad" title="'+nxEsc(L.err||'')+'">no se guardó</span>';
+      else if(a.ajustado) est='<span class="nx-pill p-info" title="Reloj: '+nxEsc(nxHora(a.entrada_original))+' – '+nxEsc(a.salida_original&&a.salida_original!==a.entrada_original?nxHora(a.salida_original):'sin salida')+'">ajustado</span>';
+      else if(una) est='<span class="nx-pill p-warn">una sola marca</span>';
+      else est=t&&t!=='LABORABLE'?'<span class="nx-pill p-info">'+nxEsc(t.toLowerCase())+'</span>':'<span class="nx-pill p-ok">completo</span>';
+      if(ed) return '<tr class="nx-edit"><td class="nx-n nw">'+nxFdl(a.fecha)+'</td><td>'+nxEsc(a.dia||'')+'</td>'+
+        '<td><input type="time" id="nxAjE" value="'+nxHM(a.entrada)+'" aria-label="Entrada"></td><td><input type="time" id="nxAjS" value="'+(nxUna(a)&&!a.ajustado?'':nxHM(a.salida))+'" aria-label="Salida"></td>'+
+        '<td colspan="3" class="nx-note">Use la lista física o el respaldo. Al guardar se recalcula todo el ciclo de la persona.'+(a.ajustado?' Reloj: '+nxHora(a.entrada_original)+' – '+(a.salida_original?nxHora(a.salida_original):'sin salida')+'.':'')+'</td>'+
+        '<td class="r nw"><button type="button" class="nx-btn sm main" data-nxajg="'+a.fecha+'">Guardar</button> <button type="button" class="nx-btn sm" data-nxajc="1">Cancelar</button>'+(a.ajustado?' <button type="button" class="nx-btn sm" data-nxajq="'+a.fecha+'" title="Volver a las horas del reloj">Quitar ajuste</button>':'')+'</td></tr>';
+      return '<tr><td class="nx-n nw">'+nxFdl(a.fecha)+'</td><td>'+nxEsc(a.dia||'')+'</td><td class="nx-n nw">'+nxHora(ent)+'</td><td class="nx-n nw">'+(una?'—':nxHora(sal))+'</td>'+
+        '<td class="r nx-n">'+(L?'…':(a.horas_trabajadas||'—'))+'</td><td class="r nx-n">'+(L?'…':(a.horas_extra&&a.horas_extra!=='00:00'?a.horas_extra:'—'))+'</td><td>'+est+'</td><td class="r nw">'+
+        '<button type="button" class="nx-flag" title="Ajustar entrada o salida de este día" aria-label="Ajustar marcas del '+nxFdl(a.fecha)+'" data-nxaje="'+a.fecha+'"'+(L&&L.estado!=='error'?' disabled':'')+'><svg class="nx-ic"><use href="#i-edit"/></svg></button> '+
+        nxFlag(a.fecha,una?'Marca de entrada o salida':'Horas extra del día',una?('Una sola marca '+nxHora(a.entrada)):((a.horas_extra||'00:00')+' h'),una?'R2':(t==='LABORABLE'?'R4':'R5'))+'</td></tr>'; }).join('')+
     '</tbody></table></div></div>';
   nxEnlazarFlags(host);
+  host.querySelectorAll('[data-nxaje]').forEach(b=>b.onclick=()=>{ NX.editFecha=b.dataset.nxaje; nxPintarAsistencia(); setTimeout(()=>{ const i=document.getElementById('nxAjE'); if(i) i.focus(); },30); });
+  host.querySelectorAll('[data-nxajc]').forEach(b=>b.onclick=()=>{ NX.editFecha=''; nxPintarAsistencia(); });
+  host.querySelectorAll('[data-nxajg]').forEach(b=>b.onclick=()=>nxGuardarAjuste(b.dataset.nxajg,false));
+  host.querySelectorAll('[data-nxajq]').forEach(b=>b.onclick=()=>nxGuardarAjuste(b.dataset.nxajq,true));
+  const ie=document.getElementById('nxAjE'), is=document.getElementById('nxAjS');
+  [ie,is].forEach(i=>{ if(i) i.onkeydown=e=>{ if(e.key==='Enter') nxGuardarAjuste(NX.editFecha,false); if(e.key==='Escape'){ e.stopPropagation(); NX.editFecha=''; nxPintarAsistencia(); } }; });
   document.getElementById('nxAsiXls').onclick=()=>nxXlsAsistencia(p);
   document.getElementById('nxAsiPdf').onclick=function(){ imprimirAsistencia(this); };
-  document.getElementById('nxAsiEditBtn').onclick=()=>{ document.getElementById('nxAsiEdit').hidden=false;
-    try{ cargarRegistroAsistencia(NX.emp, NX.D.ciclo.from, NX.D.ciclo.to); }catch(e){}
-    setTimeout(()=>{ try{ document.getElementById('nxAsiEdit').scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){} },100); };
+}
+async function nxGuardarAjuste(fecha, quitar){
+  const p=NX.P.find(x=>x.n===NX.emp); if(!p||!fecha) return;
+  const e=quitar?'':(document.getElementById('nxAjE')||{}).value||'', s=quitar?'':(document.getElementById('nxAjS')||{}).value||'';
+  if(!quitar&&!e&&!s){ nxToast('Escriba la entrada, la salida o ambas.'); return; }
+  if(!quitar&&e&&s&&s<=e){ nxToast('La salida debe ser después de la entrada.'); return; }
+  const ok=await nxConfirmar(quitar?'Quitar el ajuste y recalcular':'Este ajuste recalcula todo',
+    (quitar?'El día <b>'+nxFdl(fecha)+'</b> vuelve a las horas del reloj.':'<b>'+nxEsc(p.n)+'</b> · <b>'+nxFdl(fecha)+'</b>: entrada '+(e?nxHora(e):'sin cambio')+', salida '+(s?nxHora(s):'sin cambio'))+
+    '<br><br>Se recalcula <b>todo el ciclo de esta persona</b>: horas extra del día, alimentación y transporte, horas pagadas, tiempo compensatorio (TXT) y su saldo. Si la Planilla T.E. de este ciclo ya se generó, puede quedar distinta.'+
+    '<br><br>Queda registrado a su nombre con fecha y hora. Los totales se actualizan solos en 1 a 3 minutos.', quitar?'Quitar y recalcular':'Guardar y recalcular');
+  if(!ok) return;
+  const pin=(window.ADMIN&&ADMIN.activo&&ADMIN.pin)?ADMIN.pin:await rhPedirPin('Ajuste de marcas','Ingrese su PIN para registrar el ajuste a su nombre.'); if(!pin) return;
+  const a=p.asi.find(x=>x.fecha===fecha)||{}, key=p.n+'|'+fecha;
+  NX_AJ[key]={entrada:quitar?(a.entrada_original||a.entrada):(e?e+':00':a.entrada), salida:quitar?(a.salida_original||a.salida):(s?s+':00':a.salida), estado:'guardando'};
+  NX.editFecha=''; nxPintarAsistencia();
+  const url=GAS+'?action=asistencia_ajuste_guardar&token='+TOKEN+'&employee='+encodeURIComponent(p.n)+'&fecha='+fecha+'&entrada='+encodeURIComponent(quitar?'':e)+'&salida='+encodeURIComponent(quitar?'':s)+'&pin='+encodeURIComponent(pin)+'&_='+Date.now();
+  try{
+    const j=await (await fetch(url)).json();
+    if(!j||j.ok===false) throw new Error((j&&j.error)||'No se pudo guardar el ajuste.');
+    NX_AJ[key].estado='recalculando'; nxToast('Guardado a nombre de '+(j.por||'usted')+'. Recalculando en segundo plano.');
+    nxVigilarRecalculo();
+  }catch(err){ NX_AJ[key].estado='error'; NX_AJ[key].err=err.message; nxToast(err.message); }
+  if(NX.tab==='fic'&&NX.ft==='asi'&&NX.emp===p.n) nxPintarAsistencia(); nxSync();
+}
+/* Espera a que el ciclo se republique (rh_index.json cambia) y recarga ciclo y ficha sin intervención. */
+let nxVigTimer=null, nxVigBase=null, nxVigT0=0;
+async function nxIndicePublicado(from){ try{ const r=await fetch('./rh_index.json?v='+Date.now(),{cache:'no-cache'}); const j=await r.json(); const c=(j.ciclos||[]).find(x=>x.from===from); return c?c.publicado:null; }catch(_){ return null; } }
+async function nxVigilarRecalculo(){
+  if(nxVigTimer) return; const from=NX.D.ciclo.from; nxVigBase=await nxIndicePublicado(from); nxVigT0=Date.now();
+  const paso=async()=>{
+    const pub=await nxIndicePublicado(from), venc=Date.now()-nxVigT0>8*60e3;
+    if((pub&&pub!==nxVigBase)||venc){
+      nxVigTimer=null; try{ delete CACHE_CICLOS[from]; }catch(_){}
+      const pend=Object.keys(NX_AJ).filter(k=>NX_AJ[k].estado==='recalculando'), nombres=[...new Set(pend.map(k=>k.split('|')[0]))];
+      nombres.forEach(n=>{ delete NX.pers[n]; try{ localStorage.removeItem(NX_LS+n); }catch(_){} });
+      pend.forEach(k=>delete NX_AJ[k]); NX.cargados={};
+      await nxCargarCiclo(from); nxSync();
+      nxToast(venc&&!(pub&&pub!==nxVigBase)?'El recálculo está tardando más de lo normal; se recargaron los datos publicados.':'Recálculo listo: '+nombres.join(', ')+' ya tiene sus horas y beneficios actualizados.');
+      /* la historia (TXT, saldo) se publica un poco después del ciclo */
+      setTimeout(()=>{ nombres.forEach(n=>{ delete NX.pers[n]; }); if(NX.tab==='fic'&&nombres.indexOf(NX.emp)>=0){ NX.cargados={}; nxPane(NX.ft); } },90000);
+      return;
+    }
+    nxVigTimer=setTimeout(paso,30000);
+  };
+  nxVigTimer=setTimeout(paso,45000);
 }
 function nxPintarVia(){
   const p=NX.P.find(x=>x.n===NX.emp), host=document.getElementById('nxViaJson'); if(!p) return;
@@ -4175,7 +4258,7 @@ imprimirAsistencia=async function(btn){
       styles:{fontSize:8.5,halign:'center',lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} });
     doc.autoTable({ startY:doc.lastAutoTable.finalY+10, theme:'grid', head:[['Fecha','Día','Entrada','Salida','Trabajadas','Extra','Observación']],
       body:dias.map(d=>{ const u=nxUna(d); return [nxFds(d.fecha),d.dia||diaCortoFront(d.fecha),nxHora(d.entrada),u?'—':nxHora(d.salida),d.horas_trabajadas||'—',d.horas_extra&&d.horas_extra!=='00:00'?d.horas_extra:'—',
-        [d.incidencia||'',d.turno_excepcion?('Turno '+d.turno_excepcion):'',d.minutos_tarde?('('+d.minutos_tarde+' min)'):'',u&&!d.incidencia?'Una sola marca':''].filter(Boolean).join(' · ')]; }),
+        [d.ajustado?('Ajustado (reloj '+nxHora(d.entrada_original)+(d.salida_original&&d.salida_original!==d.entrada_original?' – '+nxHora(d.salida_original):'')+')'):'',d.incidencia||'',d.turno_excepcion?('Turno '+d.turno_excepcion):'',d.minutos_tarde?('('+d.minutos_tarde+' min)'):'',u&&!d.incidencia&&!d.ajustado?'Una sola marca':''].filter(Boolean).join(' · ')]; }),
       styles:{fontSize:7.8,cellPadding:3,halign:'center',lineColor:[0,0,0],lineWidth:.4,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]},
       didParseCell:h=>{ if(h.section!=='body') return; const d=dias[h.row.index], inc=String(d.incidencia||'').toUpperCase(), t=String(d.tipo_dia||'').toUpperCase();
         if(/AUSEN/.test(inc)) h.cell.styles.fillColor=[254,226,226]; else if(/TARD/.test(inc)) h.cell.styles.fillColor=[254,243,199]; else if(d.turno_excepcion) h.cell.styles.fillColor=[209,250,229]; else if(t&&t!=='LABORABLE') h.cell.styles.fillColor=[224,231,255]; },
@@ -4254,7 +4337,7 @@ function nxXlsVista(){ if(!NX.D) return; const tag=NX.area?'_'+nxClave(NX.area):
 function nxXlsTodo(){ if(!NX.D) return; nxXlsInst('RH_Ciclo_completo_'+NX.D.ciclo.from,'Ciclo completo · todas las áreas',nxMetaCiclo(),NX_COLS_PER,nxOrden(NX.P,{k:'a',d:1}).map(nxFilaPer),1); }
 function nxXlsAsistencia(p){ nxXlsInst('Asistencia_'+nxClave(p.n),'Registro de asistencia · '+p.n,nxMetaCiclo().concat([['Colaborador',p.n+' · '+p.g+' · '+p.a]]),
   [{h:'Fecha',w:12},{h:'Día',w:6},{h:'Entrada',w:11},{h:'Salida',w:11},{h:'Trabajadas',w:11},{h:'HE del día',w:11},{h:'Estado',w:22}],
-  p.asi.map(a=>[a.fecha,a.dia,nxHora(a.entrada),nxUna(a)?'':nxHora(a.salida),a.horas_trabajadas,a.horas_extra,nxUna(a)?'Una sola marca':String(a.tipo_dia||'').replace(/_/g,' ')])); }
+  p.asi.map(a=>[a.fecha,a.dia,nxHora(a.entrada),nxUna(a)?'':nxHora(a.salida),a.horas_trabajadas,a.horas_extra,a.ajustado?('Ajustado · reloj '+nxHora(a.entrada_original)+(a.salida_original?' – '+nxHora(a.salida_original):'')):(nxUna(a)?'Una sola marca':String(a.tipo_dia||'').replace(/_/g,' '))])); }
 function nxXlsVia(p,r){ nxXlsInst('Alimentacion_transporte_'+nxClave(p.n),'Alimentación y transporte · '+p.n,nxMetaCiclo().concat([['Colaborador',p.n+' · '+p.g+' · '+p.a]]),
   [{h:'Fecha',w:12},{h:'Fuera de horario desde',w:14},{h:'Hasta',w:11},{h:'Alimentación B/.',t:'dec',w:13},{h:'Transporte B/.',t:'dec',w:13},{h:'Total B/.',t:'dec',w:12}],
   r.dias.map(d=>[d.fecha,nxHora(d.entrada),nxHora(d.salida),d.alimentacion,d.transporte,d.total_dia]).concat([['Total del ciclo','','',r.subtotales.alimentacion,r.subtotales.transporte,r.total]])); }
@@ -4482,7 +4565,7 @@ TOUR_STEPS.length=0;
   document.getElementById('nxYvBtn').onclick=nxYvAbrir; document.getElementById('nxYvClose').onclick=nxYvCerrar;
   document.getElementById('nxYvForm').addEventListener('submit',e=>{ e.preventDefault(); nxYvPreguntar(document.getElementById('nxYvQ').value); });
   document.getElementById('nxYvQ').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); nxYvPreguntar(document.getElementById('nxYvQ').value); } });
-  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||document.getElementById('rhModal').style.display==='flex') return;
+  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||document.getElementById('rhModal').style.display==='flex'||document.querySelector('.nx-dialog[role=alertdialog]')) return;
     if(!document.getElementById('nxDDlg').hidden) nxCerrarDisc(); else if(!document.getElementById('nxYv').hidden) nxYvCerrar(); else if(NX.tab==='fic') nxTab(NX.prevTab||'per'); });
   const vp=document.getElementById('vista-planilla'); if(vp){ vp.style.display=''; document.getElementById('nxPlaHost').appendChild(vp); }
   nxMontarReglas();
