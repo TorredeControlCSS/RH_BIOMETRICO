@@ -102,7 +102,7 @@
 "Tardanza: el registro de asistencia aplica 7:30 sin gracia también antes de mayo-2026, y guarda esas tardanzas automáticamente.",
 "Los permisos del Art. 18 y las tomas de TXT parciales justifican el día completo.",
 "Gaspar Salcedo padre e hijo se mezclan en el saldo de TXT y en la caducidad (no usan la regla de homónimos).",
-"El ajuste manual de marcas corrige lo que se muestra, pero no recalcula horas extra, beneficios ni TXT.",
+"Desde el 16-oct-2026 el ajuste manual de marcas reemplaza la hora del reloj en todos los cálculos (horas extra, alimentación y transporte, pagadas y TXT); la hora original queda guardada.",
 "Los feriados están escritos en el código; agregar o mover uno exige editar el programa."
 ]
 }
