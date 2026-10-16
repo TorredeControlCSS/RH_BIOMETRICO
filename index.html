@@ -394,6 +394,20 @@ mjx-container{color:inherit}
 @media (max-width:560px){.nx-kpis.k4,.nx-kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dgrid{grid-template-columns:1fr}.nx-calbody{grid-template-columns:1fr}}
 
 .nx-yvm .tt{font-size:12px;font-weight:600;margin:8px 0 4px;color:var(--nx-muted)}
+
+/* 16-oct · pestañas principales como botones bien definidos */
+#nxTabs{border-bottom:0;gap:8px;padding:6px 0 10px;flex-wrap:wrap}
+#nxTabs .nx-tab{border:1px solid var(--nx-line);border-radius:10px;background:var(--nx-surface);color:var(--nx-fg);padding:9px 16px;box-shadow:0 1px 2px rgba(11,31,58,.06)}
+#nxTabs .nx-tab:hover{border-color:var(--nx-accent);color:var(--nx-accent)}
+#nxTabs .nx-tab.on{background:var(--nx-accent);border-color:var(--nx-accent);color:var(--nx-accent-fg)}
+#nxTabs .nx-tab.on .nx-badge{background:rgba(255,255,255,.25);color:var(--nx-accent-fg)}
+#nxDTabs{border-bottom:2px solid var(--nx-line);gap:4px}
+#nxDTabs .nx-tab{border-radius:8px 8px 0 0;color:var(--nx-fg);margin-bottom:-2px;border-bottom:3px solid transparent}
+#nxDTabs .nx-tab:hover{background:var(--nx-surface2)}
+#nxDTabs .nx-tab.on{color:var(--nx-accent);border-bottom-color:var(--nx-accent);background:var(--nx-surface2)}
+.nx-yvm .tt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nx-yvm .tt .nx-btn{margin-left:auto}
+.nx-yvsug[hidden]{display:none}
 </style>
 </head>
 <body class="nx">
@@ -4384,7 +4398,7 @@ function nxYvContexto(){ const el=document.getElementById('nxYvCtx'); if(!el||do
 function nxYvSugeridas(){ const c=nxYvCtxObj(), p=c.resumen_colaborador, nm=c.colaborador?c.colaborador.split(' ')[0]:'';
   const S=p?['¿Por qué a '+nm+' le pagaron '+p.he_pagadas+' h si calculó '+p.he_calculadas+' h?','¿Qué días de '+nm+' están pendientes de justificar?','Explícame la regla de las 4:30 p.m.']
            :['¿Qué área tiene más pendientes por justificar?','¿Quién generó más horas extra en el ciclo?','Explícame cómo se reparte entre horas pagadas y tiempo compensatorio.'];
-  const h=document.getElementById('nxYvSug'); h.innerHTML=S.map(s=>'<button type="button">'+nxEsc(s)+'</button>').join(''); h.querySelectorAll('button').forEach(b=>b.onclick=()=>nxYvPreguntar(b.textContent)); }
+  const h=document.getElementById('nxYvSug'); h.hidden=NX_YV.hist.length>0||NX_YV.ocupado; if(h.hidden) return; h.innerHTML=S.map(s=>'<button type="button">'+nxEsc(s)+'</button>').join(''); h.querySelectorAll('button').forEach(b=>b.onclick=()=>nxYvPreguntar(b.textContent)); }
 function nxYvMsg(q,html,extra){ const d=document.createElement('div'); d.className='nx-yvm '+q; d.innerHTML=html+(extra||''); const L=document.getElementById('nxYvList'); L.appendChild(d); L.scrollTop=L.scrollHeight; return d; }
 function nxYvTexto(s){ return nxEsc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>'); }
 async function nxYvAbrir(){ document.getElementById('nxYv').hidden=false; document.getElementById('nxYvBtn').hidden=true; nxYvContexto();
@@ -4394,7 +4408,7 @@ function nxYvCerrar(){ document.getElementById('nxYv').hidden=true; document.get
 async function nxYvPreguntar(q){
   q=String(q||'').trim(); if(!q||NX_YV.ocupado) return;
   if(!NX_YV.pin){ let g=null; try{ g=sessionStorage.getItem('rh_yv_pin'); }catch(_){} NX_YV.pin=g||(window.ADMIN&&ADMIN.activo?ADMIN.pin:'')||await rhPedirPin('Yarvis','Ingrese su PIN para usar a Yarvis.'); if(!NX_YV.pin) return; }
-  nxYvMsg('yo',nxEsc(q)); document.getElementById('nxYvQ').value='';
+  nxYvMsg('yo',nxEsc(q)); document.getElementById('nxYvQ').value=''; document.getElementById('nxYvSug').hidden=true;
   const esp=nxYvMsg('ya','<span class="nx-note">Consultando los datos…</span>'); NX_YV.ocupado=true;
   const t=setTimeout(()=>{ esp.innerHTML='<span class="nx-note">Sigue trabajando: las consultas grandes pueden tardar hasta un minuto.</span>'; },15000);
   try{
@@ -4406,9 +4420,8 @@ async function nxYvPreguntar(q){
     NX_YV.hist.push({p:q,r:j.respuesta});
     const fts=(j.fuentes||[]).map(f=>nxEsc(f.nombre||f)+(f.corte?' · corte '+nxEsc(f.corte):'')).join(' · ');
     let tabla=''; if(j.tabla&&j.tabla.columnas&&j.tabla.filas){ const T=j.tabla, tp=T.columnas.map(c=>(c&&c.t)||'txt'), fv=(v,i)=>v==null||v===''?'':(tp[i]==='num'&&isFinite(v)?Number(v).toLocaleString('es-PA',{maximumFractionDigits:2}):v);
-      tabla='<div class="tt">'+nxEsc(T.titulo||'')+' · '+T.filas.length+' filas</div><div style="overflow:auto;max-height:320px"><table><tr>'+T.columnas.map(c=>'<th>'+nxEsc(c&&c.h!=null?c.h:c)+'</th>').join('')+'</tr>'+
-        T.filas.slice(0,200).map(f=>'<tr>'+f.map((v,i)=>'<td'+(tp[i]==='num'?' style="text-align:right"':'')+'>'+nxEsc(fv(v,i))+'</td>').join('')+'</tr>').join('')+'</table></div>'+
-        '<div class="act"><button type="button" class="nx-btn sm" data-yvx="1"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel de esta tabla</button></div>'; }
+      tabla='<div class="tt"><span>'+nxEsc(T.titulo||'')+' · '+T.filas.length+' filas</span><button type="button" class="nx-btn sm" data-yvx="1"><svg class="nx-ic"><use href="#i-xls"/></svg>Descargar Excel</button></div><div style="overflow:auto;max-height:260px"><table><tr>'+T.columnas.map(c=>'<th>'+nxEsc(c&&c.h!=null?c.h:c)+'</th>').join('')+'</tr>'+
+        T.filas.slice(0,200).map(f=>'<tr>'+f.map((v,i)=>'<td'+(tp[i]==='num'?' style="text-align:right"':'')+'>'+nxEsc(fv(v,i))+'</td>').join('')+'</tr>').join('')+'</table></div>'; }
     const m=nxYvMsg('ya',nxYvTexto(j.respuesta||''),tabla+(fts?'<div class="src">Fuente: '+fts+'</div>':'')+'<div class="act"><button type="button" class="nx-btn sm" data-yvd="1"><svg class="nx-ic"><use href="#i-flag"/></svg>No me parece correcto</button></div>');
     const bx=m.querySelector('[data-yvx]'); if(bx) bx.onclick=()=>{ const T=j.tabla; nxXlsInst('Yarvis_'+nxClave(T.titulo||'tabla').slice(0,40),T.titulo||'Tabla de Yarvis',[['Pregunta',q],['Fuente',T.fuente||'']],T.columnas.map(c=>({h:c&&c.h!=null?c.h:String(c),t:(c&&c.t==='num')?'dec':'txt',w:16})),T.filas); };
     m.querySelector('[data-yvd]').onclick=()=>nxAbrirDisc({n:NX.tab==='fic'?NX.emp:'',f:'',c:'Otro',sis:'Respuesta de Yarvis a: '+q.slice(0,150),r:''},'disc');
