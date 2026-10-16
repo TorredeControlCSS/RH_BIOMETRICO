@@ -4014,7 +4014,7 @@ cargarIncidencias=async function(emp,desde,hasta,fresco,silencioso){ const P=awa
 
 /* ══ Escrituras: no bloquean. La cabecera muestra el avance; la respuesta trae la persona republicada. ══ */
 const NX_ESCRITURAS=['art18_registrar','art18_eliminar','vac_resolucion','vac_usar','vac_resolucion_eliminar','vac_uso_eliminar','incidencia_registrar','incidencia_eliminar',
-  'txt_ajuste_eliminar','txt_ajuste_guardar','empalme_guardar','txt_cap_guardar','txt_uso_registrar','txt_uso_eliminar','asistencia_ajuste_guardar','registrarTXT','planilla_te','planilla_te_lote','planilla_te_reiniciar'];
+  'txt_ajuste_eliminar','txt_ajuste_guardar','empalme_guardar','txt_cap_guardar','txt_uso_registrar','txt_uso_eliminar','asistencia_ajuste_guardar','registrarTXT','planilla_te','planilla_te_lote','planilla_te_reiniciar','planilla_te_datos'];
 function nxSync(estado){
   const s=document.getElementById('nxSync');
   if(NX.pend>0){ s.hidden=false; s.className='nx-sync'; s.textContent='Guardando y publicando '+NX.pend+' cambio'+(NX.pend>1?'s':'')+'…'; return; }
@@ -4527,6 +4527,72 @@ inicializarPlanilla = async function(){
     PL_AREAS_CARGADAS=true;
   }
   return _inicializarPlanillaOrig();
+};
+
+/* ══ Planilla T.E. armada en el navegador (16-oct-2026) ══
+   El servidor solo da el número oficial y los datos del padrón (1 a 3 s). La plantilla oficial
+   (plantillas/PLANTILLA_TE.xlsx, la misma que usa el servidor) se llena aquí, celda por celda en su XML,
+   para conservar logo, bordes, celdas combinadas y fórmulas tal cual. */
+NX_LIBS.zip='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+const NX_TE_COLS=['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK'];
+const NX_TE_STY={B:28,C:29,D:4,E:4,F:4,G:4,H:4,I:5,J:30,K:4,L:5,M:31,N:4,O:4,P:5,Q:30,R:4,S:4,T:5,U:32,V:32,W:32,X:32,Y:32,Z:32,AA:32,AB:32,AC:32,AD:32,AE:32,AF:33,AG:34,AH:35,AI:36,AJ:37,AK:24};
+const nxX=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function nxTeCelda(ref,s,v,tipo){ if(v===''||v==null) return '<c r="'+ref+'" s="'+s+'"/>';
+  if(tipo==='f') return '<c r="'+ref+'" s="'+s+'"><f>'+v+'</f></c>';
+  if(tipo==='n') return '<c r="'+ref+'" s="'+s+'"><v>'+Number(v)+'</v></c>';
+  return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+nxX(v)+'</t></is></c>'; }
+function nxTeFila(r,c){ const d=c?String(c.digitos||'').split(''):[], val={B:[String(r-10),'s']};
+  if(c){ val.C=[c.nombre,'s']; val.J=[c.cedula,'s']; val.M=[c.cargo,'s']; val.Q=['B/. '+Number(c.salario||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),'s'];
+    ['U','V','W','X','Y','Z','AA','AB','AC','AD','AE'].forEach((L,i)=>{ if(d[i]!=null) val[L]=[d[i],'n']; });
+    val.AF=[c.horas,'n']; val.AG=[c.valor,'n']; val.AJ=['AF'+r+'*AG'+r,'f']; }
+  return '<row r="'+r+'" ht="14.25" customHeight="1">'+NX_TE_COLS.map(L=>{ const x=val[L]; return nxTeCelda(L+r,NX_TE_STY[L],x?x[0]:'',x?x[1]:''); }).join('')+'</row>'; }
+function nxTePoner(xml,ref,v,tipo){ const re=new RegExp('<c r="'+ref+'"( s="\\d+")?[^>]*?(/>|>[\\s\\S]*?</c>)'); const m=xml.match(re); const s=m&&m[1]?m[1].match(/\d+/)[0]:'0';
+  return m?xml.replace(re,nxTeCelda(ref,s,v,tipo)):xml; }
+async function nxPlanillaTE(empleados, desde, hasta, btn){
+  if(!(window.ADMIN&&ADMIN.activo)){ nxToast('Active el «Modo administrativo» (arriba) para generar planillas: consume el número oficial del formulario.'); return; }
+  if(!empleados.length){ nxToast('Marque al menos 1 colaborador.'); return; }
+  if(empleados.length>5){ nxToast('Máximo 5 colaboradores por planilla.'); return; }
+  if(!desde||!hasta){ nxToast('Indique el período (Desde / Hasta).'); return; }
+  const cods=(typeof getCodigosCasillas==='function')?getCodigosCasillas():{cod1:'',cod2:'',cod3:''};
+  await nxConDoc(btn, async ()=>{
+    const [plant]=await Promise.all([fetch('./plantillas/PLANTILLA_TE.xlsx?v=20261016').then(r=>{ if(!r.ok) throw new Error('No se pudo leer la plantilla oficial.'); return r.arrayBuffer(); }), nxLib('zip')]);
+    const url=GAS+'?action=planilla_te_datos&token='+TOKEN+'&empleados='+encodeURIComponent(empleados.join('||'))+'&from='+desde+'&to='+hasta+
+      '&cod1='+encodeURIComponent(cods.cod1)+'&cod2='+encodeURIComponent(cods.cod2)+'&cod3='+encodeURIComponent(cods.cod3)+'&_='+Date.now();
+    const j=await (await fetch(url)).json();
+    if(j&&!j.ok&&/no soportada/i.test(j.error||'')){ nxToast('El servidor aún no tiene la versión nueva: se genera como antes.'); return nxPlanillaServidor(empleados,desde,hasta,cods); }
+    if(!j||!j.ok) throw new Error((j&&j.error)||'No se pudo obtener el número de la planilla.');
+    const zip=await window.JSZip.loadAsync(plant); let x=await zip.file('xl/worksheets/sheet1.xml').async('string');
+    for(let r=11;r<=15;r++) x=x.replace(new RegExp('<row r="'+r+'"[^>]*>[\\s\\S]*?</row>'), nxTeFila(r, j.colaboradores[r-11]||null));
+    x=nxTePoner(x,'AH2',j.secuencial,'s'); x=nxTePoner(x,'C5',j.periodo,'s');
+    const C=j.codigos||{}; [['AI5',(C.cod1||[])[0]],['AI6',(C.cod2||[])[0]],['AJ6',(C.cod2||[])[1]],['AI7',(C.cod3||[])[0]],['AJ7',(C.cod3||[])[1]]]
+      .forEach(([ref,v])=>{ if(v!==undefined&&v!=='') x=nxTePoner(x,ref,v,'n'); });
+    zip.file('xl/worksheets/sheet1.xml',x);
+    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'});
+    const seq=String(j.secuencial).replace(/[^\w-]+/g,''), nom=j.colaboradores.length===1?('PLANILLA_TE_'+nxClave(j.colaboradores[0].nombre)+'_'+desde+'_'+seq):('PLANILLA_TE_LOTE_'+desde+'_'+seq);
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nom+'.xlsx'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+    const vivo=j.colaboradores.filter(c=>c.fuente_horas!=='ciclo publicado').map(c=>c.nombre);
+    nxToast('Planilla '+j.secuencial+' descargada · '+j.colaboradores.length+' colaborador'+(j.colaboradores.length>1?'es':'')+(vivo.length?' · horas en vivo para '+vivo.join(', '):''));
+    try{ cargarSecuencialActual(); }catch(_){}
+  });
+}
+const _plLoteServidor=generarPlanillaLote, _plUnoServidor=generarPlanillaTE;
+function nxPlanillaServidor(emp,desde,hasta,cods){ const url=GAS+(emp.length===1?('?action=planilla_te&token='+TOKEN+'&employee='+encodeURIComponent(emp[0])):('?action=planilla_te_lote&token='+TOKEN+'&empleados='+encodeURIComponent(emp.join('||'))))+
+  '&from='+desde+'&to='+hasta+'&cod1='+encodeURIComponent(cods.cod1)+'&cod2='+encodeURIComponent(cods.cod2)+'&cod3='+encodeURIComponent(cods.cod3)+'&_='+Date.now();
+  return generarDocumento(url,'Generando planilla de sobretiempo (Form. T.E.)…'); }
+generarPlanillaLote=function(btn){ const chks=[...document.querySelectorAll('.pl-chk:checked')];
+  return nxPlanillaTE(chks.map(c=>c.value), document.getElementById('pl-desde').value, document.getElementById('pl-hasta').value, btn); };
+generarPlanillaTE=function(btn){ if(!ULTIMA||ULTIMA.modo!=='uno'){ nxToast('Abra la ficha de un colaborador para generar su planilla.'); return; }
+  return nxPlanillaTE([ULTIMA.valor], ULTIMA.desde, ULTIMA.hasta, btn); };
+/* Lista del área desde el ciclo publicado (antes consultaba al servidor) */
+plCargarColaboradores=async function(){
+  const area=document.getElementById('pl-area').value, cont=document.getElementById('pl-lista'), bus=document.getElementById('pl-buscar'); if(bus) bus.value='';
+  if(!area){ cont.innerHTML='<div style="color:#888">Seleccione un área.</div>'; PL_COLABS=[]; return; }
+  const D=await cargarDatos(document.getElementById('pl-desde').value);
+  if(!D||!D.detalle){ cont.innerHTML='<div style="color:#888">Este período no está publicado.</div>'; PL_COLABS=[]; return; }
+  PL_COLABS=Object.keys(D.detalle).filter(n=>((D.area_de&&D.area_de[n])||(D.detalle[n].ficha||{}).area)===area)
+    .map(n=>{ const f=D.detalle[n].ficha||{}; return { nombre:n, num_funcionario:f.num_funcionario||'', cargo:f.cargo||'' }; });
+  if(!PL_COLABS.length){ cont.innerHTML='<div style="color:#888">Sin colaboradores en esta área.</div>'; return; }
+  plRenderLista();
 };
 
 /* ── Tutorial guiado ── */
