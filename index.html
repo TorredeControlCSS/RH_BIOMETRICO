@@ -3590,7 +3590,8 @@ function nxPintarCiclos(){
   nxListaCiclos().forEach(c=>{
     const b=document.createElement('button'); b.type='button'; b.className='nx-chip'+(c.from===cur?' on':'');
     if(!c.pub){ b.setAttribute('aria-disabled','true'); b.title='El biométrico no tiene marcaciones de este ciclo todavía'; }
-    b.innerHTML=nxCorto(c)+' <small>'+(c.pub?'con datos':(c.curso?'en curso':'sin marcaciones'))+'</small>';
+    const porPub=!c.pub && NX.integrado && NX.integrado>=c.from;
+    b.innerHTML=nxCorto(c)+' <small>'+(c.pub?'con datos':(porPub?'por publicar':(c.curso?'en curso':'sin marcaciones')))+'</small>';
     b.onclick=()=>{ if(c.pub) nxCargarCiclo(c.from); else nxToast('Este ciclo todavía no tiene marcaciones. Se llena cuando RH carga el reporte del reloj en la Ventanilla Única de Reportes.'); };
     host.appendChild(b);
   });
@@ -3600,6 +3601,18 @@ function nxPintarCiclos(){
 async function nxEstado(){
   let est=null; try{ const r=await fetch('./rh_estado.json?v='+Date.now(),{cache:'no-cache'}); if(r.ok) est=await r.json(); }catch(_){}
   const ult=(est&&est.datos_hasta)||NX.ultima; if(!ult) return;
+  NX.integrado=String(ult).slice(0,10);
+  /* El reloj ya tiene marcaciones más nuevas que el último ciclo publicado:
+     falta publicar el tablero. Se dice tal cual, sin pintarlo de verde. */
+  const pubHasta=String(NX.ultima||'').slice(0,10);
+  if(pubHasta && NX.integrado>pubHasta){
+    const box0=document.getElementById('nxFresh'), in0=document.getElementById('nxFreshIn');
+    box0.className='nx-fresh nx-gut warn';
+    in0.innerHTML='<svg class="nx-ic" style="margin-top:2px"><use href="#i-alert"/></svg><div class="nx-fmsg"><b>El reloj ya tiene marcaciones hasta el '+nxFdl(NX.integrado)+'</b>, pero el tablero publicado llega hasta el '+nxFdl(pubHasta)+'. '+
+      'La publicación corre en segundo plano después de cada carga; si no avanza, pulse <b>Actualizar datos</b> (requiere PIN).'+
+      (est&&est.actualizado_en?(' Última integración: '+nxEsc(est.actualizado_en)+(est.eventos_nuevos!=null?(' · '+est.eventos_nuevos+' marcaciones nuevas'):'')+'.'):'')+'</div>';
+    box0.hidden=false; nxPintarCiclos(); return;
+  }
   const atraso=nxDias(String(ult).slice(0,10), nxHoyYmd());
   const box=document.getElementById('nxFresh'), inn=document.getElementById('nxFreshIn');
   box.className='nx-fresh nx-gut'+(atraso>10?' bad':(atraso>3?' warn':''));
