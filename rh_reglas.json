@@ -1,0 +1,108 @@
+{
+"version": "2026-10-16",
+"fuente": "Cómo se calcula · Tablero de RH (reglas tomadas del código de RH_MASTER)",
+"reglas": [
+{
+"id": "R1",
+"titulo": "Ciclo de pago",
+"texto": "Cada ciclo va del día 16 de un mes al día 15 del mes siguiente. Una fecha del 1 al 15 pertenece al ciclo que empezó el 16 del mes anterior. \\[ \\text{Ciclo}(f)=\\begin{cases}[\\,16/m,\\ 15/(m{+}1)\\,] & \\text{si } \\mathrm{día}(f)\\ge 16\\\\[4pt] [\\,16/(m{-}1),\\ 15/m\\,] & \\text{si } \\mathrm{día}(f)\\le 15\\end{cases} \\] Ejemplo: Ejemplo: el 03-oct-2026 pertenece al ciclo 16-sep-2026 → 15-oct-2026."
+},
+{
+"id": "R2",
+"titulo": "Entrada y salida del día",
+"texto": "De todas las marcas de un mismo día se toma la primera como entrada \\(E\\) y la última como salida \\(S\\). Las marcas intermedias no cuentan. Marcas repetidas al segundo se cuentan una vez. \\[ E=\\min(\\text{marcas}),\\qquad S=\\max(\\text{marcas}),\\qquad \\text{Jornada}=\\frac{S-E}{60}\\ \\text{h} \\] Si el día tiene menos de 2 marcas o \\(S=E\\), el día queda en revisión y no genera horas extra ni beneficios hasta que se justifique: \\[ \\#\\text{marcas} Aviso: No se descuenta almuerzo. Un turno que pasa de la medianoche se parte en dos días."
+},
+{
+"id": "R3",
+"titulo": "Tipo de día",
+"texto": "Feriado si la fecha está en la lista de feriados del sistema; fin de semana si es sábado o domingo; si no, laborable. \\[ \\text{Tipo}(f)=\\begin{cases}\\text{FERIADO} & f\\in\\mathcal{F}\\\\ \\text{FIN DE SEMANA} & f\\in\\{\\text{sáb},\\text{dom}\\}\\\\ \\text{LABORABLE} & \\text{en otro caso}\\end{cases} \\] Aviso: La lista \\(\\mathcal{F}\\) está escrita en el código (2025–2026). Incluye Miércoles de Cenizas y 8-dic. No traslada feriados que caen en domingo."
+},
+{
+"id": "R4",
+"titulo": "Horas extra en día laborable",
+"texto": "Solo cuenta el tiempo después de las 3:30 p.m. , y solo si la salida es a las 4:30 p.m. o más tarde . La hora de llegada no influye y el tiempo antes de las 7:30 a.m. no cuenta. \\[ HE_d=\\begin{cases}0 & S Aviso: Hay un salto: salir a las 4:29 p.m. da 0 h; salir a las 4:30 p.m. da 1:00 h."
+},
+{
+"id": "R5",
+"titulo": "Horas extra en fin de semana o feriado",
+"texto": "Todo el tiempo trabajado cuenta como extra, desde las 7:00 a.m. o desde la llegada si fue después. \\[ HE_d=\\max\\!\\left(0,\\ \\frac{S-\\max(E,\\ 7{:}00)}{60\\ \\text{min}}\\right) \\]"
+},
+{
+"id": "R6",
+"titulo": "Turno de excepción (tarde)",
+"texto": "Para quien está en la hoja de turnos de excepción ese día: si llegó desde las 12:00 m. y salió desde las 8:00 p.m., es turno tarde y solo cuenta lo que pase de las 9:00 p.m. Si no, se aplica R4. \\[ E\\ge 12{:}00\\ \\land\\ S\\ge 20{:}00\\ \\Longrightarrow\\ HE_d=\\max\\!\\left(0,\\ \\frac{S-21{:}00}{60}\\right) \\] Aviso: Las horas de entrada y salida escritas en la hoja de turnos no se usan; el turno se deduce de las marcas."
+},
+{
+"id": "R7",
+"titulo": "Redondeo diario de horas extra",
+"texto": "Las horas extra de cada día se guardan con dos decimales (centésimas de hora). No se redondean a horas enteras en el día. \\[ HE_d=\\frac{\\operatorname{round}(100\\cdot HE_d)}{100} \\]"
+},
+{
+"id": "R8",
+"titulo": "Tope de 40 h y reparto entre pago y TXT",
+"texto": "Los días del ciclo se recorren en orden. Mientras quede tope, las horas se pagan; lo que pase del tope va a tiempo compensatorio (TXT), si la persona tiene Aplica TXT . El tope por defecto es 40 h y puede cambiarse por persona y ciclo. \\[ R_0=\\text{Tope}=40\\ \\text{h},\\qquad p_d=\\min(HE_d,\\ R_{d-1}),\\qquad R_d=R_{d-1}-p_d \\] \\[ \\text{Pag}=\\sum_d p_d,\\qquad \\text{TXT}=\\left[\\text{Aplica TXT}\\right]\\cdot\\sum_d\\left(HE_d-p_d\\right) \\] Si la persona no tiene «Aplica HE pagada», todo va a TXT: \\(\\text{TXT}=\\sum_d HE_d\\)."
+},
+{
+"id": "R9",
+"titulo": "Solo se pagan horas enteras",
+"texto": "Al cerrar el ciclo, las horas pagadas se truncan al entero de abajo. La fracción que se corta pasa a tiempo compensatorio solo si la persona tiene «Aplica TXT»; si no, se pierde . \\[ \\text{Pag}_{\\text{final}}=\\lfloor \\text{Pag}\\rfloor,\\qquad \\text{TXT}_{\\text{final}}=\\text{TXT}+\\left(\\text{Pag}-\\lfloor\\text{Pag}\\rfloor\\right)\\cdot[\\text{Aplica TXT}] \\] Aviso: Solo el total pagado del ciclo se trunca. Las horas del día (R7) y el TXT conservan las fracciones."
+},
+{
+"id": "R10",
+"titulo": "Tarifa y monto de horas extra",
+"texto": "\\[ \\text{Tarifa}=\\begin{cases}\\text{B/. }6.00 & \\text{salario}>1000\\\\ \\text{B/. }5.50 & \\text{salario}\\le 1000\\end{cases}\\qquad \\text{Monto}=\\lfloor\\text{Pag}\\rfloor\\cdot\\text{Tarifa} \\] Aviso: No hay recargo distinto para fin de semana o feriado. El salario sale del PADRÓN."
+},
+{
+"id": "R11",
+"titulo": "Alimentación",
+"texto": "El monto base \\(a\\) es el de cada persona (columna Alimentación, normalmente B/. 4.00). \\[ \\text{Alim}_d=\\begin{cases}a & \\text{laborable y } S\\ge 18{:}01\\\\ 2a & \\text{fin de semana o feriado y } HE_d>4\\ \\text{h}\\\\ 0 & \\text{en otro caso}\\end{cases} \\]"
+},
+{
+"id": "R12",
+"titulo": "Transporte",
+"texto": "El monto base \\(t\\) es la tarifa de taxi de cada persona (una vía). \\[ \\text{Transp}_d=\\min\\!\\left(10,\\ \\begin{cases}t & \\text{laborable y } S\\ge 19{:}00\\\\ 2t & \\text{fin de semana o feriado (ida y vuelta)}\\\\ 0 & \\text{en otro caso}\\end{cases}\\right) \\] \\[ \\text{Total}_d=\\text{Alim}_d+\\text{Transp}_d,\\qquad \\text{Total del ciclo}=\\sum_d \\text{Total}_d \\]"
+},
+{
+"id": "R13",
+"titulo": "Saldo de tiempo compensatorio",
+"texto": "Cada ciclo es una «bolsa» con lo que generó (o con el ajuste registrado para ese ciclo, que reemplaza al biométrico). Las tomas consumen primero la bolsa más antigua. Lo que no alcanza queda como sobregiro. \\[ \\text{Saldo}=\\text{Empalme}+\\sum_{c}\\text{Gen}_c-\\sum_{u}\\text{Tomado}_u-\\sum_{u}\\text{Planificado}_u \\] \\[ \\text{Gen}_c=\\begin{cases}\\text{Ajuste}_c & \\text{si hay ajuste del ciclo}\\\\ \\text{TXT}_{\\text{final},c} & \\text{en otro caso}\\end{cases} \\]"
+},
+{
+"id": "R14",
+"titulo": "Vencimiento del TXT (Art. 100)",
+"texto": "\\[ \\text{Vence}(g)=\\begin{cases}31/\\text{dic}/\\text{año}(g) & \\text{mes}(g)\\in[\\text{ene},\\text{sep}]\\\\ 31/\\text{mar}/(\\text{año}(g)+1) & \\text{mes}(g)\\in[\\text{oct},\\text{dic}]\\end{cases} \\] Aviso: Hoy hay dos versiones: una toma como fecha de generación el inicio del ciclo y otra el día real. Ver «Puntos detectados»."
+},
+{
+"id": "R15",
+"titulo": "Permisos Art. 18",
+"texto": "8 horas por cuatrimestre: mayo–agosto, septiembre–diciembre y enero–abril. No descuentan tiempo compensatorio ni vacaciones; justifican la ausencia del día. \\[ \\text{Restantes}_q=8-\\sum_{p\\in q} h_p,\\qquad \\text{Excedido}\\iff \\sum_{p\\in q}h_p>8 \\]"
+},
+{
+"id": "R16",
+"titulo": "Vacaciones",
+"texto": "Los días tomados son corridos (incluyen fines de semana y feriados) y se descuentan primero de la resolución más antigua. \\[ \\text{Días}=(\\text{hasta}-\\text{desde})+1,\\qquad \\text{Consumidos}_i=\\min(\\text{Otorg}_i,\\ \\text{Pendiente}),\\qquad \\text{Disp}_i=\\text{Otorg}_i-\\text{Consumidos}_i \\]"
+},
+{
+"id": "R17",
+"titulo": "Tardanza",
+"texto": "Solo en días laborables. Hasta el 30-abr-2026 había 5 minutos de gracia; desde el 1-may-2026 no hay gracia. Los segundos cuentan. \\[ \\text{Tarde}\\iff E>7{:}30+g,\\qquad g=\\begin{cases}5\\ \\text{min} & f"
+},
+{
+"id": "R18",
+"titulo": "Planilla T.E.",
+"texto": "\\[ \\text{Horas}=\\operatorname{round}(\\lfloor\\text{Pag}\\rfloor),\\qquad \\text{Valor}=\\text{Tarifa (R10)},\\qquad \\text{Total}=\\text{Horas}\\cdot\\text{Valor} \\] Aviso: Si el rango de la planilla toca dos ciclos, cada parte lleva su propio tope de 40 h y su propio truncamiento."
+}
+],
+"puntos_detectados": [
+"Solo el total pagado del ciclo se trunca a horas enteras (R9). Si la persona no tiene «Aplica TXT», la fracción se pierde.",
+"Día laborable: salir a las 4:29 p.m. da 0 h y a las 4:30 p.m. da 1:00 h; la llegada tarde no reduce las horas extra (R4).",
+"Fin de semana: cuenta desde las 7:00 a.m., aunque el horario regular empieza a las 7:30, y no descuenta almuerzo (R5).",
+"Hay tres cálculos distintos del saldo de tiempo compensatorio (con foto inicial, con empalme y el de caducidad). Pueden no coincidir.",
+"Vacaciones: el saldo se calcula en dos lugares con reglas distintas (recalculado por períodos y columnas guardadas).",
+"Tardanza: el registro de asistencia aplica 7:30 sin gracia también antes de mayo-2026, y guarda esas tardanzas automáticamente.",
+"Los permisos del Art. 18 y las tomas de TXT parciales justifican el día completo.",
+"Gaspar Salcedo padre e hijo se mezclan en el saldo de TXT y en la caducidad (no usan la regla de homónimos).",
+"El ajuste manual de marcas corrige lo que se muestra, pero no recalcula horas extra, beneficios ni TXT.",
+"Los feriados están escritos en el código; agregar o mover uno exige editar el programa."
+]
+}

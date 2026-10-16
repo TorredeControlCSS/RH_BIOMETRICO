@@ -392,6 +392,8 @@ mjx-container{color:inherit}
 .nx-yvin{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--nx-line)}
 .nx-yvin textarea{flex:1;border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:8px;padding:8px;font:14px var(--nx-f);resize:none;min-width:0;height:auto}
 @media (max-width:560px){.nx-kpis.k4,.nx-kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dgrid{grid-template-columns:1fr}.nx-calbody{grid-template-columns:1fr}}
+
+.nx-yvm .tt{font-size:12px;font-weight:600;margin:8px 0 4px;color:var(--nx-muted)}
 </style>
 </head>
 <body class="nx">
@@ -4397,14 +4399,18 @@ async function nxYvPreguntar(q){
   const t=setTimeout(()=>{ esp.innerHTML='<span class="nx-note">Sigue trabajando: las consultas grandes pueden tardar hasta un minuto.</span>'; },15000);
   try{
     const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),150000);
-    const r=await fetch(NX_YV_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:NX_YV.pin,pregunta:q,historial:NX_YV.hist.slice(-6),conversacion:NX_YV.conv,contexto:nxYvCtxObj()}),signal:ctl.signal});
+    const r=await fetch(NX_YV_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({tablero:'RH_BIOMETRICO',pin:NX_YV.pin,pregunta:q,historial:NX_YV.hist.slice(-6),conversacion:NX_YV.conv,contexto:nxYvCtxObj()}),signal:ctl.signal});
     clearTimeout(to); const j=await r.json(); clearTimeout(t); esp.remove();
     if(!j.ok){ if(/PIN/i.test(j.error||'')){ NX_YV.pin=''; try{ sessionStorage.removeItem('rh_yv_pin'); }catch(_){} } nxYvMsg('ya err',nxEsc(j.error||'Yarvis no pudo responder.')); return; }
     try{ sessionStorage.setItem('rh_yv_pin',NX_YV.pin); }catch(_){}
     NX_YV.hist.push({p:q,r:j.respuesta});
     const fts=(j.fuentes||[]).map(f=>nxEsc(f.nombre||f)+(f.corte?' · corte '+nxEsc(f.corte):'')).join(' · ');
-    let tabla=''; if(j.tabla&&j.tabla.columnas&&j.tabla.filas){ tabla='<div style="overflow:auto"><table><tr>'+j.tabla.columnas.map(c=>'<th>'+nxEsc(c)+'</th>').join('')+'</tr>'+j.tabla.filas.slice(0,30).map(f=>'<tr>'+f.map(v=>'<td>'+nxEsc(v)+'</td>').join('')+'</tr>').join('')+'</table></div>'; }
+    let tabla=''; if(j.tabla&&j.tabla.columnas&&j.tabla.filas){ const T=j.tabla, tp=T.columnas.map(c=>(c&&c.t)||'txt'), fv=(v,i)=>v==null||v===''?'':(tp[i]==='num'&&isFinite(v)?Number(v).toLocaleString('es-PA',{maximumFractionDigits:2}):v);
+      tabla='<div class="tt">'+nxEsc(T.titulo||'')+' · '+T.filas.length+' filas</div><div style="overflow:auto;max-height:320px"><table><tr>'+T.columnas.map(c=>'<th>'+nxEsc(c&&c.h!=null?c.h:c)+'</th>').join('')+'</tr>'+
+        T.filas.slice(0,200).map(f=>'<tr>'+f.map((v,i)=>'<td'+(tp[i]==='num'?' style="text-align:right"':'')+'>'+nxEsc(fv(v,i))+'</td>').join('')+'</tr>').join('')+'</table></div>'+
+        '<div class="act"><button type="button" class="nx-btn sm" data-yvx="1"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel de esta tabla</button></div>'; }
     const m=nxYvMsg('ya',nxYvTexto(j.respuesta||''),tabla+(fts?'<div class="src">Fuente: '+fts+'</div>':'')+'<div class="act"><button type="button" class="nx-btn sm" data-yvd="1"><svg class="nx-ic"><use href="#i-flag"/></svg>No me parece correcto</button></div>');
+    const bx=m.querySelector('[data-yvx]'); if(bx) bx.onclick=()=>{ const T=j.tabla; nxXlsInst('Yarvis_'+nxClave(T.titulo||'tabla').slice(0,40),T.titulo||'Tabla de Yarvis',[['Pregunta',q],['Fuente',T.fuente||'']],T.columnas.map(c=>({h:c&&c.h!=null?c.h:String(c),t:(c&&c.t==='num')?'dec':'txt',w:16})),T.filas); };
     m.querySelector('[data-yvd]').onclick=()=>nxAbrirDisc({n:NX.tab==='fic'?NX.emp:'',f:'',c:'Otro',sis:'Respuesta de Yarvis a: '+q.slice(0,150),r:''},'disc');
   }catch(e){ clearTimeout(t); esp.remove(); nxYvMsg('ya err',e&&e.name==='AbortError'?'Yarvis tardó demasiado en responder. Vuelva a intentarlo.':'No hay conexión con Yarvis.'); }
   finally{ NX_YV.ocupado=false; }
