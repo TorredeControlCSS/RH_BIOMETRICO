@@ -186,12 +186,6 @@ tfoot td{background:#f7f9fc;font-weight:700}
   --nx-f:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --nx-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --nx-bg:#0E1622; --nx-surface:#152131; --nx-surface2:#1A283A; --nx-line:#2A3B52; --nx-fg:#E4ECF5; --nx-muted:#9AAABD;
-  --nx-navy:#081A31; --nx-accent:#6EA6E8; --nx-accent-fg:#0B1A2C;
-  --nx-ok-bg:#183A27; --nx-ok-fg:#9EE0B6; --nx-warn-bg:#3C3015; --nx-warn-fg:#F3D27E; --nx-bad-bg:#46211D; --nx-bad-fg:#F5ABA0;
-  --nx-info-bg:#182E4A; --nx-info-fg:#A9CBF4; --nx-lil-bg:#2B2547; --nx-lil-fg:#CBBDF5; --nx-sand-bg:#352D20; --nx-sand-fg:#E2CFA9;
-  --nx-bar:#3F6EA6; --nx-hover:#1D2D42; color-scheme:dark}}
 :root[data-theme="dark"]{
   --nx-bg:#0E1622; --nx-surface:#152131; --nx-surface2:#1A283A; --nx-line:#2A3B52; --nx-fg:#E4ECF5; --nx-muted:#9AAABD;
   --nx-navy:#081A31; --nx-accent:#6EA6E8; --nx-accent-fg:#0B1A2C;
@@ -261,7 +255,8 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
 .k-bad{background:var(--nx-bad-bg);color:var(--nx-bad-fg)} .k-warn{background:var(--nx-warn-bg);color:var(--nx-warn-fg)}
 .k-lil{background:var(--nx-lil-bg);color:var(--nx-lil-fg)} .k-sand{background:var(--nx-sand-bg);color:var(--nx-sand-fg)}
 
-.nx-two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+.nx-two{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1fr);gap:14px}
+#nxTArea th,#nxTArea td{padding-left:8px;padding-right:8px}#nxTArea td:first-child{white-space:normal;min-width:120px}
 .nx-panel{background:var(--nx-surface);border:1px solid var(--nx-line);border-radius:10px;min-width:0}
 .nx-ph{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--nx-line);flex-wrap:wrap}
 .nx-ph h3{margin:0;font-size:13.5px;font-weight:700;color:var(--nx-fg)}
@@ -322,12 +317,81 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
 .nx-calc h4{margin:0 0 6px;font-size:13.5px}
 .nx-eq{font-family:var(--nx-num);font-size:12.5px;background:var(--nx-surface2);border-radius:8px;padding:8px 10px;margin:6px 0;line-height:1.7}
 
+@media (max-width:1240px){.nx-two{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:1000px){.nx-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.nx-two{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.nx-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dk{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-top{position:static}#selloEstado{text-align:left!important}.nx-brow,.nx-axis{grid-template-columns:90px minmax(0,1fr) 70px}}
 @media (prefers-reduced-motion:no-preference){.nx-drawer{animation:nxsl .18s ease-out}@keyframes nxsl{from{transform:translateX(30px);opacity:.6}}}
 
 #tourNav button{color:#1b2430}
 #tourBox{color:#333}
+
+/* ── v3 · ficha completa, sugerencias, reglas, Yarvis ── */
+.nx-stack{display:flex;flex-direction:column;gap:14px}
+.nx-kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}.nx-kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.nx-badge.bad{background:var(--nx-bad-bg);color:var(--nx-bad-fg)}
+.nx-sync{position:fixed;left:16px;bottom:18px;z-index:60;background:#0B1F3A;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:9px 14px;font-size:13px;display:inline-flex;gap:8px;align-items:center;color:#fff;box-shadow:0 6px 20px rgba(11,31,58,.25)}.nx-sync[hidden]{display:none}
+.nx-sync::before{content:"";width:8px;height:8px;border-radius:50%;background:#F3D27E;animation:nxpul 1s infinite alternate}
+.nx-sync.ok::before{background:#7EE2A8;animation:none}.nx-sync.err::before{background:#F59E8B;animation:none}
+@keyframes nxpul{to{opacity:.3}}
+.nx-fichead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nx-fichead h2{margin:0;font-size:19px;color:var(--nx-fg)}.nx-fictit{min-width:0}
+.nx-fichead select,.nx-ph select,.nx-calhead select{height:34px;border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:8px;padding:0 10px;font:14px var(--nx-f);max-width:300px}
+.nx-flag{border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-muted);border-radius:8px;width:30px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.nx-flag:hover{color:var(--nx-bad-fg);border-color:var(--nx-bad-fg);background:var(--nx-bad-bg)}
+.nx-btn.sm{height:28px;padding:0 9px;font-size:12px}
+.p-run{background:var(--nx-info-bg);color:var(--nx-info-fg)}
+.nx-why{max-width:560px;white-space:normal;margin-top:2px}
+#nxTDis td:nth-child(4){min-width:320px}
+.nx-res-form{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.nx-res-form textarea{border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:8px;padding:6px 8px;font:13px var(--nx-f);min-width:220px}
+.nx-scrim{z-index:89}
+.nx-dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:var(--nx-surface);color:var(--nx-fg);border-radius:14px;z-index:90;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.nx-dlh{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--nx-navy);color:#fff;border-radius:14px 14px 0 0}
+.nx-dlh h3{margin:0;flex:1;font-size:15px}.nx-dlh .nx-btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.nx-dform{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.nx-drow{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nx-drow label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--nx-muted)}
+.nx-drow input,.nx-drow select,.nx-drow textarea{border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:8px;padding:8px 10px;font:14px var(--nx-f);min-width:0;height:auto}
+.nx-drow input[readonly]{background:var(--nx-surface2);color:var(--nx-muted)}
+.nx-dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nx-dfoot{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.nx-dfoot p{margin:0;flex:1 1 260px}
+[data-modo="sug"] [data-solo="disc"]{display:none}[data-modo="disc"] [data-solo="sug"]{display:none}
+.nx-calhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.nx-calhead h2{margin:0 0 4px;font-size:19px;color:var(--nx-fg)}.nx-calhead p{margin:0;max-width:760px}
+.nx-calbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px}
+.regla{background:var(--nx-surface);border:1px solid var(--nx-line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0;scroll-margin-top:90px;color:var(--nx-fg)}
+.regla h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.regla p{margin:0;line-height:1.55}
+.rid{background:var(--nx-navy);color:#fff;border-radius:6px;padding:1px 7px;font-family:var(--nx-num);font-size:12px}
+.tex{background:var(--nx-surface2);border-radius:10px;padding:8px 10px;overflow-x:auto}
+.ej{font-size:13px;background:var(--nx-ok-bg);border-radius:8px;padding:6px 10px}.ej:empty{display:none}
+.aviso{font-size:12.5px;color:var(--nx-warn-fg);background:var(--nx-warn-bg);border-radius:8px;padding:6px 10px}
+.regla .nx-btn.dis{align-self:flex-start}
+.regla.puntos{grid-column:1/-1;background:var(--nx-bad-bg);color:var(--nx-bad-fg);border-color:transparent}
+.regla.puntos ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.regla.puntos .nx-btn.dis{display:none}
+.nx-hl2{box-shadow:0 0 0 3px var(--nx-focus)}
+mjx-container{color:inherit}
+.nx-yvbtn{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--nx-navy);color:#fff;border:0;border-radius:999px;height:44px;padding:0 18px;display:inline-flex;gap:8px;align-items:center;font:600 14px var(--nx-f);box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer}
+.nx-yv{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100% - 32px));height:min(660px,calc(100% - 100px));z-index:75;background:var(--nx-surface);color:var(--nx-fg);border:1px solid var(--nx-line);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.3);display:flex;flex-direction:column;overflow:hidden}
+.nx-yvh{background:var(--nx-navy);color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px}
+.nx-yvh div{flex:1;display:flex;flex-direction:column}.nx-yvh span{font-size:11px;opacity:.8}
+.nx-yvh .nx-btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.nx-yvctx{font-size:11.5px;color:var(--nx-muted);padding:6px 12px;border-bottom:1px solid var(--nx-line);background:var(--nx-surface2)}
+.nx-yvlist{flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.nx-yvm{max-width:92%;border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.5;white-space:normal}
+.nx-yvm.yo{align-self:flex-end;background:var(--nx-accent);color:var(--nx-accent-fg)}
+.nx-yvm.ya{align-self:flex-start;background:var(--nx-surface2)}
+.nx-yvm.err{background:var(--nx-bad-bg);color:var(--nx-bad-fg)}
+.nx-yvm .src{font-size:11px;color:var(--nx-muted);margin-top:4px}
+.nx-yvm .act{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.nx-yvm table{border-collapse:collapse;font-size:12px;margin-top:6px}.nx-yvm td,.nx-yvm th{border:1px solid var(--nx-line);padding:3px 6px;text-align:left}
+.nx-yvsug{display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px}
+.nx-yvsug button{border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:999px;padding:5px 10px;font:12px var(--nx-f);cursor:pointer;text-align:left}
+.nx-yvin{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--nx-line)}
+.nx-yvin textarea{flex:1;border:1px solid var(--nx-line);background:var(--nx-surface);color:var(--nx-fg);border-radius:8px;padding:8px;font:14px var(--nx-f);resize:none;min-width:0;height:auto}
+@media (max-width:560px){.nx-kpis.k4,.nx-kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dgrid{grid-template-columns:1fr}.nx-calbody{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="nx">
@@ -343,6 +407,12 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
 </svg>
 
 <header class="nx-top nx-gut">
@@ -350,6 +420,7 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
     <img src="./icons/icon-192.png" alt="Caja de Seguro Social">
     <div><div class="nx-tt">Recursos Humanos · Dirección Nacional de Logística</div><div class="nx-ts">CEDIS Panamá · Biométrico y beneficios</div></div>
     <div class="nx-tr">
+      <span class="nx-sync" id="nxSync" hidden></span>
       <span id="admin-quien" style="display:none;align-items:center;gap:10px;font-size:12.5px;color:#0C447C;background:#fff;border-radius:8px;padding:4px 5px 4px 10px">
         <span style="display:flex;flex-direction:column;line-height:1.25">
           <span style="color:#555;font-size:10.5px">Operando como</span>
@@ -362,7 +433,7 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
       <button type="button" class="nx-hb" id="btn-admin" onclick="entrarModoAdmin()" title="Activa el modo para registrar, ajustar o aprobar"><svg class="nx-ic"><use href="#i-lock"/></svg>Modo administrativo</button>
       <button type="button" class="nx-hb" id="btn-pub" onclick="publicarDatos(this)" title="Recalcula y republica los datos del biométrico"><svg class="nx-ic"><use href="#i-refresh"/></svg>Actualizar datos</button>
       <button type="button" class="nx-hb" id="btnTour" onclick="iniciarTour()"><svg class="nx-ic"><use href="#i-help"/></svg>Ver tutorial guiado</button>
-      <button type="button" class="nx-hb ic" id="nxTheme" aria-label="Cambiar tema claro u oscuro"><svg class="nx-ic"><use href="#i-moon"/></svg></button>
+      <button type="button" class="nx-hb ic" id="nxTheme" aria-label="Cambiar a tema oscuro" title="Tema claro · toque para oscuro"><svg class="nx-ic"><use href="#i-sun"/></svg></button>
       <div id="selloEstado" style="margin-left:6px;font-size:11px;line-height:1.5;text-align:right;color:#e8f0fb;white-space:nowrap"></div>
     </div>
   </div>
@@ -377,6 +448,7 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
       <button type="button" class="nx-tab on" data-t="res">Resumen del ciclo</button>
       <button type="button" class="nx-tab" data-t="per">Personal</button>
       <button type="button" class="nx-tab" data-t="pen">Pendientes por justificar <span class="nx-badge" id="nxBPen">0</span></button>
+      <button type="button" class="nx-tab" data-t="dis">Sugerencias y discrepancias <span class="nx-badge bad" id="nxBDis">0</span></button>
       <button type="button" class="nx-tab" data-t="pla">Planilla T.E.</button>
       <button type="button" class="nx-tab" data-t="cal">Cómo se calcula</button>
     </nav>
@@ -396,35 +468,36 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
   <div id="nxCargando" class="nx-panel nx-empty">Cargando el ciclo publicado…</div>
 
   <section id="nx-res" hidden>
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="nx-stack">
       <div class="nx-kpis" id="nxKpis"></div>
       <div class="nx-two">
-        <div class="nx-panel">
-          <div class="nx-ph"><h3>Áreas del ciclo</h3><span class="sub">Toque un área para ver a su personal</span></div>
-          <div class="nx-scroll"><table class="nt" id="nxTArea"></table></div>
-        </div>
-        <div class="nx-panel">
-          <div class="nx-ph"><h3>Alimentación y transporte por área</h3><span class="sub">B/. reconocidos en el ciclo</span></div>
-          <div id="nxBars"></div>
-        </div>
+        <div class="nx-panel"><div class="nx-ph"><h3>Áreas del ciclo</h3><span class="sub">Toque un área para ver a su personal</span></div><div class="nx-scroll"><table class="nt" id="nxTArea"></table></div></div>
+        <div class="nx-panel"><div class="nx-ph"><h3>Alimentación y transporte por área</h3><span class="sub">B/. reconocidos en el ciclo</span></div><div id="nxBars"></div></div>
       </div>
     </div>
   </section>
 
   <section id="nx-per" hidden>
-    <div class="nx-panel">
-      <div class="nx-ph"><h3 id="nxPerT">Personal</h3><span class="sub">Toque un nombre para abrir su ficha</span></div>
-      <div class="nx-tbl nx-scroll"><table class="nt" id="nxTPer"></table></div>
-    </div>
+    <div class="nx-panel"><div class="nx-ph"><h3 id="nxPerT">Personal</h3><span class="sub">Toque un nombre para abrir su ficha</span></div><div class="nx-tbl nx-scroll"><table class="nt" id="nxTPer"></table></div></div>
   </section>
 
   <section id="nx-pen" hidden>
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="nx-stack">
       <div class="nx-callout p-warn">Días en que el reloj registró <b>una sola marca</b> (entrada igual a salida, o sin salida) y personal <b>sin ninguna marcación</b> en el ciclo. Cada caso necesita su incidencia (permiso, olvido de marca, misión oficial, vacaciones) para cerrar el ciclo sin errores de pago.</div>
-      <div class="nx-panel">
-        <div class="nx-ph"><h3>Lista de trabajo</h3><span class="sub" id="nxPenSub"></span></div>
-        <div class="nx-tbl nx-scroll"><table class="nt" id="nxTPen"></table></div>
-      </div>
+      <div class="nx-panel"><div class="nx-ph"><h3>Lista de trabajo</h3><span class="sub" id="nxPenSub"></span></div><div class="nx-tbl nx-scroll"><table class="nt" id="nxTPen"></table></div></div>
+    </div>
+  </section>
+
+  <section id="nx-dis" hidden>
+    <div class="nx-stack">
+      <div class="nx-callout p-info"><b>Sugerencias</b>: ideas o reglas que se proponen cambiar (botón «Nueva sugerencia»). <b>Discrepancias</b>: un cálculo concreto que alguien considera incorrecto; se reportan con la bandera de cada día en la ficha o desde «Cómo se calcula». La Jefatura revisa y responde aquí; ningún cálculo cambia hasta que la regla se corrija.</div>
+      <div class="nx-kpis k4" id="nxDisKpis"></div>
+      <div class="nx-panel"><div class="nx-ph"><h3>Casos reportados</h3><span class="sub" id="nxDisSub">Ordene por cualquier columna</span><span class="nx-sp"></span>
+        <button type="button" class="nx-btn main" id="nxBtnSug"><svg class="nx-ic"><use href="#i-bulb"/></svg>Nueva sugerencia</button>
+        <select id="nxDisTipo" aria-label="Filtrar por tipo"><option value="">Sugerencias y discrepancias</option><option value="SUG">Solo sugerencias</option><option value="DISC">Solo discrepancias</option></select>
+        <select id="nxDisEst" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option>ABIERTA</option><option>EN REVISIÓN</option><option>ACEPTADA</option><option>RECHAZADA</option></select></div>
+        <div class="nx-tbl nx-scroll"><table class="nt" id="nxTDis"></table></div></div>
+      <div class="nx-panel"><div class="nx-ph"><h3>Reglas más cuestionadas</h3><span class="sub">Para priorizar qué revisar</span></div><div id="nxDisReglas"></div></div>
     </div>
   </section>
 
@@ -497,42 +570,82 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
   </section>
 
   <section id="nx-cal" hidden>
-    <div class="nx-calc" id="nxCalc"></div>
+    <div class="nx-stack">
+      <div class="nx-calhead">
+        <div><h2>Cómo se calcula</h2><p class="nx-note">Reglas tal como las aplica hoy el sistema, tomadas del código de RH_MASTER. Cada regla trae su fórmula, un ejemplo con datos del ciclo y un botón para reportar si no está de acuerdo.</p></div>
+        <select id="nxCalSel" aria-label="Ir a la regla"></select>
+      </div>
+      <div id="nxCalBody" class="nx-calbody"></div>
+    </div>
+  </section>
+
+  <!-- Ficha del colaborador: ocupa todo el espacio de trabajo. Los contenedores
+       res-* son los de siempre: los módulos de gestión escriben ahí. -->
+  <section id="nx-fic" hidden>
+    <div class="nx-stack">
+      <div class="nx-fichead">
+        <button type="button" class="nx-btn" id="nxFicBack"><svg class="nx-ic"><use href="#i-back"/></svg>Volver</button>
+        <div class="nx-fictit"><h2 id="nxDName"></h2><div class="nx-note" id="nxDMeta"></div></div>
+        <span class="nx-sp"></span>
+        <button type="button" class="nx-btn" id="nxFicPrev" aria-label="Colaborador anterior"><svg class="nx-ic"><use href="#i-back"/></svg></button>
+        <select id="nxFicSel" aria-label="Cambiar de colaborador"></select>
+        <button type="button" class="nx-btn" id="nxFicNext" aria-label="Colaborador siguiente"><svg class="nx-ic"><use href="#i-right"/></svg></button>
+        <button type="button" class="nx-btn" id="nxDTe" title="Planilla de sobretiempo (Form. T.E.) del ciclo · consume el correlativo"><svg class="nx-ic"><use href="#i-pdf"/></svg>Planilla T.E.</button>
+      </div>
+      <div class="nx-kpis k5" id="nxDKpis"></div>
+      <nav class="nx-tabs" id="nxDTabs">
+        <button type="button" class="nx-tab on" data-ft="asi">Asistencia</button>
+        <button type="button" class="nx-tab" data-ft="via">Alimentación y transporte</button>
+        <button type="button" class="nx-tab" data-ft="txt">Tiempo compensatorio</button>
+        <button type="button" class="nx-tab" data-ft="vac">Vacaciones</button>
+        <button type="button" class="nx-tab" data-ft="inc">Incidencias</button>
+        <button type="button" class="nx-tab" data-ft="dis">Discrepancias <span class="nx-badge bad" id="nxFicBDis">0</span></button>
+      </nav>
+      <div data-pane="asi">
+        <div id="nxAsiJson"></div>
+        <div class="nx-legacy" id="nxAsiEdit" hidden><div id="res-asi"></div></div>
+      </div>
+      <div data-pane="via" hidden><div id="nxViaJson"></div><div id="res-via" hidden></div></div>
+      <div data-pane="txt" hidden><div class="nx-legacy"><div id="res-txt"></div><div id="res-art18"></div></div></div>
+      <div data-pane="vac" hidden><div class="nx-legacy"><div id="res-vac"></div></div></div>
+      <div data-pane="inc" hidden><div class="nx-legacy"><div id="res-inc"></div></div></div>
+      <div data-pane="dis" hidden><div id="nxFicDis"></div></div>
+    </div>
   </section>
 </div></main>
 
-<!-- Ficha del colaborador. Los contenedores res-* son los de siempre: los
-     módulos de gestión (TXT, vacaciones, incidencias, ajustes) escriben ahí. -->
-<div class="nx-scrim" id="nxScrim" hidden></div>
-<aside class="nx-drawer" id="nxDrawer" role="dialog" aria-modal="true" aria-labelledby="nxDName" hidden>
-  <div class="nx-dh">
-    <div style="flex:1;min-width:200px"><h2 id="nxDName"></h2><div class="meta" id="nxDMeta"></div></div>
-    <button type="button" class="nx-btn" id="nxDPdf" title="Reconocimiento de alimentación y transporte del ciclo"><svg class="nx-ic"><use href="#i-pdf"/></svg>PDF alimentación</button>
-    <button type="button" class="nx-btn" id="nxDTe" title="Planilla de sobretiempo (Form. T.E.) del ciclo"><svg class="nx-ic"><use href="#i-pdf"/></svg>Planilla T.E.</button>
-    <button type="button" class="nx-btn" id="nxDClose" aria-label="Cerrar ficha"><svg class="nx-ic"><use href="#i-x"/></svg></button>
-  </div>
-  <div class="nx-db">
-    <div class="nx-dk" id="nxDKpis"></div>
-    <div class="nx-tabs" id="nxDTabs">
-      <button type="button" class="nx-tab on" data-ft="asi">Asistencia</button>
-      <button type="button" class="nx-tab" data-ft="via">Alimentación y transporte</button>
-      <button type="button" class="nx-tab" data-ft="txt">Tiempo compensatorio</button>
-      <button type="button" class="nx-tab" data-ft="vac">Vacaciones</button>
-      <button type="button" class="nx-tab" data-ft="inc">Incidencias</button>
+<!-- Diálogo: discrepancia o sugerencia -->
+<div class="nx-scrim" id="nxDScrim" hidden></div>
+<div class="nx-dialog" id="nxDDlg" role="dialog" aria-modal="true" aria-labelledby="nxDTit" hidden>
+  <div class="nx-dlh"><h3 id="nxDTit">Reportar discrepancia</h3><button class="nx-btn" id="nxDClose" type="button" aria-label="Cerrar"><svg class="nx-ic"><use href="#i-x"/></svg></button></div>
+  <form id="nxDForm" class="nx-dform">
+    <div class="nx-drow" data-solo="disc"><label for="nxDCol">Colaborador</label><input id="nxDCol" readonly></div>
+    <div class="nx-drow" data-solo="sug"><label for="nxDTipoSug">Tipo de sugerencia</label><select id="nxDTipoSug"><option>Regla de negocio (cómo se calcula)</option><option>Mejora del tablero</option><option>Error del tablero</option><option>Otro</option></select></div>
+    <div class="nx-dgrid" data-solo="disc">
+      <div class="nx-drow"><label for="nxDFecha">Día</label><input id="nxDFecha" readonly></div>
+      <div class="nx-drow"><label for="nxDConc">Qué valor</label><select id="nxDConc"></select></div>
     </div>
-    <div data-pane="asi">
-      <div id="nxAsiJson"></div>
-      <div class="nx-legacy" id="nxAsiEdit" hidden><div id="res-asi"></div></div>
+    <div class="nx-dgrid" data-solo="disc">
+      <div class="nx-drow"><label for="nxDSis">Lo que calcula el sistema</label><input id="nxDSis" readonly></div>
+      <div class="nx-drow"><label for="nxDProp">Lo que usted considera correcto</label><input id="nxDProp" placeholder="Ej.: 1:00 h, B/. 4.00, 7:28 a.m."></div>
     </div>
-    <div data-pane="via" hidden><div class="nx-legacy"><div id="res-via"></div></div></div>
-    <div data-pane="txt" hidden><div class="nx-legacy"><div id="res-txt"></div><div id="res-art18"></div></div></div>
-    <div data-pane="vac" hidden><div class="nx-legacy"><div id="res-vac"></div></div></div>
-    <div data-pane="inc" hidden><div class="nx-legacy"><div id="res-inc"></div></div></div>
-  </div>
+    <div class="nx-drow"><label for="nxDRegla">Regla relacionada</label><select id="nxDRegla"></select></div>
+    <div class="nx-drow"><label for="nxDWhy">Por qué (con sus palabras; si hay una norma o memorando, cítelo)</label><textarea id="nxDWhy" rows="4"></textarea></div>
+    <div class="nx-dfoot"><p class="nx-note">Queda registrado a su nombre (se pide su PIN). No cambia ningún cálculo: la Jefatura lo revisa y responde.</p><button class="nx-btn main" type="submit"><svg class="nx-ic"><use href="#i-flag"/></svg>Enviar</button></div>
+  </form>
+</div>
+
+<!-- Yarvis dentro del tablero de RH -->
+<button class="nx-yvbtn" id="nxYvBtn" type="button" aria-label="Preguntar a Yarvis"><svg class="nx-ic"><use href="#i-chat"/></svg>Preguntar a Yarvis</button>
+<aside class="nx-yv" id="nxYv" role="dialog" aria-label="Yarvis · asistente de RH" hidden>
+  <div class="nx-yvh"><div><b>Yarvis</b><span>Asistente de RH · responde con los datos publicados</span></div><button class="nx-btn" id="nxYvClose" type="button" aria-label="Cerrar Yarvis"><svg class="nx-ic"><use href="#i-x"/></svg></button></div>
+  <div class="nx-yvctx" id="nxYvCtx"></div>
+  <div class="nx-yvlist" id="nxYvList"></div>
+  <div class="nx-yvsug" id="nxYvSug"></div>
+  <form class="nx-yvin" id="nxYvForm"><textarea id="nxYvQ" rows="2" placeholder="Pregunte sobre el ciclo, una persona o una regla…" aria-label="Pregunta para Yarvis"></textarea><button class="nx-btn main" type="submit">Enviar</button></form>
 </aside>
 
-<!-- Controles de la versión anterior que los módulos de gestión siguen
-     leyendo (fechas del ciclo, colaborador y área seleccionados). Ocultos. -->
+<!-- Controles de la versión anterior que los módulos de gestión siguen leyendo. Ocultos. -->
 <div id="nxLegacyCtl" hidden>
   <div class="ctx-in">
     <div class="modo"><button id="m-uno" class="on"></button><button id="m-area"></button><button id="m-planilla"></button></div>
@@ -546,6 +659,134 @@ svg.nx-ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
   <nav id="nav-secciones"><button id="s-asi"></button><button id="s-via"></button><button id="s-txt"></button><button id="s-vac"></button><button id="s-inc"></button></nav>
   <div id="wrap-resultados"><div id="sec-asi"></div><div id="sec-via"></div><div id="sec-txt"></div><div id="sec-vac"></div><div id="sec-inc"></div><div id="bienv-areas"></div></div>
 </div>
+
+<template id="tplReglas">
+<article class="regla" id="R1" data-t="Ciclo de pago">
+  <h3><span class="rid">R1</span>Ciclo de pago</h3>
+  <p>Cada ciclo va del día 16 de un mes al día 15 del mes siguiente. Una fecha del 1 al 15 pertenece al ciclo que empezó el 16 del mes anterior.</p>
+  <div class="tex">\[ \text{Ciclo}(f)=\begin{cases}[\,16/m,\ 15/(m{+}1)\,] & \text{si } \mathrm{día}(f)\ge 16\\[4pt] [\,16/(m{-}1),\ 15/m\,] & \text{si } \mathrm{día}(f)\le 15\end{cases} \]</div>
+  <p class="ej">Ejemplo: el 03-oct-2026 pertenece al ciclo 16-sep-2026 → 15-oct-2026.</p>
+</article>
+
+<article class="regla" id="R2" data-t="Entrada y salida del día">
+  <h3><span class="rid">R2</span>Entrada y salida del día</h3>
+  <p>De todas las marcas de un mismo día se toma la <b>primera como entrada</b> \(E\) y la <b>última como salida</b> \(S\). Las marcas intermedias no cuentan. Marcas repetidas al segundo se cuentan una vez.</p>
+  <div class="tex">\[ E=\min(\text{marcas}),\qquad S=\max(\text{marcas}),\qquad \text{Jornada}=\frac{S-E}{60}\ \text{h} \]</div>
+  <p>Si el día tiene <b>menos de 2 marcas</b> o \(S=E\), el día queda <b>en revisión</b> y no genera horas extra ni beneficios hasta que se justifique:</p>
+  <div class="tex">\[ \#\text{marcas}<2\ \lor\ S=E\ \Longrightarrow\ HE_d=0,\ \ \text{Alim}_d=0,\ \ \text{Transp}_d=0 \]</div>
+  <p class="aviso">No se descuenta almuerzo. Un turno que pasa de la medianoche se parte en dos días.</p>
+</article>
+
+<article class="regla" id="R3" data-t="Tipo de día">
+  <h3><span class="rid">R3</span>Tipo de día</h3>
+  <p>Feriado si la fecha está en la lista de feriados del sistema; fin de semana si es sábado o domingo; si no, laborable.</p>
+  <div class="tex">\[ \text{Tipo}(f)=\begin{cases}\text{FERIADO} & f\in\mathcal{F}\\ \text{FIN DE SEMANA} & f\in\{\text{sáb},\text{dom}\}\\ \text{LABORABLE} & \text{en otro caso}\end{cases} \]</div>
+  <p class="aviso">La lista \(\mathcal{F}\) está escrita en el código (2025–2026). Incluye Miércoles de Cenizas y 8-dic. No traslada feriados que caen en domingo.</p>
+</article>
+
+<article class="regla" id="R4" data-t="Horas extra en día laborable">
+  <h3><span class="rid">R4</span>Horas extra en día laborable</h3>
+  <p>Solo cuenta el tiempo <b>después de las 3:30 p.m.</b>, y solo si la salida es a las <b>4:30 p.m. o más tarde</b>. La hora de llegada no influye y el tiempo antes de las 7:30 a.m. no cuenta.</p>
+  <div class="tex">\[ HE_d=\begin{cases}0 & S<16{:}30\\[4pt] \dfrac{S-15{:}30}{60\ \text{min}} & S\ge 16{:}30\end{cases} \]</div>
+  <p class="ej" data-ej="R4"></p>
+  <p class="aviso">Hay un salto: salir a las 4:29 p.m. da 0 h; salir a las 4:30 p.m. da 1:00 h.</p>
+</article>
+
+<article class="regla" id="R5" data-t="Horas extra en fin de semana o feriado">
+  <h3><span class="rid">R5</span>Horas extra en fin de semana o feriado</h3>
+  <p>Todo el tiempo trabajado cuenta como extra, desde las <b>7:00 a.m.</b> o desde la llegada si fue después.</p>
+  <div class="tex">\[ HE_d=\max\!\left(0,\ \frac{S-\max(E,\ 7{:}00)}{60\ \text{min}}\right) \]</div>
+  <p class="ej" data-ej="R5"></p>
+</article>
+
+<article class="regla" id="R6" data-t="Turno de excepción (tarde)">
+  <h3><span class="rid">R6</span>Turno de excepción (tarde)</h3>
+  <p>Para quien está en la hoja de turnos de excepción ese día: si llegó desde las 12:00 m. y salió desde las 8:00 p.m., es turno tarde y solo cuenta lo que pase de las 9:00 p.m. Si no, se aplica R4.</p>
+  <div class="tex">\[ E\ge 12{:}00\ \land\ S\ge 20{:}00\ \Longrightarrow\ HE_d=\max\!\left(0,\ \frac{S-21{:}00}{60}\right) \]</div>
+  <p class="aviso">Las horas de entrada y salida escritas en la hoja de turnos no se usan; el turno se deduce de las marcas.</p>
+</article>
+
+<article class="regla" id="R7" data-t="Redondeo diario de horas extra">
+  <h3><span class="rid">R7</span>Redondeo diario de horas extra</h3>
+  <p>Las horas extra de cada día se guardan con <b>dos decimales</b> (centésimas de hora). <b>No</b> se redondean a horas enteras en el día.</p>
+  <div class="tex">\[ HE_d=\frac{\operatorname{round}(100\cdot HE_d)}{100} \]</div>
+  <p class="ej" data-ej="R7"></p>
+</article>
+
+<article class="regla" id="R8" data-t="Tope de 40 h y reparto entre pago y TXT">
+  <h3><span class="rid">R8</span>Tope de 40 h por ciclo: qué se paga y qué va a tiempo compensatorio</h3>
+  <p>Los días del ciclo se recorren en orden. Mientras quede tope, las horas se pagan; lo que pase del tope va a tiempo compensatorio (TXT), si la persona tiene <b>Aplica TXT</b>. El tope por defecto es 40 h y puede cambiarse por persona y ciclo.</p>
+  <div class="tex">\[ R_0=\text{Tope}=40\ \text{h},\qquad p_d=\min(HE_d,\ R_{d-1}),\qquad R_d=R_{d-1}-p_d \]</div>
+  <div class="tex">\[ \text{Pag}=\sum_d p_d,\qquad \text{TXT}=\left[\text{Aplica TXT}\right]\cdot\sum_d\left(HE_d-p_d\right) \]</div>
+  <p>Si la persona <b>no</b> tiene «Aplica HE pagada», todo va a TXT: \(\text{TXT}=\sum_d HE_d\).</p>
+</article>
+
+<article class="regla" id="R9" data-t="Solo se pagan horas enteras">
+  <h3><span class="rid">R9</span>Solo se pagan horas enteras (punto en debate)</h3>
+  <p>Al cerrar el ciclo, las horas pagadas se <b>truncan</b> al entero de abajo. La fracción que se corta pasa a tiempo compensatorio <b>solo si</b> la persona tiene «Aplica TXT»; si no, <b>se pierde</b>.</p>
+  <div class="tex">\[ \text{Pag}_{\text{final}}=\lfloor \text{Pag}\rfloor,\qquad \text{TXT}_{\text{final}}=\text{TXT}+\left(\text{Pag}-\lfloor\text{Pag}\rfloor\right)\cdot[\text{Aplica TXT}] \]</div>
+  <p class="ej" data-ej="R9"></p>
+  <p class="aviso">Solo el total pagado del ciclo se trunca. Las horas del día (R7) y el TXT conservan las fracciones.</p>
+</article>
+
+<article class="regla" id="R10" data-t="Tarifa y monto de horas extra">
+  <h3><span class="rid">R10</span>Tarifa y monto de horas extra</h3>
+  <div class="tex">\[ \text{Tarifa}=\begin{cases}\text{B/. }6.00 & \text{salario}>1000\\ \text{B/. }5.50 & \text{salario}\le 1000\end{cases}\qquad \text{Monto}=\lfloor\text{Pag}\rfloor\cdot\text{Tarifa} \]</div>
+  <p class="aviso">No hay recargo distinto para fin de semana o feriado. El salario sale del PADRÓN.</p>
+</article>
+
+<article class="regla" id="R11" data-t="Alimentación">
+  <h3><span class="rid">R11</span>Alimentación</h3>
+  <p>El monto base \(a\) es el de cada persona (columna Alimentación, normalmente B/. 4.00).</p>
+  <div class="tex">\[ \text{Alim}_d=\begin{cases}a & \text{laborable y } S\ge 18{:}01\\ 2a & \text{fin de semana o feriado y } HE_d>4\ \text{h}\\ 0 & \text{en otro caso}\end{cases} \]</div>
+  <p class="ej" data-ej="R11"></p>
+</article>
+
+<article class="regla" id="R12" data-t="Transporte">
+  <h3><span class="rid">R12</span>Transporte</h3>
+  <p>El monto base \(t\) es la tarifa de taxi de cada persona (una vía).</p>
+  <div class="tex">\[ \text{Transp}_d=\min\!\left(10,\ \begin{cases}t & \text{laborable y } S\ge 19{:}00\\ 2t & \text{fin de semana o feriado (ida y vuelta)}\\ 0 & \text{en otro caso}\end{cases}\right) \]</div>
+  <div class="tex">\[ \text{Total}_d=\text{Alim}_d+\text{Transp}_d,\qquad \text{Total del ciclo}=\sum_d \text{Total}_d \]</div>
+  <p class="ej" data-ej="R12"></p>
+</article>
+
+<article class="regla" id="R13" data-t="Saldo de tiempo compensatorio">
+  <h3><span class="rid">R13</span>Saldo de tiempo compensatorio (libro TXT)</h3>
+  <p>Cada ciclo es una «bolsa» con lo que generó (o con el ajuste registrado para ese ciclo, que reemplaza al biométrico). Las tomas consumen primero la bolsa más antigua. Lo que no alcanza queda como sobregiro.</p>
+  <div class="tex">\[ \text{Saldo}=\text{Empalme}+\sum_{c}\text{Gen}_c-\sum_{u}\text{Tomado}_u-\sum_{u}\text{Planificado}_u \]</div>
+  <div class="tex">\[ \text{Gen}_c=\begin{cases}\text{Ajuste}_c & \text{si hay ajuste del ciclo}\\ \text{TXT}_{\text{final},c} & \text{en otro caso}\end{cases} \]</div>
+</article>
+
+<article class="regla" id="R14" data-t="Vencimiento del TXT (Art. 100)">
+  <h3><span class="rid">R14</span>Vencimiento del tiempo compensatorio (Art. 100)</h3>
+  <div class="tex">\[ \text{Vence}(g)=\begin{cases}31/\text{dic}/\text{año}(g) & \text{mes}(g)\in[\text{ene},\text{sep}]\\ 31/\text{mar}/(\text{año}(g)+1) & \text{mes}(g)\in[\text{oct},\text{dic}]\end{cases} \]</div>
+  <p class="aviso">Hoy hay dos versiones: una toma como fecha de generación el inicio del ciclo y otra el día real. Ver «Puntos detectados».</p>
+</article>
+
+<article class="regla" id="R15" data-t="Permisos Art. 18">
+  <h3><span class="rid">R15</span>Permisos del Art. 18</h3>
+  <p>8 horas por cuatrimestre: mayo–agosto, septiembre–diciembre y enero–abril. No descuentan tiempo compensatorio ni vacaciones; justifican la ausencia del día.</p>
+  <div class="tex">\[ \text{Restantes}_q=8-\sum_{p\in q} h_p,\qquad \text{Excedido}\iff \sum_{p\in q}h_p>8 \]</div>
+</article>
+
+<article class="regla" id="R16" data-t="Vacaciones">
+  <h3><span class="rid">R16</span>Vacaciones</h3>
+  <p>Los días tomados son <b>corridos</b> (incluyen fines de semana y feriados) y se descuentan primero de la resolución más antigua.</p>
+  <div class="tex">\[ \text{Días}=(\text{hasta}-\text{desde})+1,\qquad \text{Consumidos}_i=\min(\text{Otorg}_i,\ \text{Pendiente}),\qquad \text{Disp}_i=\text{Otorg}_i-\text{Consumidos}_i \]</div>
+</article>
+
+<article class="regla" id="R17" data-t="Tardanza">
+  <h3><span class="rid">R17</span>Tardanza</h3>
+  <p>Solo en días laborables. Hasta el 30-abr-2026 había 5 minutos de gracia; desde el 1-may-2026 no hay gracia. Los segundos cuentan.</p>
+  <div class="tex">\[ \text{Tarde}\iff E>7{:}30+g,\qquad g=\begin{cases}5\ \text{min} & f<01/05/2026\\ 0 & f\ge 01/05/2026\end{cases},\qquad \text{Min tarde}=\operatorname{round}(E-7{:}30) \]</div>
+</article>
+
+<article class="regla" id="R18" data-t="Planilla T.E.">
+  <h3><span class="rid">R18</span>Planilla de tiempo extra (Form. T.E.)</h3>
+  <div class="tex">\[ \text{Horas}=\operatorname{round}(\lfloor\text{Pag}\rfloor),\qquad \text{Valor}=\text{Tarifa (R10)},\qquad \text{Total}=\text{Horas}\cdot\text{Valor} \]</div>
+  <p class="aviso">Si el rango de la planilla toca dos ciclos, cada parte lleva su propio tope de 40 h y su propio truncamiento.</p>
+</article>
+</template>
 
 <script>
 const GAS   = "https://script.google.com/macros/s/AKfycby_lXwc1VIzyj5qV2kxaZBzhiBiHQ3wPbRG3raRov_Ij2lFEtBnqTGb_1DmCglx37V_/exec";
@@ -3212,10 +3453,9 @@ async function generarPlanillaLote(btn){
 }
 
 /* ── Arranque ── */
-/* 16-oct-2026 · El arranque lo hace la nueva interfaz (nxInit, al final):
-   todo se lee de los JSON publicados; ya no se consulta el script al abrir.
-   Antes: pintarChips(); cargarPersonal(); cargarAreas(); pintarBienvenida();
-   ajustarCicloConDatos(); */
+/* 16-oct-2026 · v3: el arranque lo hace nxInit (al final). Todo se lee de los JSON
+   publicados; al abrir ya no se consulta el script. Antes: pintarChips(); cargarPersonal();
+   cargarAreas(); pintarBienvenida(); ajustarCicloConDatos(); */
 
 // El biométrico se alimenta por ingestas, así que el ciclo del calendario
 // puede estar vacío. Esta consulta ajusta al último ciclo CON datos, pero
@@ -3463,7 +3703,7 @@ function iniciarTour(){
     const se = document.getElementById('sel-emp');
     if(se && !se.value){
       const primera = Array.from(se.options).find(o=>o.value);
-      /* 16-oct-2026 · la nueva interfaz no necesita consultar a nadie para el recorrido */
+      /* 16-oct-2026 · v3: el recorrido no necesita consultar a nadie */
     }
   }catch(_){}
   pintarTourPaso_();
@@ -3526,17 +3766,16 @@ function _tourReposicionar_(){
 </script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
-   NUEVA INTERFAZ · 16-oct-2026
-   Lectura 100 % desde los JSON publicados en GitHub Pages:
-     rh_index.json      ciclos publicados
-     rh_<desde>.json    un archivo por ciclo (detalle, asistencia, beneficios)
-     rh_estado.json     sello de frescura del biométrico (si existe)
-   El script de Google solo se usa para ESCRIBIR (incidencias, TXT,
-   vacaciones, ajustes, planilla, PDF), con los mismos módulos de siempre,
-   que se cargan solo cuando se abre su pestaña dentro de la ficha.
+   TABLERO DE RH · v3 (16-oct-2026)
+   Lectura 100 % desde JSON publicados en GitHub Pages:
+     rh_index.json · rh_<ciclo>.json · rh_estado.json   (ciclos y frescura)
+     rh_personas.json · rh_persona/<clave>.json          (historia por persona)
+     rh_discrepancias.json                               (sugerencias y discrepancias)
+   El script de Google solo se usa para ESCRIBIR. Cada escritura devuelve la
+   persona ya republicada; mientras tanto la pantalla sigue disponible y la
+   cabecera muestra el avance. PDF y Excel se arman en el navegador.
    ══════════════════════════════════════════════════════════════════════ */
 
-/* Avisos sin bloquear la pantalla: alert() detiene cadenas de ejecución. */
 function nxToast(t){
   const e=document.createElement('div'); e.className='nx-toast'; e.setAttribute('role','status');
   e.textContent=String(t); document.body.appendChild(e);
@@ -3544,43 +3783,57 @@ function nxToast(t){
 }
 window.alert=function(m){ nxToast(m); };
 
-const NX={ idx:null, D:null, P:[], ultima:'', tab:'res', area:'', txt:'', emp:'', ft:'asi', cargados:{}, plaInit:false, prefFecha:'' };
-const NX_SORT={ per:{k:'vi',d:-1}, area:{k:'total',d:-1}, pen:{k:'f',d:1} };
+const NX={ idx:null, D:null, P:[], ultima:'', integrado:'', tab:'res', prevTab:'per', area:'', txt:'', emp:'', ft:'asi',
+           cargados:{}, plaInit:false, prefFecha:'', pidx:null, pers:{}, disc:[], pend:0 };
+const NX_SORT={ per:{k:'vi',d:-1}, area:{k:'total',d:-1}, pen:{k:'f',d:1}, dis:{k:'ts',d:-1} };
 const NX_MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const nxEsc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nxM=n=>Number(n||0).toLocaleString('es-PA',{minimumFractionDigits:2,maximumFractionDigits:2});
 const nxB=n=>'B/. '+nxM(n);
 const nxHf=s=>{const m=String(s||'').match(/(\d+):(\d{2})/);return m?(+m[1])+(+m[2])/60:0;};
 const nxH=n=>{n=Number(n||0);let h=Math.floor(n),m=Math.round((n-h)*60);if(m===60){h++;m=0;}return h+':'+String(m).padStart(2,'0');};
-const nxFd=ymd=>{const p=String(ymd||'').slice(0,10).split('-');return p.length===3?(+p[2])+'-'+NX_MES[+p[1]-1]:String(ymd||'');};
 const nxFdl=ymd=>{const p=String(ymd||'').slice(0,10).split('-');return p.length===3?(+p[2])+'-'+NX_MES[+p[1]-1]+'-'+p[0]:String(ymd||'');};
+const nxFds=ymd=>{const p=String(ymd||'').slice(0,10).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(ymd||'');};
 const nxHora=t=>{const m=String(t||'').match(/(\d{1,2}):(\d{2})/);if(!m)return '—';let h=+m[1];const ap=h<12?'a.m.':'p.m.';h=h%12||12;return h+':'+m[2]+' '+ap;};
+const nxMin=t=>{const m=String(t||'').match(/(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null;};
 function nxHoyYmd(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Panama'}).format(new Date()); }catch(_){ return iso(new Date()); } }
+function nxSello(){ return new Date().toLocaleString('sv-SE',{timeZone:'America/Panama'}).substring(0,16); }
 function nxDias(a,b){ return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5); }
 const nxUna=a=>!a.salida||a.entrada===a.salida;
+const nxClave=n=>String(n||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[._-]/g,' ').replace(/\s+/g,' ').trim().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+
+/* ── Librerías bajo demanda (mismo patrón de tablero_mando.html) ── */
+const NX_LIBS={ xls:'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  pdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  at:'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+  mj:'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js' };
+function nxLib(k){ return new Promise((res,rej)=>{ if(nxLib[k]) return res(); const s=document.createElement('script'); s.src=NX_LIBS[k];
+  s.onload=()=>{ nxLib[k]=1; res(); }; s.onerror=()=>rej(new Error('No se pudo cargar un componente desde internet: revise la conexión y vuelva a intentar.')); document.head.appendChild(s); }); }
+let NX_LOGO=null;
+function nxLogo(){ if(NX_LOGO) return Promise.resolve(NX_LOGO);
+  return fetch('./icons/icon-192.png').then(r=>r.arrayBuffer()).then(b=>{ let s=''; new Uint8Array(b).forEach(x=>{ s+=String.fromCharCode(x); }); NX_LOGO=btoa(s); return NX_LOGO; }).catch(()=>null); }
 
 /* ── Personas del ciclo, en un solo formato para todas las vistas ── */
 function nxPersonas(D){
   return Object.keys(D.detalle||{}).map(n=>{
     const b=D.detalle[n]||{}, fi=b.ficha||{}, t=b.totales||{}, v=(D.colaboradores||{})[n], va=b.vacaciones||{};
     const asi=(b.asistencia||[]);
-    return { n, c:fi.cedula||'', g:fi.cargo||'', a:(D.area_de&&D.area_de[n])||fi.area||'(sin área)', nf:fi.num_funcionario||'',
+    return { n, c:fi.cedula||'', g:fi.cargo||'', a:(D.area_de&&D.area_de[n])||fi.area||'(sin área)', nf:fi.num_funcionario||'', res:fi.residencia||'',
       dm:t.dias_marcados||0, he:nxHf(t.he_calculadas), tx:nxHf(t.txt_generado), hp:nxHf(t.he_pagadas),
       vi:v?Number(v.total||0):0, al:v&&v.subtotales?Number(v.subtotales.alimentacion||0):0, tr:v&&v.subtotales?Number(v.subtotales.transporte||0):0,
       ndv:v&&v.dias?v.dias.length:0, vd:va.disponibles||0, asi, pe:asi.filter(nxUna).length+((t.dias_marcados||0)?0:1) };
   });
 }
 
-/* ── Ciclos: los publicados + los posteriores que aún no tienen marcaciones ── */
+/* ── Ciclos ── */
 function nxListaCiclos(){
   const pub=(NX.idx&&NX.idx.ciclos)||[];
   const out=pub.map(c=>({from:c.from,to:c.to,pub:true}));
   const hoy=nxHoyYmd(); const p=hoy.split('-'); let y=+p[0], m=+p[1]; if(+p[2]<16){ m--; if(m<1){m=12;y--;} }
   const actual=y+'-'+String(m).padStart(2,'0')+'-16';
-  const ult=out.length?out[0].from:actual;
-  let q=ult.split('-'), yy=+q[0], mm=+q[1]; const extra=[];
+  const ult=out.length?out[0].from:actual; let q=ult.split('-'), yy=+q[0], mm=+q[1]; const extra=[];
   for(let i=0;i<4;i++){ mm++; if(mm>12){mm=1;yy++;} const f=yy+'-'+String(mm).padStart(2,'0')+'-16'; if(f>actual) break;
-    const fin=new Date(yy,mm,15); extra.unshift({from:f,to:iso(fin),pub:false,curso:f===actual}); }
+    extra.unshift({from:f,to:iso(new Date(yy,mm,15)),pub:false,curso:f===actual}); }
   return extra.concat(out).slice(0,8);
 }
 function nxCorto(c){const a=c.from.split('-'),b=c.to.split('-');return (+a[2])+' '+NX_MES[+a[1]-1]+' – '+(+b[2])+' '+NX_MES[+b[1]-1];}
@@ -3589,73 +3842,59 @@ function nxPintarCiclos(){
   const cur=NX.D&&NX.D.ciclo?NX.D.ciclo.from:'';
   nxListaCiclos().forEach(c=>{
     const b=document.createElement('button'); b.type='button'; b.className='nx-chip'+(c.from===cur?' on':'');
-    if(!c.pub){ b.setAttribute('aria-disabled','true'); b.title='El biométrico no tiene marcaciones de este ciclo todavía'; }
     const porPub=!c.pub && NX.integrado && NX.integrado>=c.from;
+    if(!c.pub){ b.setAttribute('aria-disabled','true'); }
     b.innerHTML=nxCorto(c)+' <small>'+(c.pub?'con datos':(porPub?'por publicar':(c.curso?'en curso':'sin marcaciones')))+'</small>';
-    b.onclick=()=>{ if(c.pub) nxCargarCiclo(c.from); else nxToast('Este ciclo todavía no tiene marcaciones. Se llena cuando RH carga el reporte del reloj en la Ventanilla Única de Reportes.'); };
+    b.onclick=()=>{ if(c.pub) nxCargarCiclo(c.from); else nxToast(porPub?'El reloj ya tiene marcaciones de este ciclo; falta publicarlo con «Actualizar datos».':'Este ciclo todavía no tiene marcaciones.'); };
     host.appendChild(b);
   });
 }
 
-/* ── Frescura del dato: banda de color bajo la cabecera ── */
+/* ── Frescura del dato ── */
 async function nxEstado(){
   let est=null; try{ const r=await fetch('./rh_estado.json?v='+Date.now(),{cache:'no-cache'}); if(r.ok) est=await r.json(); }catch(_){}
   const ult=(est&&est.datos_hasta)||NX.ultima; if(!ult) return;
   NX.integrado=String(ult).slice(0,10);
-  /* El reloj ya tiene marcaciones más nuevas que el último ciclo publicado:
-     falta publicar el tablero. Se dice tal cual, sin pintarlo de verde. */
-  const pubHasta=String(NX.ultima||'').slice(0,10);
-  if(pubHasta && NX.integrado>pubHasta){
-    const box0=document.getElementById('nxFresh'), in0=document.getElementById('nxFreshIn');
-    box0.className='nx-fresh nx-gut warn';
-    in0.innerHTML='<svg class="nx-ic" style="margin-top:2px"><use href="#i-alert"/></svg><div class="nx-fmsg"><b>El reloj ya tiene marcaciones hasta el '+nxFdl(NX.integrado)+'</b>, pero el tablero publicado llega hasta el '+nxFdl(pubHasta)+'. '+
-      'La publicación corre en segundo plano después de cada carga; si no avanza, pulse <b>Actualizar datos</b> (requiere PIN).'+
-      (est&&est.actualizado_en?(' Última integración: '+nxEsc(est.actualizado_en)+(est.eventos_nuevos!=null?(' · '+est.eventos_nuevos+' marcaciones nuevas'):'')+'.'):'')+'</div>';
-    box0.hidden=false; nxPintarCiclos(); return;
-  }
-  const atraso=nxDias(String(ult).slice(0,10), nxHoyYmd());
   const box=document.getElementById('nxFresh'), inn=document.getElementById('nxFreshIn');
-  box.className='nx-fresh nx-gut'+(atraso>10?' bad':(atraso>3?' warn':''));
-  const pasos='<ol><li>En el programa del reloj, exporte el <b>Reporte de Eventos</b> con <b>Usuario: Todos</b> y el rango del ciclo (del 16 al 15).</li>'+
-    '<li>Súbalo en la Ventanilla Única de Reportes, casilla Recursos Humanos.</li>'+
-    '<li>La casilla confirma cuántas marcaciones y colaboradores entraron. Si el archivo trae menos de 20 colaboradores, se rechaza: está filtrado.</li></ol>';
-  inn.innerHTML='<svg class="nx-ic" style="margin-top:2px"><use href="#i-alert"/></svg><div class="nx-fmsg">'+
-    (atraso<=3?('<b>Las marcaciones del reloj están al día</b> (hasta el '+nxFdl(ult)+').')
-              :('<b>Las marcaciones del reloj llegan hasta el '+nxFdl(ult)+'</b> ('+atraso+' días de atraso). Lo posterior aparecerá cuando RH cargue el reporte del reloj.'))+
-    (est&&est.actualizado_en?(' Última integración: '+nxEsc(est.actualizado_en)+(est.eventos_nuevos!=null?(' · '+est.eventos_nuevos+' marcaciones nuevas'):'')+'.'):'')+
-    '<div id="nxFreshHelp" hidden>'+pasos+'</div></div>'+(atraso>3?'<button type="button" class="nx-lnk" id="nxFreshBtn">Qué hacer</button>':'');
-  box.hidden=false;
-  const fb=document.getElementById('nxFreshBtn'); if(fb) fb.onclick=()=>{ const h=document.getElementById('nxFreshHelp'); h.hidden=!h.hidden; };
+  const pubHasta=String(NX.ultima||'').slice(0,10), atraso=nxDias(NX.integrado, nxHoyYmd());
+  const integ=est&&est.actualizado_en?(' Última integración: '+nxEsc(est.actualizado_en)+(est.eventos_nuevos!=null?(' · '+Number(est.eventos_nuevos).toLocaleString('es-PA')+' marcaciones nuevas'):'')+'.'):'';
+  if(pubHasta && NX.integrado>pubHasta){
+    box.className='nx-fresh nx-gut warn';
+    inn.innerHTML='<svg class="nx-ic" style="margin-top:2px"><use href="#i-alert"/></svg><div class="nx-fmsg"><b>El reloj ya tiene marcaciones hasta el '+nxFdl(NX.integrado)+'</b>, pero el tablero publicado llega hasta el '+nxFdl(pubHasta)+'. La publicación corre en segundo plano después de cada carga; si no avanza, pulse <b>Actualizar datos</b>.'+integ+'</div>';
+  } else {
+    box.className='nx-fresh nx-gut'+(atraso>10?' bad':(atraso>3?' warn':''));
+    inn.innerHTML='<svg class="nx-ic" style="margin-top:2px"><use href="#i-'+(atraso<=3?'check':'alert')+'"/></svg><div class="nx-fmsg">'+
+      (atraso<=3?('<b>Las marcaciones del reloj están al día</b> (hasta el '+nxFdl(NX.integrado)+').'):('<b>Las marcaciones del reloj llegan hasta el '+nxFdl(NX.integrado)+'</b> ('+atraso+' días de atraso). Lo posterior aparecerá cuando RH cargue el reporte del reloj en la Ventanilla Única de Reportes (Usuario: Todos, del 16 al 15).'))+integ+'</div>';
+  }
+  box.hidden=false; nxPintarCiclos();
 }
 
-/* ── Carga de un ciclo publicado ── */
+/* ── Carga de un ciclo ── */
 async function nxCargarCiclo(from){
   const carg=document.getElementById('nxCargando'); carg.hidden=false; carg.textContent='Cargando el ciclo publicado…';
   const D=await cargarDatos(from);
   if(!D||!D.ciclo){ carg.textContent='No se pudo leer el ciclo publicado. Revise su conexión y recargue la página.'; return; }
   NX.D=D; NX.P=nxPersonas(D); carg.hidden=true;
-  document.getElementById('f-desde').value=D.ciclo.from;
-  document.getElementById('f-hasta').value=D.ciclo.to;
+  document.getElementById('f-desde').value=D.ciclo.from; document.getElementById('f-hasta').value=D.ciclo.to;
   const pd=document.getElementById('pl-desde'), ph=document.getElementById('pl-hasta'); if(pd&&ph){ pd.value=D.ciclo.from; ph.value=D.ciclo.to; }
   const se=document.getElementById('sel-emp');
   se.innerHTML='<option value="">—</option>'+NX.P.map(p=>p.n).sort((a,b)=>a.localeCompare(b,'es')).map(n=>'<option value="'+nxEsc(n)+'">'+nxEsc(n)+'</option>').join('');
   const areas=[...new Set(NX.P.map(p=>p.a))].sort((a,b)=>a.localeCompare(b,'es'));
   document.getElementById('sel-area').innerHTML='<option value="">—</option>'+areas.map(a=>'<option>'+nxEsc(a)+'</option>').join('');
   if(NX.area && areas.indexOf(NX.area)<0) NX.area='';
-  nxPintarCiclos(); nxRender();
-  if(NX.emp && !document.getElementById('nxDrawer').hidden) nxFicha(NX.emp, NX.ft);
+  nxPintarCiclos(); nxRender(); nxReglasEjemplos();
+  if(NX.tab==='fic' && NX.emp) nxFicha(NX.emp, NX.ft);
 }
 
 /* ── Filtros, orden y vistas ── */
 function nxGente(){ const q=NX.txt.trim().toUpperCase();
   return NX.P.filter(p=>(!NX.area||p.a===NX.area)&&(!q||(p.n+' '+p.c+' '+p.g+' '+p.nf).toUpperCase().indexOf(q)>=0)); }
 function nxOrden(arr,s){ const k=s.k,d=s.d; return arr.slice().sort((a,b)=>{const x=a[k],y=b[k];
-  return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'es'))*d;}); }
+  return (typeof x==='number'&&typeof y==='number'?x-y:String(x==null?'':x).localeCompare(String(y==null?'':y),'es'))*d;}); }
 function nxTh(id,key,label,r){ const s=NX_SORT[id], on=s.k===key;
   return '<th class="'+(r?'r':'')+'"'+(on?' aria-sort="'+(s.d>0?'ascending':'descending')+'"':'')+'><button type="button" data-nxsort="'+id+':'+key+'">'+label+'<span class="ar">'+(on?(s.d>0?'▲':'▼'):'▲▼')+'</span></button></th>'; }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-nxsort]'); if(!b) return;
-  const [id,k]=b.dataset.nxsort.split(':'); const s=NX_SORT[id]; if(s.k===k) s.d*=-1; else { s.k=k; s.d=(['n','a','g','f','t'].indexOf(k)>=0?1:-1); } nxRender(); });
-
+  const [id,k]=b.dataset.nxsort.split(':'); const s=NX_SORT[id]; if(s.k===k) s.d*=-1; else { s.k=k; s.d=(['n','a','g','f','t','c','k','r','e'].indexOf(k)>=0?1:-1); } nxRender(); if(NX.tab==='dis') nxPintarDisc(); });
 function nxAreas(G){ const o={}; G.forEach(p=>{ const a=o[p.a]||(o[p.a]={area:p.a,per:0,con:0,via:0,total:0,he:0,pen:0});
   a.per++; if(p.dm)a.con++; if(p.vi>0)a.via++; a.total+=p.vi; a.he+=p.he; a.pen+=p.pe; }); return Object.values(o); }
 function nxPendientes(G){ const L=[];
@@ -3669,7 +3908,7 @@ function nxRender(){
   fa.innerHTML='<option value="">Todas las áreas</option>'+areas.map(a=>'<option'+(a===NX.area?' selected':'')+'>'+nxEsc(a)+'</option>').join('');
   const G=nxGente(), sum=k=>G.reduce((s,p)=>s+(p[k]||0),0), con=G.filter(p=>p.dm>0).length;
   document.getElementById('nxBPen').textContent=NX.P.reduce((s,p)=>s+p.pe,0);
-
+  document.getElementById('nxBDis').textContent=NX.disc.filter(d=>d.e==='ABIERTA'||d.e==='EN REVISIÓN').length;
   document.getElementById('nxKpis').innerHTML=[
     ['k-info','Personal',G.length,NX.area||'todas las áreas'],
     ['k-ok','Con marcaciones',con,Math.round(100*con/Math.max(1,G.length))+'% del personal'],
@@ -3677,160 +3916,512 @@ function nxRender(){
     ['k-lil','Alimentación y transporte',nxB(sum('vi')),G.filter(p=>p.vi>0).length+' colaboradores'],
     ['k-sand','Horas extra calculadas',nxH(sum('he'))+' h','pagadas '+nxH(sum('hp'))+' h'],
     ['k-warn','Tiempo compensatorio',nxH(sum('tx'))+' h','generado en el ciclo']
-  ].map(k=>'<div class="nx-kpi '+k[0]+'"><span class="l">'+k[1]+'</span><span class="v" title="'+nxEsc(k[2])+'">'+k[2]+'</span><span class="s">'+nxEsc(k[3])+'</span></div>').join('');
+  ].map(k=>'<div class="nx-kpi '+k[0]+'"><span class="l">'+k[1]+'</span><span class="v">'+k[2]+'</span><span class="s">'+nxEsc(k[3])+'</span></div>').join('');
 
-  // Áreas (siempre todas: es el mapa del ciclo)
   const AR=nxOrden(nxAreas(NX.P),NX_SORT.area);
   const T=AR.reduce((s,a)=>({per:s.per+a.per,con:s.con+a.con,via:s.via+a.via,total:s.total+a.total,he:s.he+a.he,pen:s.pen+a.pen}),{per:0,con:0,via:0,total:0,he:0,pen:0});
   const cob=a=>{const r=a.con/Math.max(1,a.per);return r>=.9?'p-ok':(r>=.6?'p-warn':'p-bad');};
-  document.getElementById('nxTArea').innerHTML='<thead><tr>'+nxTh('area','area','Área')+nxTh('area','per','Personal',1)+nxTh('area','con','Con marcas',1)+nxTh('area','via','Con beneficio',1)+nxTh('area','total','B/.',1)+nxTh('area','he','HE (h)',1)+nxTh('area','pen','Pendientes',1)+'</tr></thead><tbody>'+
+  document.getElementById('nxTArea').innerHTML='<thead><tr>'+nxTh('area','area','Área')+nxTh('area','per','Personal',1)+nxTh('area','con','Con marcas',1)+nxTh('area','via','Con benef.',1)+nxTh('area','total','B/.',1)+nxTh('area','he','HE (h)',1)+nxTh('area','pen','Pend.',1)+'</tr></thead><tbody>'+
     AR.map(a=>'<tr class="click" tabindex="0" data-nxarea="'+nxEsc(a.area)+'"><td><b>'+nxEsc(a.area)+'</b></td><td class="r nx-n">'+a.per+'</td><td class="r"><span class="nx-pill '+cob(a)+' nx-n">'+a.con+'/'+a.per+'</span></td><td class="r nx-n">'+a.via+'</td><td class="r nx-n">'+nxM(a.total)+'</td><td class="r nx-n">'+nxH(a.he)+'</td><td class="r">'+(a.pen?'<span class="nx-pill p-warn nx-n">'+a.pen+'</span>':'<span class="nx-pill p-ok">0</span>')+'</td></tr>').join('')+
     '</tbody><tfoot><tr><td>Total</td><td class="r nx-n">'+T.per+'</td><td class="r nx-n">'+T.con+'</td><td class="r nx-n">'+T.via+'</td><td class="r nx-n">'+nxM(T.total)+'</td><td class="r nx-n">'+nxH(T.he)+'</td><td class="r nx-n">'+T.pen+'</td></tr></tfoot>';
-  document.querySelectorAll('#nxTArea tr[data-nxarea]').forEach(tr=>{ const go=()=>{ NX.area=tr.dataset.nxarea; nxTab('per'); };
-    tr.onclick=go; tr.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
+  document.querySelectorAll('#nxTArea tr[data-nxarea]').forEach(tr=>{ const go=()=>{ NX.area=tr.dataset.nxarea; nxTab('per'); }; tr.onclick=go; tr.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
 
-  // Barras: una escala, ticks redondos
   const bA=nxAreas(NX.P).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
   const mx=Math.max(1,...bA.map(a=>a.total)), st=Math.pow(10,Math.floor(Math.log10(mx))), top=Math.ceil(mx/st)*st;
   document.getElementById('nxBars').innerHTML=bA.length?('<div class="nx-bars">'+bA.map(a=>'<div class="nx-brow"><span class="bn" title="'+nxEsc(a.area)+'">'+nxEsc(a.area)+'</span><div class="nx-track"><div class="nx-fill" style="width:'+(100*a.total/top).toFixed(1)+'%"></div></div><span class="nx-n" style="text-align:right">'+nxM(a.total)+'</span></div>').join('')+
     '<div class="nx-axis"><span></span><div class="tk nx-n"><span>0</span><span>'+(top/2).toLocaleString('es-PA')+'</span><span>'+top.toLocaleString('es-PA')+'</span></div><span></span></div></div>'):'<div class="nx-empty">Sin beneficios en el ciclo.</div>';
 
-  // Personal
   document.getElementById('nxPerT').textContent='Personal'+(NX.area?' · '+NX.area:'')+' ('+G.length+')';
   const P=nxOrden(G,NX_SORT.per);
   document.getElementById('nxTPer').innerHTML='<thead><tr>'+nxTh('per','n','Colaborador')+nxTh('per','a','Área')+nxTh('per','dm','Días marcados',1)+nxTh('per','he','HE (h)',1)+nxTh('per','tx','TXT (h)',1)+nxTh('per','vi','Alim. y transp. B/.',1)+nxTh('per','vd','Vacaciones (días)',1)+nxTh('per','pe','Pendientes',1)+'</tr></thead><tbody>'+
     (P.length?P.map(p=>'<tr class="click" tabindex="0" data-nxp="'+nxEsc(p.n)+'"><td><span class="nx-nm">'+nxEsc(p.n)+'</span><div class="nx-cg">'+nxEsc(p.g)+(p.c?' · '+nxEsc(p.c):'')+'</div></td><td>'+nxEsc(p.a)+'</td><td class="r">'+(p.dm?'<span class="nx-n">'+p.dm+'</span>':'<span class="nx-pill p-bad">sin marcas</span>')+'</td><td class="r nx-n">'+nxH(p.he)+'</td><td class="r nx-n">'+nxH(p.tx)+'</td><td class="r nx-n">'+(p.vi?nxM(p.vi):'—')+'</td><td class="r nx-n">'+(p.vd||'—')+'</td><td class="r">'+(p.pe?'<span class="nx-pill p-warn nx-n">'+p.pe+'</span>':'')+'</td></tr>').join(''):'<tr><td colspan="8" class="nx-empty">Nadie coincide con el filtro.</td></tr>')+'</tbody>';
-  document.querySelectorAll('#nxTPer tr[data-nxp]').forEach(tr=>{ tr.onclick=()=>nxFicha(tr.dataset.nxp); tr.onkeydown=e=>{ if(e.key==='Enter') nxFicha(tr.dataset.nxp); }; });
+  document.querySelectorAll('#nxTPer tr[data-nxp]').forEach(tr=>{ tr.onclick=()=>nxFicha(tr.dataset.nxp,'asi'); tr.onkeydown=e=>{ if(e.key==='Enter') nxFicha(tr.dataset.nxp,'asi'); }; });
 
-  // Pendientes
   const L=nxOrden(nxPendientes(G),NX_SORT.pen);
   document.getElementById('nxPenSub').textContent=L.length+' casos'+(NX.area?' en '+NX.area:'');
   document.getElementById('nxTPen').innerHTML='<thead><tr>'+nxTh('pen','n','Colaborador')+nxTh('pen','a','Área')+nxTh('pen','f','Fecha')+nxTh('pen','m','Marca registrada')+nxTh('pen','t','Situación')+'<th class="r ns">Acción</th></tr></thead><tbody>'+
-    (L.length?L.map(x=>'<tr><td><a href="#" class="nx-nm" data-nxpp="'+nxEsc(x.n)+'">'+nxEsc(x.n)+'</a></td><td>'+nxEsc(x.a)+'</td><td class="nx-n nw">'+(x.f?nxFdl(x.f):'todo el ciclo')+'</td><td class="nx-n nw">'+x.m+'</td><td><span class="nx-pill p-'+x.k+'">'+x.t+'</span></td><td class="r"><button type="button" class="nx-btn" data-nxjust="'+nxEsc(x.n)+'" data-f="'+nxEsc(x.f)+'"><svg class="nx-ic"><use href="#i-edit"/></svg>Justificar</button></td></tr>').join(''):'<tr><td colspan="6" class="nx-empty">Sin pendientes en esta vista.</td></tr>')+'</tbody>';
+    (L.length?L.map(x=>'<tr><td><a href="#" class="nx-nm" data-nxpp="'+nxEsc(x.n)+'">'+nxEsc(x.n)+'</a></td><td>'+nxEsc(x.a)+'</td><td class="nx-n nw">'+(x.f?nxFdl(x.f):'todo el ciclo')+'</td><td class="nx-n nw">'+x.m+'</td><td><span class="nx-pill p-'+x.k+'">'+x.t+'</span></td><td class="r"><button type="button" class="nx-btn sm" data-nxjust="'+nxEsc(x.n)+'" data-f="'+nxEsc(x.f)+'"><svg class="nx-ic"><use href="#i-edit"/></svg>Justificar</button></td></tr>').join(''):'<tr><td colspan="6" class="nx-empty">Sin pendientes en esta vista.</td></tr>')+'</tbody>';
   document.querySelectorAll('#nxTPen [data-nxpp]').forEach(a=>a.onclick=e=>{ e.preventDefault(); nxFicha(a.dataset.nxpp,'asi'); });
   document.querySelectorAll('#nxTPen [data-nxjust]').forEach(b=>b.onclick=()=>{ NX.prefFecha=b.dataset.f||''; nxFicha(b.dataset.nxjust,'inc'); });
-
-  nxPintarCalculo();
-}
-
-/* ── Cómo se calcula: aritmética con un caso real del ciclo ── */
-function nxPintarCalculo(){
-  const D=NX.D, ej=NX.P.filter(p=>p.ndv>=2).sort((a,b)=>b.ndv-a.ndv)[0]||NX.P[0]; if(!ej) return;
-  const v=(D.colaboradores||{})[ej.n], d0=v&&v.dias&&v.dias[0]?v.dias[0]:{fecha:'',alimentacion:0,transporte:0};
-  document.getElementById('nxCalc').innerHTML=
-   '<div class="nx-panel"><h4>Alimentación y transporte de un día</h4><div class="nx-eq">Total del día = Alimentación + Transporte<br>'+nxEsc(ej.n)+', '+nxFdl(d0.fecha)+': '+nxB(d0.alimentacion)+' + '+nxB(d0.transporte)+' = <b>'+nxB(Number(d0.alimentacion)+Number(d0.transporte))+'</b></div><p class="nx-note">Se reconoce el día cuando hay trabajo fuera del horario regular ('+nxEsc((d0.horario_regular_desde||'7:30')+' a.m. – '+(d0.horario_regular_hasta||'3:30')+' p.m.')+'). Montos por persona: hoja CALC_HE_TXT_BEN de RH_MASTER.</p></div>'+
-   '<div class="nx-panel"><h4>Total del colaborador en el ciclo</h4><div class="nx-eq">Σ Total del día<br>'+nxEsc(ej.n)+': '+ej.ndv+' días → '+nxB(ej.al)+' + '+nxB(ej.tr)+' = <b>'+nxB(ej.vi)+'</b></div><p class="nx-note">El ciclo va del 16 de un mes al 15 del siguiente.</p></div>'+
-   '<div class="nx-panel"><h4>Total por área y del ciclo</h4><div class="nx-eq">Σ Total de cada colaborador<br>Todas las áreas: <b>'+nxB(D.total_general)+'</b></div><p class="nx-note">Fuente: rh_'+nxEsc(D.ciclo.from)+'.json, generado '+nxEsc(D.generado_en||'')+'.</p></div>'+
-   '<div class="nx-panel"><h4>Tiempo compensatorio (TXT)</h4><div class="nx-eq">TXT del ciclo = HE calculadas − HE pagadas<br>'+nxEsc(ej.n)+': '+nxH(ej.he)+' − '+nxH(ej.hp)+' = <b>'+nxH(ej.tx)+'</b></div><p class="nx-note">Saldo = generado − tomado, consumiendo primero lo más antiguo. Lo generado de enero a septiembre vence el 31-dic; lo de octubre a diciembre, el 31-mar del año siguiente (Art. 100).</p></div>';
 }
 
 /* ── Pestañas principales ── */
 function nxTab(t){
+  if(t!=='fic' && NX.tab!=='fic') NX.prevTab=t;
   NX.tab=t; document.querySelectorAll('#nxTabs .nx-tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ['res','per','pen','pla','cal'].forEach(s=>{ document.getElementById('nx-'+s).hidden=(s!==t)||!NX.D; });
-  document.getElementById('nxFilters').hidden=(t==='pla'||t==='cal');
+  ['res','per','pen','dis','pla','cal','fic'].forEach(s=>{ document.getElementById('nx-'+s).hidden=(s!==t)||(!NX.D&&s!=='dis'&&s!=='cal'); });
+  document.getElementById('nxFilters').hidden=!(t==='res'||t==='per'||t==='pen');
   if(t==='pla'){ document.getElementById('nx-pla').hidden=false; if(!NX.plaInit){ NX.plaInit=true; try{ inicializarPlanilla(); }catch(e){} } }
-  nxRender();
+  if(t==='dis') nxPintarDisc();
+  if(t==='cal') nxTipografiarReglas();
+  nxRender(); nxYvContexto();
+  window.scrollTo({top:0});
 }
 
-/* ── Ficha del colaborador ── */
+/* ══ Historia por persona (rh_persona/<clave>.json) ══ */
+const NX_LS='rhp:';
+async function nxPersIndice(){
+  if(NX.pidx!==null) return NX.pidx;
+  try{ const r=await fetch('./rh_personas.json?v='+Date.now(),{cache:'no-cache'}); NX.pidx=r.ok?await r.json():false; }catch(_){ NX.pidx=false; }
+  return NX.pidx;
+}
+function nxPersGuardar(o){ if(!o||!o.nombre) return; NX.pers[o.nombre]=o;
+  try{ localStorage.setItem(NX_LS+o.nombre, JSON.stringify({t:Date.now(),o:o})); }catch(_){} }
+async function nxPersona(n){
+  if(NX.pers[n]) return NX.pers[n];
+  const idx=await nxPersIndice();
+  const ruta=(idx&&idx.personas&&idx.personas[n]&&idx.personas[n].archivo)||('rh_persona/'+nxClave(n)+'.json');
+  let o=null;
+  try{ const r=await fetch('./'+ruta+'?v='+((idx&&idx.version)||Date.now()),{cache:'no-cache'}); if(r.ok) o=await r.json(); }catch(_){}
+  /* Lo que esta misma pantalla escribió hace poco gana sobre el JSON que GitHub Pages aún no refresca */
+  try{ const L=JSON.parse(localStorage.getItem(NX_LS+n)||'null'); if(L&&L.o&&(Date.now()-L.t)<15*60e3&&(!o||Number(L.o.version)>Number(o.version))) o=L.o; }catch(_){}
+  if(o) NX.pers[n]=o;
+  return o;
+}
+/* Los módulos de gestión leen ahora del JSON; si la persona aún no está publicada, consultan como antes. */
+const _cargarTxtGAS=cargarTxt, _cargarArt18GAS=cargarArt18, _cargarVacGAS=cargarVacaciones, _cargarIncGAS=cargarIncidencias;
+cargarTxt=async function(emp,fresco,silencioso){
+  const cont=document.getElementById('res-txt'); if(!silencioso) cont.innerHTML='<div class="panel"><div class="msg"><span class="spin"></span> Leyendo el registro publicado…</div></div>';
+  const P=await nxPersona(emp); if(P&&P.txt&&P.txt.ok){ window.__txtData=P.txt; cont.innerHTML=pintarTxt(P.txt); return; }
+  if(P&&P.txt&&P.txt.ok===false&&/Sin registros/i.test(P.txt.error||'')){ cont.innerHTML='<div class="panel"><div class="msg">'+nxEsc(P.txt.error)+'</div></div>'; return; }
+  return _cargarTxtGAS(emp,fresco,silencioso); };
+cargarArt18=async function(emp){ EMP_ACTUAL=emp; const P=await nxPersona(emp);
+  if(P&&P.art18&&P.art18.ok){ document.getElementById('res-art18').innerHTML=pintarArt18(P.art18); return; } return _cargarArt18GAS(emp); };
+cargarVacaciones=async function(emp,fresco,silencioso){ const P=await nxPersona(emp);
+  if(P&&P.vacaciones&&P.vacaciones.ok){ document.getElementById('res-vac').innerHTML=pintarVacaciones(P.vacaciones); return; } return _cargarVacGAS(emp,fresco,silencioso); };
+cargarIncidencias=async function(emp,desde,hasta,fresco,silencioso){ const P=await nxPersona(emp);
+  if(P&&P.incidencias&&P.incidencias.ok){ document.getElementById('res-inc').innerHTML=pintarIncidencias(P.incidencias); nxPrefijarFecha(); return; } return _cargarIncGAS(emp,desde,hasta,fresco,silencioso); };
+
+/* ══ Escrituras: no bloquean. La cabecera muestra el avance; la respuesta trae la persona republicada. ══ */
+const NX_ESCRITURAS=['art18_registrar','art18_eliminar','vac_resolucion','vac_usar','vac_resolucion_eliminar','vac_uso_eliminar','incidencia_registrar','incidencia_eliminar',
+  'txt_ajuste_eliminar','txt_ajuste_guardar','empalme_guardar','txt_cap_guardar','txt_uso_registrar','txt_uso_eliminar','asistencia_ajuste_guardar','registrarTXT','planilla_te','planilla_te_lote','planilla_te_reiniciar'];
+function nxSync(estado){
+  const s=document.getElementById('nxSync');
+  if(NX.pend>0){ s.hidden=false; s.className='nx-sync'; s.textContent='Guardando y publicando '+NX.pend+' cambio'+(NX.pend>1?'s':'')+'…'; return; }
+  s.className='nx-sync '+(estado==='err'?'err':'ok'); s.textContent=estado==='err'?'Un cambio no se pudo guardar':'Todo guardado y publicado';
+  clearTimeout(nxSync._t); nxSync._t=setTimeout(()=>{ if(!NX.pend) s.hidden=true; },estado==='err'?8000:3000);
+}
+(function(){
+  const f0=window.fetch.bind(window);
+  window.fetch=function(u,o){
+    const url=String(u&&u.url||u||''); const m=url.match(/[?&]action=([a-zA-Z0-9_]+)/);
+    if(url.indexOf(GAS)!==0||!m||NX_ESCRITURAS.indexOf(m[1])<0) return f0(u,o);
+    NX.pend++; nxSync();
+    return f0(u,o).then(res=>{
+      res.clone().json().then(j=>{
+        if(j&&j.persona&&j.persona.nombre){ nxPersGuardar(j.persona); }
+        NX.pend--; nxSync(j&&j.ok===false?'err':'ok');
+        if(j&&j.ok!==false&&NX.tab==='fic'){ nxPintarKpis(); }
+      }).catch(()=>{ NX.pend--; nxSync('ok'); });
+      return res;
+    },err=>{ NX.pend--; nxSync('err'); throw err; });
+  };
+})();
+window.addEventListener('beforeunload',e=>{ if(NX.pend>0){ e.preventDefault(); e.returnValue=''; } });
+
+/* ══ Ficha a pantalla completa ══ */
 function nxFicha(n, pane){
   const p=NX.P.find(x=>x.n===n); if(!p){ nxToast('No se encontró a '+n+' en este ciclo.'); return; }
-  if(NX.emp!==n){ NX.cargados={}; ['res-asi','res-via','res-txt','res-art18','res-vac','res-inc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=''; }); document.getElementById('nxAsiEdit').hidden=true; }
+  if(NX.emp!==n){ NX.cargados={}; ['res-asi','res-txt','res-art18','res-vac','res-inc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=''; }); document.getElementById('nxAsiEdit').hidden=true; }
   NX.emp=n; NX.ft=pane||NX.ft||'asi';
-  // Lo que los módulos de gestión leen para saber a quién y qué ciclo
-  EMP_ACTUAL=n; const se=document.getElementById('sel-emp'); se.value=n;
+  EMP_ACTUAL=n; document.getElementById('sel-emp').value=n;
   ULTIMA={modo:'uno', valor:n, desde:NX.D.ciclo.from, hasta:NX.D.ciclo.to};
   document.getElementById('nxDName').textContent=p.n;
   document.getElementById('nxDMeta').textContent=[p.g,p.a,p.c?('Cédula '+p.c):'',p.nf?('Nº '+p.nf):'','Ciclo '+nxCorto(NX.D.ciclo)].filter(Boolean).join(' · ');
-  document.getElementById('nxDKpis').innerHTML=
-    '<div class="nx-kpi k-info"><span class="l">Días marcados</span><span class="v">'+p.dm+'</span></div>'+
-    '<div class="nx-kpi k-lil"><span class="l">Alim. y transp.</span><span class="v">'+nxB(p.vi)+'</span></div>'+
-    '<div class="nx-kpi k-sand"><span class="l">HE calculadas</span><span class="v">'+nxH(p.he)+'</span></div>'+
-    '<div class="nx-kpi '+(p.pe?'k-warn':'k-ok')+'"><span class="l">Pendientes</span><span class="v">'+p.pe+'</span></div>';
-  document.getElementById('nxScrim').hidden=false; document.getElementById('nxDrawer').hidden=false;
-  document.body.style.overflow='hidden';
+  const lista=nxOrden(nxGente().length?nxGente():NX.P,{k:'n',d:1});
+  if(!lista.find(x=>x.n===n)) lista.unshift(p);
+  document.getElementById('nxFicSel').innerHTML=lista.map(x=>'<option'+(x.n===n?' selected':'')+'>'+nxEsc(x.n)+'</option>').join('');
+  nxPintarKpis();
+  if(NX.tab!=='fic') nxTab('fic');
   nxPane(NX.ft);
-  setTimeout(()=>{ try{ document.getElementById('nxDClose').focus(); }catch(_){} },30);
 }
-function nxCerrarFicha(){ document.getElementById('nxScrim').hidden=true; document.getElementById('nxDrawer').hidden=true; document.body.style.overflow=''; }
+function nxPintarKpis(){
+  const p=NX.P.find(x=>x.n===NX.emp); if(!p) return;
+  const dis=NX.disc.filter(d=>d.n===p.n).length; document.getElementById('nxFicBDis').textContent=dis;
+  document.getElementById('nxDKpis').innerHTML=[['k-info','Días marcados',p.dm,'en el ciclo'],['k-lil','Alim. y transp.',nxB(p.vi),p.ndv+' días'],['k-sand','HE calculadas',nxH(p.he),'pagadas '+nxH(p.hp)],['k-warn','TXT del ciclo',nxH(p.tx),'generado'],[p.pe?'k-bad':'k-ok','Pendientes',p.pe,'por justificar']]
+    .map(k=>'<div class="nx-kpi '+k[0]+'"><span class="l">'+k[1]+'</span><span class="v">'+k[2]+'</span><span class="s">'+k[3]+'</span></div>').join('');
+}
+function nxMover(d){ const o=[...document.getElementById('nxFicSel').options].map(x=>x.value); const i=o.indexOf(NX.emp); const j=Math.min(o.length-1,Math.max(0,i+d)); if(o[j]&&o[j]!==NX.emp) nxFicha(o[j],NX.ft); }
 function nxPane(ft){
   NX.ft=ft; const n=NX.emp, D=NX.D;
   document.querySelectorAll('#nxDTabs .nx-tab').forEach(b=>b.classList.toggle('on',b.dataset.ft===ft));
-  document.querySelectorAll('#nxDrawer [data-pane]').forEach(d=>{ d.hidden=d.dataset.pane!==ft; });
+  document.querySelectorAll('#nx-fic [data-pane]').forEach(d=>{ d.hidden=d.dataset.pane!==ft; });
   if(ft==='asi') nxPintarAsistencia();
-  if(ft==='via' && !NX.cargados.via){ NX.cargados.via=1; const r=(D.colaboradores||{})[n];
-    document.getElementById('res-via').innerHTML = r ? pintarUno(r) : '<div class="panel"><div class="msg">No trabajó fuera de su horario regular en este ciclo.</div></div>'; }
-  if(ft==='txt' && !NX.cargados.txt){ NX.cargados.txt=1; try{ cargarTxt(n); }catch(e){} try{ cargarArt18(n); }catch(e){} }
-  if(ft==='vac' && !NX.cargados.vac){ NX.cargados.vac=1; try{ cargarVacaciones(n); }catch(e){} }
-  if(ft==='inc'){ if(!NX.cargados.inc){ NX.cargados.inc=1; try{ cargarIncidencias(n, D.ciclo.from, D.ciclo.to); }catch(e){} } nxPrefijarFecha(); }
+  if(ft==='via') nxPintarVia();
+  if(ft==='txt' && !NX.cargados.txt){ NX.cargados.txt=1; cargarTxt(n); cargarArt18(n); }
+  if(ft==='vac' && !NX.cargados.vac){ NX.cargados.vac=1; cargarVacaciones(n); }
+  if(ft==='inc'){ if(!NX.cargados.inc){ NX.cargados.inc=1; cargarIncidencias(n, D.ciclo.from, D.ciclo.to); } else nxPrefijarFecha(); }
+  if(ft==='dis') nxPintarFicDis();
+  nxYvContexto();
 }
-/* "Justificar" desde Pendientes: deja la fecha puesta en el formulario de incidencia */
 function nxPrefijarFecha(){ if(!NX.prefFecha) return; const f=NX.prefFecha; let t=0;
   const iv=setInterval(()=>{ t++; const e=document.getElementById('ic-fecha'); if(e){ e.value=f; try{ e.scrollIntoView({block:'center'}); e.focus(); }catch(_){} clearInterval(iv); NX.prefFecha=''; }
     if(t>40){ clearInterval(iv); NX.prefFecha=''; } },250); }
+const nxFlag=(f,c,sis,r)=>'<button type="button" class="nx-flag" title="Reportar que este valor no es correcto" aria-label="Reportar discrepancia" data-nxflag="1" data-f="'+nxEsc(f)+'" data-c="'+nxEsc(c)+'" data-s="'+nxEsc(sis)+'" data-r="'+nxEsc(r||'')+'"><svg class="nx-ic"><use href="#i-flag"/></svg></button>';
+function nxEnlazarFlags(host){ host.querySelectorAll('[data-nxflag]').forEach(b=>b.onclick=()=>nxAbrirDisc({n:NX.emp,f:b.dataset.f,c:b.dataset.c,sis:b.dataset.s,r:b.dataset.r},'disc')); }
 function nxPintarAsistencia(){
   const p=NX.P.find(x=>x.n===NX.emp); const host=document.getElementById('nxAsiJson'); if(!p) return;
   if(!p.asi.length){ host.innerHTML='<div class="nx-callout p-bad">Sin marcaciones en el ciclo. Registre en Incidencias la causa (vacaciones, licencia, marca en otro reloj, etc.).</div>'; return; }
   host.innerHTML='<div class="nx-panel"><div class="nx-ph"><h3>Marcaciones del reloj</h3><span class="sub">'+p.asi.length+' días · '+p.asi.filter(nxUna).length+' con una sola marca</span><span class="nx-sp"></span>'+
-    '<button type="button" class="nx-btn" id="nxAsiXls"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel</button>'+
-    '<button type="button" class="nx-btn" id="nxAsiEditBtn" title="Abre el registro con ajustes de marcas (requiere modo administrativo para guardar)"><svg class="nx-ic"><use href="#i-edit"/></svg>Ajustar marcas</button></div>'+
-    '<div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Fecha</th><th class="ns">Día</th><th class="ns">Entrada</th><th class="ns">Salida</th><th class="r ns">Trabajadas</th><th class="r ns">HE</th><th class="ns">Estado</th></tr></thead><tbody>'+
-    p.asi.map(a=>{ const u=nxUna(a), t=String(a.tipo_dia||'').toUpperCase();
+    '<button type="button" class="nx-btn" id="nxAsiEditBtn" title="Registro con ajustes de marcas (guardar requiere modo administrativo)"><svg class="nx-ic"><use href="#i-edit"/></svg>Ajustar marcas</button>'+
+    '<button type="button" class="nx-btn" id="nxAsiPdf"><svg class="nx-ic"><use href="#i-pdf"/></svg>PDF</button><button type="button" class="nx-btn" id="nxAsiXls"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel</button></div>'+
+    '<div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Fecha</th><th class="ns">Día</th><th class="ns">Entrada</th><th class="ns">Salida</th><th class="r ns">Trabajadas</th><th class="r ns">HE del día</th><th class="ns">Estado</th><th class="r ns">¿No es correcto?</th></tr></thead><tbody>'+
+    p.asi.map(a=>{ const u=nxUna(a), t=String(a.tipo_dia||'').toUpperCase().replace(/_/g,' ');
       return '<tr><td class="nx-n nw">'+nxFdl(a.fecha)+'</td><td>'+nxEsc(a.dia||'')+'</td><td class="nx-n nw">'+nxHora(a.entrada)+'</td><td class="nx-n nw">'+(u?'—':nxHora(a.salida))+'</td><td class="r nx-n">'+(a.horas_trabajadas||'—')+'</td><td class="r nx-n">'+(a.horas_extra&&a.horas_extra!=='00:00'?a.horas_extra:'—')+'</td><td>'+
-        (u?'<span class="nx-pill p-warn">una sola marca</span>':(t&&t!=='LABORABLE'?'<span class="nx-pill p-info">'+nxEsc(t.toLowerCase().replace(/_/g,' '))+'</span>':'<span class="nx-pill p-ok">completo</span>'))+'</td></tr>'; }).join('')+
+        (u?'<span class="nx-pill p-warn">una sola marca</span>':(t&&t!=='LABORABLE'?'<span class="nx-pill p-info">'+nxEsc(t.toLowerCase())+'</span>':'<span class="nx-pill p-ok">completo</span>'))+'</td><td class="r">'+
+        nxFlag(a.fecha,u?'Marca de entrada o salida':'Horas extra del día',u?('Una sola marca '+nxHora(a.entrada)):((a.horas_extra||'00:00')+' h'),u?'R2':(t==='LABORABLE'?'R4':'R5'))+'</td></tr>'; }).join('')+
     '</tbody></table></div></div>';
-  document.getElementById('nxAsiXls').onclick=()=>nxXls('Registro de asistencia · '+p.n, ['Fecha','Día','Entrada','Salida','Horas trabajadas','Horas extra','Estado'],
-    p.asi.map(a=>[a.fecha,a.dia,nxHora(a.entrada),nxUna(a)?'':nxHora(a.salida),a.horas_trabajadas,a.horas_extra,nxUna(a)?'Una sola marca':(a.tipo_dia||'')]), 'Asistencia_'+p.n.replace(/\s+/g,'_')+'_'+NX.D.ciclo.from+'.xls');
+  nxEnlazarFlags(host);
+  document.getElementById('nxAsiXls').onclick=()=>nxXlsAsistencia(p);
+  document.getElementById('nxAsiPdf').onclick=function(){ imprimirAsistencia(this); };
   document.getElementById('nxAsiEditBtn').onclick=()=>{ document.getElementById('nxAsiEdit').hidden=false;
     try{ cargarRegistroAsistencia(NX.emp, NX.D.ciclo.from, NX.D.ciclo.to); }catch(e){}
     setTimeout(()=>{ try{ document.getElementById('nxAsiEdit').scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){} },100); };
 }
+function nxPintarVia(){
+  const p=NX.P.find(x=>x.n===NX.emp), host=document.getElementById('nxViaJson'); if(!p) return;
+  const r=(NX.D.colaboradores||{})[p.n]; if(r) window.__viaticosData=r;
+  if(!r||!r.dias||!r.dias.length){ host.innerHTML='<div class="nx-callout p-info">No trabajó fuera de su horario regular en este ciclo.</div>'; return; }
+  host.innerHTML='<div class="nx-panel"><div class="nx-ph"><h3>Alimentación y transporte</h3><span class="sub">'+r.dias.length+' días reconocidos · '+nxEsc(r.periodo&&r.periodo.texto||'')+'</span><span class="nx-sp"></span>'+
+    '<button type="button" class="nx-btn main" id="nxViaPdf"><svg class="nx-ic"><use href="#i-pdf"/></svg>PDF de reconocimiento</button><button type="button" class="nx-btn" id="nxViaXls"><svg class="nx-ic"><use href="#i-xls"/></svg>Excel</button></div>'+
+    '<div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Fecha</th><th class="ns">Fuera de horario desde</th><th class="ns">Hasta</th><th class="r ns">Alimentación</th><th class="r ns">Transporte</th><th class="r ns">Total</th><th class="r ns">¿No es correcto?</th></tr></thead><tbody>'+
+    r.dias.map(d=>'<tr><td class="nx-n nw">'+nxFdl(d.fecha)+'</td><td class="nx-n nw">'+nxHora(d.entrada)+'</td><td class="nx-n nw">'+nxHora(d.salida)+'</td><td class="r nx-n">'+nxM(d.alimentacion)+'</td><td class="r nx-n">'+nxM(d.transporte)+'</td><td class="r nx-n"><b>'+nxM(d.total_dia)+'</b></td><td class="r">'+nxFlag(d.fecha,'Alimentación',nxB(d.alimentacion)+' + '+nxB(d.transporte),'R11')+'</td></tr>').join('')+
+    '</tbody><tfoot><tr><td colspan="3">Total del ciclo</td><td class="r nx-n">'+nxM(r.subtotales.alimentacion)+'</td><td class="r nx-n">'+nxM(r.subtotales.transporte)+'</td><td class="r nx-n">'+nxM(r.total)+'</td><td></td></tr></tfoot></table></div></div>';
+  nxEnlazarFlags(host);
+  document.getElementById('nxViaPdf').onclick=function(){ generarPdf(this); };
+  document.getElementById('nxViaXls').onclick=()=>nxXlsVia(p,r);
+}
 /* Lo que antes reconsultaba al colaborador ahora refresca su ficha */
 function consultar(){ if(NX.emp){ NX.cargados={}; nxFicha(NX.emp, NX.ft); } }
 function verColaborador(n){ nxFicha(n,'asi'); }
-/* La vista por modos ya no existe: los módulos que la llaman solo registran el modo. */
 function setModo(m){ MODO=m; }
-function verSec(s){ /* las secciones viven ahora en la ficha */ }
+function verSec(s){ /* las secciones viven en la ficha */ }
 
-/* ── Excel institucional: vista filtrada o ciclo completo ── */
-function nxXls(titulo, cab, filas, archivo){
-  const e=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const n=cab.length;
-  const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>'+
-    '<table border="0"><tr><td rowspan="3" style="width:60px"><img src="'+LOGO_XLS_URL+'" width="48" height="48"></td><td colspan="'+(n-1)+'" style="font-size:14px;font-weight:bold;color:#0C447C">Recursos Humanos · Dirección Nacional de Logística</td></tr>'+
-    '<tr><td colspan="'+(n-1)+'" style="color:#555">CEDIS Panamá · Ciclo '+e(NX.D.ciclo.texto||(NX.D.ciclo.from+' a '+NX.D.ciclo.to))+'</td></tr><tr><td colspan="'+(n-1)+'" style="font-weight:bold">'+e(titulo)+'</td></tr></table>'+
-    '<table border="1"><tr style="background:#0C447C;color:#fff;font-weight:bold">'+cab.map(h=>'<td>'+e(h)+'</td>').join('')+'</tr>'+
-    filas.map(r=>'<tr>'+r.map(c=>'<td'+(typeof c==='number'?' style="mso-number-format:\'0.00\'"':'')+'>'+e(c)+'</td>').join('')+'</tr>').join('')+
-    '</table><p style="color:#777">Fuente: rh_'+e(NX.D.ciclo.from)+'.json · generado '+e(NX.D.generado_en||'')+'</p></body></html>';
-  _descargarXls_(html, archivo);
+/* ══ PDF en el navegador (instantáneo) ══ */
+async function nxPdfBase(titulo, sub){
+  await nxLib('pdf'); await nxLib('at'); const logo=await nxLogo();
+  const doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'letter'}), W=612;
+  if(logo) doc.addImage('data:image/png;base64,'+logo,'PNG',36,28,46,46);
+  doc.setTextColor(11,31,58); doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.text('CAJA DE SEGURO SOCIAL',W/2,40,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.text('DIRECCIÓN NACIONAL DE LOGÍSTICA',W/2,54,{align:'center'});
+  doc.setFontSize(10); doc.text('ALMACÉN CEDIS PANAMÁ',W/2,67,{align:'center'});
+  doc.setDrawColor(11,31,58); doc.setLineWidth(1.5); doc.line(36,84,W-36,84);
+  doc.setFont('helvetica','bold'); doc.setFontSize(12.5); doc.text(titulo,W/2,101,{align:'center'});
+  let y=101; if(sub){ doc.setFont('helvetica','normal'); doc.setFontSize(8.5); (Array.isArray(sub)?sub:[sub]).forEach(s=>{ y+=12; doc.text(s,W/2,y,{align:'center'}); }); }
+  doc.line(36,y+8,W-36,y+8);
+  return {doc, y:y+20, W};
 }
-function nxFilaPersona(p){ return [p.n,p.c,p.nf,p.g,p.a,p.dm,Number(nxH(p.he).replace(':','.')),nxH(p.he),nxH(p.hp),nxH(p.tx),p.al,p.tr,p.vi,p.vd,p.pe]; }
-const NX_CAB_PER=['Colaborador','Cédula','Nº funcionario','Cargo','Área','Días marcados','HE (h decimal)','HE (h:mm)','HE pagadas','TXT generado','Alimentación B/.','Transporte B/.','Total B/.','Vacaciones (días)','Pendientes'];
-function nxXlsVista(){
-  if(!NX.D) return; const tag=NX.D.ciclo.from+(NX.area?'_'+NX.area.replace(/\s+/g,'_'):'');
+function nxPdfFicha(doc,y,pares){ doc.autoTable({ startY:y, theme:'grid', body:pares, styles:{fontSize:8.5,cellPadding:4,lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]},
+  columnStyles:{0:{fontStyle:'bold',fillColor:[238,242,247],cellWidth:95},2:{fontStyle:'bold',fillColor:[238,242,247],cellWidth:95}}, margin:{left:36,right:36} }); return doc.lastAutoTable.finalY+10; }
+function nxPdfPie(doc,firmas){
+  const n=doc.getNumberOfPages(), H=792, W=612;
+  if(firmas){ doc.setPage(n); let y=Math.max(doc.lastAutoTable?doc.lastAutoTable.finalY+60:600, 640); if(y>740){ doc.addPage(); y=120; }
+    doc.setDrawColor(60,60,60); doc.setLineWidth(.6); doc.line(70,y,250,y); doc.line(W-250,y,W-70,y);
+    doc.setFontSize(8.5); doc.setTextColor(40,40,40); doc.text('PREPARADO POR',160,y+12,{align:'center'}); doc.text('V° B° JEFATURA DE ALMACÉN',W-160,y+12,{align:'center'}); }
+  for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(8); doc.setTextColor(110,110,110);
+    doc.text('Generado el '+nxFds(nxSello().slice(0,10))+' '+nxSello().slice(11)+' · Fuente: datos publicados del biométrico (RH_MASTER)',36,H-24);
+    doc.text('Página '+i+' de '+n,W-36,H-24,{align:'right'}); }
+}
+async function nxConDoc(btn, fn){ const t=btn?btn.innerHTML:''; if(btn){ btn.disabled=true; btn.textContent='Preparando…'; }
+  try{ await fn(); }catch(e){ nxToast(e.message||'No se pudo generar el documento.'); } finally{ if(btn){ btn.disabled=false; btn.innerHTML=t; } } }
+
+/* Reconocimiento de alimentación y transporte */
+generarPdf=async function(btn){
+  if(!ULTIMA||ULTIMA.modo!=='uno') return;
+  const r=(NX.D.colaboradores||{})[ULTIMA.valor]; const p=NX.P.find(x=>x.n===ULTIMA.valor)||{};
+  if(!r||!r.dias||!r.dias.length){ nxToast('No hay días reconocidos en el ciclo para este colaborador.'); return; }
+  await nxConDoc(btn, async ()=>{
+    const {doc,y}=await nxPdfBase('RECONOCIMIENTO DE ALIMENTACIÓN Y TRANSPORTE',['POR LABORES DESPUÉS DE SU HORARIO REGULAR','DE LUNES A VIERNES, FIN DE SEMANA Y DÍAS FERIADOS']);
+    const c=r.colaborador||{};
+    let yy=nxPdfFicha(doc,y,[['NOMBRE',c.nombre||p.n,'RESIDENCIA',c.residencia||p.res||''],['N° DE FUNC.',c.num_funcionario||p.nf,'TARIFA DE TAXI',nxB(r.dias[0].transporte)],['CÉDULA',c.cedula||p.c,'CARGO',c.cargo||p.g],['PERÍODO',{content:(r.periodo&&r.periodo.texto)||'',colSpan:3}]]);
+    const fin=f=>{ const d=new Date(f+'T12:00:00').getDay(); return d===0||d===6; };
+    doc.autoTable({ startY:yy, theme:'grid', head:[[{content:'FECHA',rowSpan:2},{content:'DÍA',rowSpan:2},{content:'HORARIO',colSpan:2},{content:'ALIMENTACIÓN',rowSpan:2},{content:'TRANSPORTE',rowSpan:2},{content:'HORARIO REGULAR',colSpan:2},{content:'TOTAL',rowSpan:2}],['Entrada','Salida','Desde','Hasta']],
+      body:r.dias.map(d=>{ const f=fin(d.fecha); return [nxFds(d.fecha),diaCortoFront(d.fecha),nxHora(d.entrada),nxHora(d.salida),nxB(d.alimentacion),nxB(d.transporte),f?{content:'LIBRE',colSpan:2,styles:{halign:'center'}}:(d.horario_regular_desde||'7:30')+' a.m.',...(f?[]:[(d.horario_regular_hasta||'3:30')+' p.m.']),nxB(d.total_dia)]; }),
+      foot:[[{content:'SUBTOTALES',colSpan:4},nxB(r.subtotales.alimentacion),nxB(r.subtotales.transporte),{content:'',colSpan:2},nxB(r.total)]],
+      styles:{fontSize:8,cellPadding:3,halign:'center',lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58],fontStyle:'bold'}, footStyles:{fillColor:[217,217,217],textColor:[20,20,20],fontStyle:'bold'},
+      didParseCell:h=>{ if(h.section==='body'&&fin(r.dias[h.row.index].fecha)) h.cell.styles.fillColor=[224,231,255]; }, margin:{left:36,right:36} });
+    let y2=doc.lastAutoTable.finalY+10; doc.autoTable({ startY:y2, theme:'grid', body:[['TOTAL',nxB(r.total)]], tableWidth:180, margin:{left:612-36-180}, styles:{fontSize:10,fontStyle:'bold',fillColor:[217,217,217],lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]} });
+    nxPdfPie(doc,true);
+    doc.save('VIATICOS_'+nxClave(c.nombre||p.n)+'_'+ULTIMA.desde+'_'+ULTIMA.hasta+'.pdf'); nxToast('PDF descargado.');
+  });
+};
+/* Registro de asistencia (del JSON del ciclo; si se abrió la vista de ajustes, con sus incidencias) */
+imprimirAsistencia=async function(btn){
+  if(!ULTIMA||ULTIMA.modo!=='uno') return;
+  const p=NX.P.find(x=>x.n===ULTIMA.valor); if(!p) return;
+  const A=window.__asistData&&window.__asistData.colaborador&&window.__asistData.colaborador.nombre===p.n?window.__asistData:null;
+  const dias=A?A.dias:p.asi;
+  await nxConDoc(btn, async ()=>{
+    const {doc,y}=await nxPdfBase('REGISTRO DE ASISTENCIA');
+    let yy=nxPdfFicha(doc,y,[['FUNCIONARIO',p.n,'CÉDULA',p.c],['CARGO',p.g,'ÁREA',p.a],['N° FUNCIONARIO',p.nf,'PERÍODO',nxFds(NX.D.ciclo.from)+' al '+nxFds(NX.D.ciclo.to)]]);
+    const T=A&&A.totales?A.totales:{};
+    doc.autoTable({ startY:yy, theme:'grid', head:[['DÍAS MARCADOS','HORAS EXTRA','T. COMPENSATORIO','TARDANZAS','AUSENCIAS']], body:[[String(p.dm),nxH(p.he),nxH(p.tx),String(T.tardanzas!=null?T.tardanzas:'—'),String(T.ausencias!=null?T.ausencias:'—')]],
+      styles:{fontSize:8.5,halign:'center',lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} });
+    doc.autoTable({ startY:doc.lastAutoTable.finalY+10, theme:'grid', head:[['Fecha','Día','Entrada','Salida','Trabajadas','Extra','Observación']],
+      body:dias.map(d=>{ const u=nxUna(d); return [nxFds(d.fecha),d.dia||diaCortoFront(d.fecha),nxHora(d.entrada),u?'—':nxHora(d.salida),d.horas_trabajadas||'—',d.horas_extra&&d.horas_extra!=='00:00'?d.horas_extra:'—',
+        [d.incidencia||'',d.turno_excepcion?('Turno '+d.turno_excepcion):'',d.minutos_tarde?('('+d.minutos_tarde+' min)'):'',u&&!d.incidencia?'Una sola marca':''].filter(Boolean).join(' · ')]; }),
+      styles:{fontSize:7.8,cellPadding:3,halign:'center',lineColor:[0,0,0],lineWidth:.4,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]},
+      didParseCell:h=>{ if(h.section!=='body') return; const d=dias[h.row.index], inc=String(d.incidencia||'').toUpperCase(), t=String(d.tipo_dia||'').toUpperCase();
+        if(/AUSEN/.test(inc)) h.cell.styles.fillColor=[254,226,226]; else if(/TARD/.test(inc)) h.cell.styles.fillColor=[254,243,199]; else if(d.turno_excepcion) h.cell.styles.fillColor=[209,250,229]; else if(t&&t!=='LABORABLE') h.cell.styles.fillColor=[224,231,255]; },
+      margin:{left:36,right:36} });
+    nxPdfPie(doc,true); doc.save('ASISTENCIA_'+nxClave(p.n)+'_'+NX.D.ciclo.from+'.pdf'); nxToast('PDF descargado.');
+  });
+};
+/* Registro de tiempo compensatorio (del JSON de la persona) */
+imprimirTxt=async function(btn){
+  if(!EMP_ACTUAL) return; const P=await nxPersona(EMP_ACTUAL); const T=P&&P.txt&&P.txt.ok?P.txt:window.__txtData; const A=P&&P.art18&&P.art18.ok?P.art18:null;
+  if(!T){ nxToast('El registro de tiempo compensatorio de esta persona aún no está publicado.'); return; }
+  const p=NX.P.find(x=>x.n===EMP_ACTUAL)||{};
+  await nxConDoc(btn, async ()=>{
+    const {doc,y}=await nxPdfBase('REGISTRO DE TIEMPO COMPENSATORIO');
+    let yy=nxPdfFicha(doc,y,[['FUNCIONARIO',EMP_ACTUAL,'CÉDULA',p.c||''],['CARGO',p.g||'','ÁREA',p.a||'']]);
+    doc.autoTable({ startY:yy, theme:'grid', head:[['SALDO DISPONIBLE','GENERADO','TOMADO','HORAS EXTRA PAGADAS']], body:[[T.saldo_actual_hhmm||'—',T.total_generado_hhmm||'—',T.total_tomado_hhmm||'—',T.he_pagadas_hhmm||'—']],
+      styles:{fontSize:9,halign:'center',lineColor:[0,0,0],lineWidth:.5,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} });
+    const per=c=>{ const m=String(c||'').match(/(\d{4}-\d{2}-\d{2})_a_(\d{4}-\d{2}-\d{2})/); return m?nxFds(m[1])+' al '+nxFds(m[2]):String(c||''); };
+    doc.setFontSize(9.5); doc.setTextColor(11,31,58); doc.text('Movimientos por ciclo',36,doc.lastAutoTable.finalY+18);
+    doc.autoTable({ startY:doc.lastAutoTable.finalY+24, theme:'grid', head:[['Período','T.C. generado','T.C. tomado','T.C. planificado','T.C. acumulado','Observaciones']],
+      body:(T.movimientos||[]).map(m=>[m.tipo==='APERTURA'?'Saldo anterior':(m.periodo||per(m.ciclo)),m.generado_hhmm||'—',m.tomado_hhmm||'—',m.planificado_hhmm||'—',{content:m.acumulado_hhmm||'—',styles:{fontStyle:'bold'}},[m.ajustado?'Ajustado':'',m.origen&&m.origen!=='BIO'?m.origen:''].filter(Boolean).join(' · ')]),
+      styles:{fontSize:8,halign:'center',lineColor:[0,0,0],lineWidth:.4,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} });
+    if(A&&A.bloques&&A.bloques.length){ doc.text('Artículo 18 · Permisos (8 horas cada 4 meses)',36,doc.lastAutoTable.finalY+18);
+      doc.autoTable({ startY:doc.lastAutoTable.finalY+24, theme:'grid', head:[['Cuatrimestre','Horas usadas','Horas restantes']], body:A.bloques.map(b=>[b.etiqueta,String(b.horas_usadas!=null?b.horas_usadas:(8-(b.horas_restantes||0))),String(b.horas_restantes)]),
+        styles:{fontSize:8,halign:'center',lineColor:[0,0,0],lineWidth:.4,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} }); }
+    if((T.usos_detalle||[]).length){ doc.text('Detalle de usos registrados',36,doc.lastAutoTable.finalY+18);
+      doc.autoTable({ startY:doc.lastAutoTable.finalY+24, theme:'grid', head:[['Fecha de uso','Horas','Estado','Aplicado al período','Nota','Registró']],
+        body:T.usos_detalle.map(u=>[nxFds(u.fecha_uso),Number(u.horas_usadas||0).toFixed(1),u.estado==='PLANIFICADO'?'Planificado':'Tomado',u.periodo||'',u.nota||'',u.aprobado_por||'']),
+        styles:{fontSize:7.8,halign:'center',lineColor:[0,0,0],lineWidth:.4,textColor:[20,20,20]}, headStyles:{fillColor:[238,242,247],textColor:[11,31,58]}, margin:{left:36,right:36} }); }
+    nxPdfPie(doc,true); doc.save('TXT_'+nxClave(EMP_ACTUAL)+'_'+nxHoyYmd()+'.pdf'); nxToast('PDF descargado.');
+  });
+};
+
+/* ══ Excel institucional (ExcelJS, mismo formato de tablero_mando.html) ══ */
+function nxXlsInst(nombre,titulo,meta,cols,filas,frozenX){
+  if(!filas.length){ nxToast('No hay filas que exportar.'); return; }
+  nxToast('Preparando Excel…');
+  Promise.all([nxLib('xls'), nxLogo()]).then(function(r){
+    var nC=cols.length, wb=new window.ExcelJS.Workbook(); wb.creator='Dirección Nacional de Logística';
+    var ws=wb.addWorksheet('Reporte',{views:[{state:'frozen',ySplit:7+meta.length,xSplit:frozenX||0}]});
+    if(r[1]){ var idI=wb.addImage({base64:r[1],extension:'png'}); ws.addImage(idI,{tl:{col:0,row:0},ext:{width:58,height:58}}); }
+    var linea=function(f,txt,o){ ws.mergeCells(f,2,f,Math.max(2,nC)); var c=ws.getCell(f,2); c.value=txt; c.font=Object.assign({name:'Calibri',size:11},o||{}); };
+    linea(1,'CAJA DE SEGURO SOCIAL',{bold:true,size:13,color:{argb:'FF0C447C'}});
+    linea(2,'Dirección Nacional de Logística · Recursos Humanos · CEDIS Panamá',{color:{argb:'FF1E5A9E'}});
+    linea(3,titulo,{bold:true,size:12});
+    var f=5;
+    [['Generado',new Date().toLocaleString('es-PA',{timeZone:'America/Panama'})+' (hora de Panamá)']].concat(meta).forEach(function(kv){
+      ws.getCell(f,1).value=kv[0]; ws.getCell(f,1).font={bold:true,size:10,color:{argb:'FF5F6B78'}};
+      ws.mergeCells(f,2,f,Math.max(2,nC)); ws.getCell(f,2).value=kv[1]; ws.getCell(f,2).font={size:10}; f++; });
+    f++;
+    var hr=ws.getRow(f);
+    cols.forEach(function(c,i){ var x=hr.getCell(i+1); x.value=c.h; x.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+      x.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0C447C'}}; x.alignment={vertical:'middle',horizontal:(c.t||'txt')==='txt'?'left':'right',wrapText:true}; });
+    hr.height=30; ws.autoFilter={from:{row:f,column:1},to:{row:f,column:nC}};
+    filas.forEach(function(rw,j){ var row=ws.getRow(f+1+j); rw.forEach(function(v,i){ var x=row.getCell(i+1), tp=cols[i].t||'txt';
+      x.value=(v===''||v==null)?null:(tp==='txt'?String(v):(isFinite(v)?Number(v):String(v)));
+      if(tp==='num') x.numFmt='#,##0'; if(tp==='dec') x.numFmt='#,##0.00'; x.font={name:tp==='txt'?'Calibri':'Consolas',size:10};
+      if(j%2) x.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF4F7FB'}}; }); });
+    cols.forEach(function(c,i){ ws.getColumn(i+1).width=c.w||14; });
+    return wb.xlsx.writeBuffer();
+  }).then(function(buf){
+    var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download=nombre+'_'+nxSello().substring(0,10)+'.xlsx'; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); nxToast('Excel descargado.');
+  }).catch(function(e){ nxToast(e.message); });
+}
+const NX_COLS_PER=[{h:'Colaborador',w:34},{h:'Cédula',w:14},{h:'Nº funcionario',w:18},{h:'Cargo',w:28},{h:'Área',w:20},{h:'Días marcados',t:'num',w:10},{h:'HE calculadas (h)',t:'dec',w:12},{h:'HE pagadas (h)',t:'dec',w:12},{h:'TXT generado (h)',t:'dec',w:12},{h:'Alimentación B/.',t:'dec',w:12},{h:'Transporte B/.',t:'dec',w:12},{h:'Total B/.',t:'dec',w:12},{h:'Vacaciones (días)',t:'num',w:11},{h:'Pendientes',t:'num',w:10}];
+const nxFilaPer=p=>[p.n,p.c,p.nf,p.g,p.a,p.dm,+p.he.toFixed(2),+p.hp.toFixed(2),+p.tx.toFixed(2),p.al,p.tr,p.vi,p.vd,p.pe];
+const nxMetaCiclo=()=>[['Ciclo',NX.D.ciclo.texto||(NX.D.ciclo.from+' a '+NX.D.ciclo.to)],['Fuente','rh_'+NX.D.ciclo.from+'.json · generado '+(NX.D.generado_en||'')]];
+function nxXlsVista(){ if(!NX.D) return; const tag=NX.area?'_'+nxClave(NX.area):'';
   if(NX.tab==='res'){ const AR=nxOrden(nxAreas(NX.P),NX_SORT.area);
-    nxXls('Resumen por área', ['Área','Personal','Con marcas','Con beneficio','Total B/.','HE (h:mm)','Pendientes'], AR.map(a=>[a.area,a.per,a.con,a.via,Number(a.total.toFixed(2)),nxH(a.he),a.pen]), 'RH_resumen_areas_'+tag+'.xls'); return; }
+    nxXlsInst('RH_Resumen_areas'+tag,'Resumen por área',nxMetaCiclo(),[{h:'Área',w:24},{h:'Personal',t:'num',w:10},{h:'Con marcas',t:'num',w:10},{h:'Con beneficio',t:'num',w:11},{h:'Alim. y transp. B/.',t:'dec',w:14},{h:'HE calculadas (h)',t:'dec',w:14},{h:'Pendientes',t:'num',w:10}],AR.map(a=>[a.area,a.per,a.con,a.via,+a.total.toFixed(2),+a.he.toFixed(2),a.pen]),1); return; }
   if(NX.tab==='pen'){ const L=nxOrden(nxPendientes(nxGente()),NX_SORT.pen);
-    nxXls('Pendientes por justificar'+(NX.area?' · '+NX.area:''), ['Colaborador','Área','Fecha','Marca registrada','Situación'], L.map(x=>[x.n,x.a,x.f||'todo el ciclo',x.m,x.t]), 'RH_pendientes_'+tag+'.xls'); return; }
-  nxXls('Personal'+(NX.area?' · '+NX.area:'')+(NX.txt?' · búsqueda: '+NX.txt:''), NX_CAB_PER, nxOrden(nxGente(),NX_SORT.per).map(nxFilaPersona), 'RH_personal_'+tag+'.xls');
+    nxXlsInst('RH_Pendientes'+tag,'Pendientes por justificar'+(NX.area?' · '+NX.area:''),nxMetaCiclo(),[{h:'Colaborador',w:34},{h:'Área',w:20},{h:'Fecha',w:12},{h:'Marca registrada',w:14},{h:'Situación',w:26}],L.map(x=>[x.n,x.a,x.f||'todo el ciclo',x.m,x.t]),1); return; }
+  nxXlsInst('RH_Personal'+tag,'Personal'+(NX.area?' · '+NX.area:'')+(NX.txt?' · búsqueda: '+NX.txt:''),nxMetaCiclo(),NX_COLS_PER,nxOrden(nxGente(),NX_SORT.per).map(nxFilaPer),1); }
+function nxXlsTodo(){ if(!NX.D) return; nxXlsInst('RH_Ciclo_completo_'+NX.D.ciclo.from,'Ciclo completo · todas las áreas',nxMetaCiclo(),NX_COLS_PER,nxOrden(NX.P,{k:'a',d:1}).map(nxFilaPer),1); }
+function nxXlsAsistencia(p){ nxXlsInst('Asistencia_'+nxClave(p.n),'Registro de asistencia · '+p.n,nxMetaCiclo().concat([['Colaborador',p.n+' · '+p.g+' · '+p.a]]),
+  [{h:'Fecha',w:12},{h:'Día',w:6},{h:'Entrada',w:11},{h:'Salida',w:11},{h:'Trabajadas',w:11},{h:'HE del día',w:11},{h:'Estado',w:22}],
+  p.asi.map(a=>[a.fecha,a.dia,nxHora(a.entrada),nxUna(a)?'':nxHora(a.salida),a.horas_trabajadas,a.horas_extra,nxUna(a)?'Una sola marca':String(a.tipo_dia||'').replace(/_/g,' ')])); }
+function nxXlsVia(p,r){ nxXlsInst('Alimentacion_transporte_'+nxClave(p.n),'Alimentación y transporte · '+p.n,nxMetaCiclo().concat([['Colaborador',p.n+' · '+p.g+' · '+p.a]]),
+  [{h:'Fecha',w:12},{h:'Fuera de horario desde',w:14},{h:'Hasta',w:11},{h:'Alimentación B/.',t:'dec',w:13},{h:'Transporte B/.',t:'dec',w:13},{h:'Total B/.',t:'dec',w:12}],
+  r.dias.map(d=>[d.fecha,nxHora(d.entrada),nxHora(d.salida),d.alimentacion,d.transporte,d.total_dia]).concat([['Total del ciclo','','',r.subtotales.alimentacion,r.subtotales.transporte,r.total]])); }
+exportarViaticosExcel=function(){ const p=NX.P.find(x=>x.n===EMP_ACTUAL), r=p&&(NX.D.colaboradores||{})[p.n]; if(p&&r) nxXlsVia(p,r); else nxToast('No hay días reconocidos para exportar.'); };
+imprimirTxtExcel=async function(btn){
+  if(!EMP_ACTUAL) return; const P=await nxPersona(EMP_ACTUAL); const T=P&&P.txt&&P.txt.ok?P.txt:window.__txtData;
+  if(!T){ nxToast('El registro de tiempo compensatorio de esta persona aún no está publicado.'); return; }
+  nxXlsInst('TXT_'+nxClave(EMP_ACTUAL),'Registro de tiempo compensatorio · '+EMP_ACTUAL,[['Saldo disponible',T.saldo_actual_hhmm||''],['Generado',T.total_generado_hhmm||''],['Tomado',T.total_tomado_hhmm||''],['HE pagadas',T.he_pagadas_hhmm||'']],
+    [{h:'Tipo',w:12},{h:'Período',w:26},{h:'Generado',w:11},{h:'Tomado',w:11},{h:'Planificado',w:11},{h:'Acumulado',w:11},{h:'Origen',w:10}],
+    (T.movimientos||[]).map(m=>[m.tipo,m.periodo||m.ciclo||'',m.generado_hhmm||'',m.tomado_hhmm||'',m.planificado_hhmm||'',m.acumulado_hhmm||'',m.origen||'']));
+};
+
+/* ══ Sugerencias y discrepancias ══ */
+const NX_CONCEPTOS=['Horas extra del día','Horas extra pagadas del ciclo','Tiempo compensatorio','Alimentación','Transporte','Marca de entrada o salida','Tardanza','Vacaciones','Otro'];
+const NX_EST_PILL={'ABIERTA':'p-warn','EN REVISIÓN':'p-info','ACEPTADA':'p-ok','RECHAZADA':'p-bad','ENVIANDO':'p-run','NO SE ENVIÓ':'p-bad'};
+async function nxCargarDisc(){
+  try{ const r=await fetch('./rh_discrepancias.json?v='+Date.now(),{cache:'no-cache'}); if(r.ok){ const j=await r.json(); nxDiscMerge(j.items||[]); } }catch(_){}
+  nxRender(); if(NX.tab==='dis') nxPintarDisc(); nxReglasContadores();
 }
-function nxXlsTodo(){ if(!NX.D) return;
-  nxXls('Ciclo completo · todas las áreas', NX_CAB_PER, nxOrden(NX.P,{k:'a',d:1}).map(nxFilaPersona), 'RH_ciclo_completo_'+NX.D.ciclo.from+'.xls'); }
+function nxDiscMerge(items){ const loc=NX.disc.filter(d=>d._local); NX.disc=items.concat(loc.filter(l=>!items.some(i=>i.why===l.why&&i.por===l.por))); }
+function nxReglasLista(){ return [...document.querySelectorAll('#nxCalBody .regla')].filter(a=>a.id!=='RX').map(a=>[a.id,a.id+' · '+a.dataset.t]); }
+function nxAbrirDisc(o,modo){
+  modo=modo||'disc'; const dlg=document.getElementById('nxDDlg'); dlg.dataset.modo=modo; dlg.dataset.n=o.n||''; dlg.dataset.f=o.f||'';
+  document.getElementById('nxDTit').textContent=modo==='sug'?'Nueva sugerencia':'Reportar discrepancia';
+  document.getElementById('nxDCol').value=o.n||'(regla general)'; document.getElementById('nxDFecha').value=o.f?nxFdl(o.f):'—'; document.getElementById('nxDSis').value=o.sis||'';
+  document.getElementById('nxDConc').innerHTML=NX_CONCEPTOS.map(c=>'<option'+(c===o.c?' selected':'')+'>'+c+'</option>').join('');
+  document.getElementById('nxDRegla').innerHTML='<option value="">No sé cuál regla aplica</option>'+nxReglasLista().map(r=>'<option value="'+r[0]+'"'+(r[0]===o.r?' selected':'')+'>'+nxEsc(r[1])+'</option>').join('');
+  document.getElementById('nxDProp').value=''; document.getElementById('nxDWhy').value='';
+  document.getElementById('nxDScrim').hidden=false; dlg.hidden=false; setTimeout(()=>document.getElementById(modo==='sug'?'nxDWhy':'nxDProp').focus(),30);
+}
+function nxCerrarDisc(){ document.getElementById('nxDScrim').hidden=true; document.getElementById('nxDDlg').hidden=true; }
+async function nxPinUsuario(motivo){ if(window.ADMIN&&ADMIN.activo&&ADMIN.pin) return ADMIN.pin; return await rhPedirPin('Su PIN', motivo||'Ingrese su PIN para registrarlo a su nombre.'); }
+async function nxPostApi(cuerpo){ const r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(cuerpo)}); return r.json(); }
+async function nxEnviarDisc(e){
+  e.preventDefault();
+  const dlg=document.getElementById('nxDDlg'), modo=dlg.dataset.modo, why=document.getElementById('nxDWhy').value.trim();
+  if(!why){ document.getElementById('nxDWhy').focus(); nxToast('Explique por qué; es lo que la Jefatura necesita para revisar.'); return; }
+  const pin=await nxPinUsuario('Ingrese su PIN para registrar la '+(modo==='sug'?'sugerencia':'discrepancia')+' a su nombre.'); if(!pin) return;
+  const item={_local:1,id:'…',k:modo==='sug'?'SUG':'DISC',ts:nxSello(),por:(window.ADMIN&&ADMIN.nombre)||'(usted)',n:dlg.dataset.n||'(regla general)',f:dlg.dataset.f,
+    c:modo==='sug'?document.getElementById('nxDTipoSug').value:document.getElementById('nxDConc').value,sis:modo==='sug'?'':document.getElementById('nxDSis').value,
+    prop:modo==='sug'?'':document.getElementById('nxDProp').value,r:document.getElementById('nxDRegla').value,why,e:'ENVIANDO',resp:''};
+  NX.disc.unshift(item); nxCerrarDisc(); nxRender(); if(NX.tab==='dis') nxPintarDisc(); if(NX.tab==='fic'&&NX.ft==='dis') nxPintarFicDis();
+  NX.pend++; nxSync(); nxToast('Enviando… puede seguir trabajando.');
+  try{
+    const j=await nxPostApi({api:'disc_registrar',pin,tipo:item.k,colaborador:item.n,ciclo:NX.D?NX.D.ciclo.from+' a '+NX.D.ciclo.to:'',fecha:item.f,concepto:item.c,valor_sistema:item.sis,valor_propuesto:item.prop,regla:item.r,detalle:why});
+    if(!j||!j.ok) throw new Error((j&&j.error)||'No se pudo registrar.');
+    NX.disc=NX.disc.filter(d=>d!==item); nxDiscMerge(j.lista||[]); NX.pend--; nxSync('ok'); nxToast('Registrado como '+j.id+' a nombre de '+j.registrado_por+'.');
+  }catch(err){ item.e='NO SE ENVIÓ'; item.err=err.message; NX.pend--; nxSync('err'); nxToast(err.message); }
+  nxRender(); if(NX.tab==='dis') nxPintarDisc(); if(NX.tab==='fic'&&NX.ft==='dis') nxPintarFicDis(); nxReglasContadores();
+}
+function nxPintarDisc(){
+  const ef=document.getElementById('nxDisEst').value, tf=document.getElementById('nxDisTipo').value;
+  const D=NX.disc.filter(d=>(!ef||d.e===ef)&&(!tf||d.k===tf)), cnt=e=>NX.disc.filter(d=>d.e===e).length;
+  document.getElementById('nxDisKpis').innerHTML=[['k-warn','Abiertas',cnt('ABIERTA'),'esperan revisión'],['k-info','En revisión',cnt('EN REVISIÓN'),'la Jefatura las analiza'],['k-ok','Aceptadas',cnt('ACEPTADA'),'el dato o la regla se corrige'],['k-bad','Rechazadas',cnt('RECHAZADA'),'se mantiene, con respuesta']]
+    .map(k=>'<div class="nx-kpi '+k[0]+'"><span class="l">'+k[1]+'</span><span class="v">'+k[2]+'</span><span class="s">'+k[3]+'</span></div>').join('');
+  const R=nxOrden(D,NX_SORT.dis), adm=!!(window.ADMIN&&ADMIN.activo);
+  document.getElementById('nxDisSub').textContent=R.length+' casos'+(adm?' · como Jefatura puede responder':' · active el modo administrativo para responder');
+  document.getElementById('nxTDis').innerHTML='<thead><tr>'+nxTh('dis','ts','Reportado')+nxTh('dis','n','Colaborador')+nxTh('dis','k','Tipo')+nxTh('dis','c','Qué valor / tema')+'<th class="ns">Sistema → propuesto</th>'+nxTh('dis','r','Regla')+nxTh('dis','e','Estado')+'<th class="r ns">Jefatura</th></tr></thead><tbody>'+
+    (R.length?R.map((d,i)=>'<tr><td class="nx-n nw">'+nxEsc(String(d.ts).slice(5))+'<div class="nx-cg">'+nxEsc(d.por)+' · '+nxEsc(d.id)+'</div></td><td>'+nxEsc(d.n)+(d.f?'<div class="nx-cg">día '+nxFdl(d.f)+'</div>':'')+'</td><td><span class="nx-pill '+(d.k==='SUG'?'p-info':'p-warn')+'">'+(d.k==='SUG'?'Sugerencia':'Discrepancia')+'</span></td><td>'+nxEsc(d.c)+'<div class="nx-cg nx-why">'+nxEsc(d.why)+'</div>'+(d.resp?'<div class="nx-cg nx-why" style="color:var(--nx-fg)"><b>Respuesta'+(d.resuelto_por?' de '+nxEsc(d.resuelto_por):'')+':</b> '+nxEsc(d.resp)+'</div>':'')+(d.err?'<div class="nx-cg" style="color:var(--nx-bad-fg)">'+nxEsc(d.err)+'</div>':'')+'</td><td class="nx-n">'+(d.k==='SUG'?'—':nxEsc(d.sis||'—')+' → <b>'+nxEsc(d.prop||'—')+'</b>')+'</td><td>'+(d.r?'<a href="#" class="nx-nm" data-nxgor="'+nxEsc(d.r)+'">'+nxEsc(d.r)+'</a>':'—')+'</td><td><span class="nx-pill '+(NX_EST_PILL[d.e]||'p-info')+'">'+nxEsc(d.e)+'</span></td><td class="r">'+
+      (adm&&!d._local&&(d.e==='ABIERTA'||d.e==='EN REVISIÓN')?'<div class="nx-res-form" data-nxres="'+nxEsc(d.id)+'"><textarea rows="2" placeholder="Respuesta para quien reportó"></textarea><div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap"><button type="button" class="nx-btn sm" data-v="EN REVISIÓN">En revisión</button><button type="button" class="nx-btn sm" data-v="ACEPTADA">Aceptar</button><button type="button" class="nx-btn sm" data-v="RECHAZADA">Rechazar</button></div></div>':'')+'</td></tr>').join(''):'<tr><td colspan="8" class="nx-empty">Todavía no hay casos con ese filtro. Use «Nueva sugerencia» o la bandera de cada día en la ficha.</td></tr>')+'</tbody>';
+  document.querySelectorAll('#nxTDis [data-nxgor]').forEach(a=>a.onclick=e=>{ e.preventDefault(); nxIrRegla(a.dataset.nxgor); });
+  document.querySelectorAll('#nxTDis [data-nxres]').forEach(f=>f.querySelectorAll('button').forEach(b=>b.onclick=async()=>{
+    const resp=f.querySelector('textarea').value.trim(), est=b.dataset.v;
+    if(est!=='EN REVISIÓN'&&!resp){ f.querySelector('textarea').focus(); nxToast('Escriba la respuesta para quien reportó.'); return; }
+    const d=NX.disc.find(x=>x.id===f.dataset.nxres); const prev={e:d.e,resp:d.resp}; d.e=est; d.resp=resp; nxPintarDisc();
+    NX.pend++; nxSync();
+    try{ const j=await nxPostApi({api:'disc_resolver',pin:ADMIN.pin,id:d.id,estado:est,respuesta:resp}); if(!j||!j.ok) throw new Error((j&&j.error)||'No se pudo guardar.'); nxDiscMerge(j.lista||[]); NX.pend--; nxSync('ok'); }
+    catch(err){ d.e=prev.e; d.resp=prev.resp; NX.pend--; nxSync('err'); nxToast(err.message); }
+    nxPintarDisc(); nxRender(); nxReglasContadores(); }));
+  const porR={}; NX.disc.forEach(d=>{ const k=d.r||'(sin regla)'; porR[k]=(porR[k]||0)+1; });
+  const ks=Object.keys(porR).sort((a,b)=>porR[b]-porR[a]), mx=Math.max(1,...Object.values(porR)), tit={}; nxReglasLista().forEach(r=>tit[r[0]]=r[1]);
+  document.getElementById('nxDisReglas').innerHTML=ks.length?('<div class="nx-bars">'+ks.map(k=>'<div class="nx-brow"><span class="bn" title="'+nxEsc(tit[k]||k)+'">'+nxEsc(tit[k]||k)+'</span><div class="nx-track"><div class="nx-fill" style="width:'+(100*porR[k]/mx)+'%;background:#E8B04B"></div></div><span class="nx-n" style="text-align:right">'+porR[k]+'</span></div>').join('')+'</div>'):'<div class="nx-empty">Sin casos todavía.</div>';
+}
+function nxPintarFicDis(){
+  const p=NX.P.find(x=>x.n===NX.emp); if(!p) return; const L=NX.disc.filter(d=>d.n===p.n);
+  document.getElementById('nxFicDis').innerHTML='<div class="nx-panel"><div class="nx-ph"><h3>Discrepancias de '+nxEsc(p.n)+'</h3><span class="nx-sp"></span><button type="button" class="nx-btn main" id="nxFicDisNew"><svg class="nx-ic"><use href="#i-flag"/></svg>Reportar una discrepancia</button></div><div class="nx-scroll"><table class="nt"><thead><tr><th class="ns">Reportado</th><th class="ns">Qué valor</th><th class="ns">Sistema → propuesto</th><th class="ns">Estado</th></tr></thead><tbody>'+
+    (L.length?L.map(d=>'<tr><td class="nx-n nw">'+nxEsc(d.ts)+'<div class="nx-cg">'+nxEsc(d.por)+'</div></td><td>'+nxEsc(d.c)+'<div class="nx-cg nx-why">'+nxEsc(d.why)+'</div>'+(d.resp?'<div class="nx-cg nx-why" style="color:var(--nx-fg)"><b>Respuesta:</b> '+nxEsc(d.resp)+'</div>':'')+'</td><td class="nx-n">'+nxEsc(d.sis||'—')+' → <b>'+nxEsc(d.prop||'—')+'</b></td><td><span class="nx-pill '+(NX_EST_PILL[d.e]||'p-info')+'">'+nxEsc(d.e)+'</span></td></tr>').join(''):'<tr><td colspan="4" class="nx-empty">Sin discrepancias reportadas para esta persona.</td></tr>')+'</tbody></table></div></div>';
+  document.getElementById('nxFicDisNew').onclick=()=>nxAbrirDisc({n:p.n,f:'',c:'Otro',sis:'',r:''},'disc');
+}
 
-/* ── Tema claro / oscuro ── */
-function nxTemaIcono(){ const r=document.documentElement, t=r.getAttribute('data-theme');
-  const dark=t==='dark'||(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('#nxTheme use').setAttribute('href',dark?'#i-sun':'#i-moon'); return dark; }
-(function(){ let t=null; try{ t=localStorage.getItem('rh-theme'); }catch(_){} if(t) document.documentElement.setAttribute('data-theme',t); })();
+/* ══ Cómo se calcula (reglas en LaTeX) ══ */
+function nxMontarReglas(){
+  const host=document.getElementById('nxCalBody'); if(host.dataset.ok) return; host.dataset.ok='1';
+  host.appendChild(document.getElementById('tplReglas').content.cloneNode(true));
+  host.querySelectorAll('.regla').forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.className='nx-btn dis'; b.innerHTML='<svg class="nx-ic"><use href="#i-flag"/></svg>No estoy de acuerdo con esta regla';
+    b.onclick=()=>nxAbrirDisc({n:'',f:'',c:'Otro',sis:a.id+' · '+a.dataset.t,r:a.id},'disc'); a.appendChild(b); });
+  const pts=document.createElement('article'); pts.className='regla puntos'; pts.id='RX'; pts.dataset.t='Puntos detectados en el código';
+  pts.innerHTML='<h3><span class="rid">!</span>Puntos detectados en el código (para la Jefatura)</h3><ol>'+
+   ['Solo el total pagado del ciclo se trunca a horas enteras (R9). Si la persona no tiene «Aplica TXT», la fracción se pierde.',
+    'Día laborable: salir a las 4:29 p.m. da 0 h y a las 4:30 p.m. da 1:00 h; la llegada tarde no reduce las horas extra (R4).',
+    'Fin de semana: cuenta desde las 7:00 a.m., aunque el horario regular empieza a las 7:30, y no descuenta almuerzo (R5).',
+    'Hay tres cálculos distintos del saldo de tiempo compensatorio (con foto inicial, con empalme y el de caducidad). Pueden no coincidir.',
+    'Vacaciones: el saldo se calcula en dos lugares con reglas distintas (recalculado por períodos y columnas guardadas).',
+    'Tardanza: el registro de asistencia aplica 7:30 sin gracia también antes de mayo-2026, y guarda esas tardanzas automáticamente.',
+    'Los permisos del Art. 18 y las tomas de TXT parciales justifican el día completo.',
+    'Gaspar Salcedo padre e hijo se mezclan en el saldo de TXT y en la caducidad (no usan la regla de homónimos).',
+    'El ajuste manual de marcas corrige lo que se muestra, pero no recalcula horas extra, beneficios ni TXT.',
+    'Los feriados están escritos en el código; agregar o mover uno exige editar el programa.'].map(t=>'<li>'+t+'</li>').join('')+'</ol>';
+  host.appendChild(pts);
+  const sel=document.getElementById('nxCalSel');
+  sel.innerHTML=[...host.querySelectorAll('.regla')].map(a=>'<option value="'+a.id+'">'+(a.id==='RX'?'!':a.id)+' · '+nxEsc(a.dataset.t)+'</option>').join('');
+  sel.onchange=e=>nxIrRegla(e.target.value);
+}
+function nxReglasContadores(){ document.querySelectorAll('#nxCalBody .regla').forEach(a=>{ const old=a.querySelector('.rcnt'); if(old) old.remove();
+  const n=NX.disc.filter(d=>d.r===a.id&&(d.e==='ABIERTA'||d.e==='EN REVISIÓN')).length;
+  if(n){ const s=document.createElement('span'); s.className='nx-pill p-warn rcnt'; s.textContent=n+' en discusión'; a.querySelector('h3').appendChild(s); } }); }
+function nxReglasEjemplos(){
+  const host=document.getElementById('nxCalBody'); if(!host.dataset.ok||!NX.D) return;
+  const P=NX.P, set=(k,html)=>{ const el=host.querySelector('[data-ej="'+k+'"]'); if(el) el.innerHTML=html?'<b>Ejemplo del ciclo:</b> '+html:''; };
+  const all=P.flatMap(p=>p.asi.filter(a=>!nxUna(a)).map(a=>({p,a})));
+  const e4=all.find(o=>String(o.a.tipo_dia).toUpperCase()==='LABORABLE'&&nxMin(o.a.salida)>=990);
+  const e5=all.find(o=>String(o.a.tipo_dia).toUpperCase()!=='LABORABLE'&&nxMin(o.a.salida));
+  if(e4){ const S=nxMin(e4.a.salida), x=(S-930)/60; set('R4', nxEsc(e4.p.n)+', '+nxFdl(e4.a.fecha)+': salió '+nxHora(e4.a.salida)+' \\(\\ge\\) 4:30 p.m. \\(\\Rightarrow\\ HE=\\dfrac{'+(S-930)+'\\ \\text{min}}{60}='+x.toFixed(2)+'\\ \\text{h}\\) (el sistema muestra '+e4.a.horas_extra+').');
+    set('R7', nxHora(e4.a.salida)+' de salida da \\('+x.toFixed(4)+'\\) h, que se guarda como \\(\\mathbf{'+(Math.round(x*100)/100).toFixed(2)+'}\\) h; no se lleva a hora entera en el día.'); }
+  if(e5){ const E=nxMin(e5.a.entrada),S=nxMin(e5.a.salida),ini=Math.max(E,420); set('R5', nxEsc(e5.p.n)+', '+nxFdl(e5.a.fecha)+': '+nxHora(e5.a.entrada)+' a '+nxHora(e5.a.salida)+' \\(\\Rightarrow\\ HE=\\dfrac{'+(S-ini)+'\\ \\text{min}}{60}='+((S-ini)/60).toFixed(2)+'\\ \\text{h}\\).'); }
+  const e9=P.find(p=>p.he>0&&p.he<40&&Math.abs(p.he-p.hp-p.tx)<0.05&&(p.he%1)>0.1);
+  if(e9) set('R9', nxEsc(e9.n)+': calculó \\('+e9.he.toFixed(2)+'\\) h \\(\\Rightarrow\\ \\lfloor '+e9.he.toFixed(2)+'\\rfloor='+Math.floor(e9.he)+'\\) h pagadas; la fracción \\('+(e9.he-Math.floor(e9.he)).toFixed(2)+'\\) h ('+nxH(e9.he-Math.floor(e9.he))+') pasó a TXT: el ciclo muestra '+nxH(e9.hp)+' pagadas y '+nxH(e9.tx)+' de TXT.');
+  const vias=P.flatMap(p=>{ const v=(NX.D.colaboradores||{})[p.n]; return v&&v.dias?v.dias.map(d=>({p,d,fs:[0,6].includes(new Date(d.fecha+'T12:00:00').getDay())})):[]; });
+  const vl=vias.find(o=>!o.fs&&o.d.alimentacion>0&&o.d.transporte>0), vf=vias.find(o=>o.fs&&o.d.alimentacion>0);
+  let t11=''; if(vl) t11+=nxEsc(vl.p.n)+', '+nxFdl(vl.d.fecha)+' (laborable): salió '+nxHora(vl.d.salida)+' \\(\\ge\\) 6:01 p.m. \\(\\Rightarrow\\ \\text{Alim}=a=\\) B/. '+nxM(vl.d.alimentacion)+'. ';
+  if(vf) t11+=nxEsc(vf.p.n)+', '+nxFdl(vf.d.fecha)+' (fin de semana): más de 4 h extra \\(\\Rightarrow\\ \\text{Alim}=2a=\\) B/. '+nxM(vf.d.alimentacion)+'.';
+  set('R11',t11); const v1=vl||vf; if(v1) set('R12', nxEsc(v1.p.n)+', '+nxFdl(v1.d.fecha)+': \\(\\text{Total}_d='+nxM(v1.d.alimentacion)+'+'+nxM(v1.d.transporte)+'=\\mathbf{'+nxM(v1.d.total_dia)+'}\\).');
+  host.dataset.tex=''; if(NX.tab==='cal') nxTipografiarReglas();
+}
+function nxTipografiarReglas(){
+  const host=document.getElementById('nxCalBody'); if(host.dataset.tex) return; host.dataset.tex='1';
+  window.MathJax=window.MathJax||{tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},startup:{typeset:false}};
+  nxLib('mj').then(()=>{ const go=()=>{ if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([host]).catch(()=>{ host.dataset.tex=''; }); else setTimeout(go,200); }; go(); })
+    .catch(e=>{ host.dataset.tex=''; nxToast(e.message); });
+}
+function nxIrRegla(id){ nxTab('cal'); setTimeout(()=>{ const el=document.getElementById(id); if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.add('nx-hl2'); setTimeout(()=>el.classList.remove('nx-hl2'),1600);} },80); }
 
-/* ── Planilla: áreas desde el JSON del ciclo cuando ya está cargado ── */
+/* ══ Yarvis dentro del tablero ══ */
+const NX_YV_URL='https://script.google.com/macros/s/AKfycbxzVgQdW_oJnN8MEf8J0XoxMAcXOe-9lpbceAu045ZERaOnX_dqr-85XyktKeLSOcn7fA/exec';
+const NX_YV={ pin:'', hist:[], conv:'rh-'+Date.now().toString(36), ocupado:false };
+function nxYvCtxObj(){ const p=NX.tab==='fic'&&NX.emp?NX.P.find(x=>x.n===NX.emp):null;
+  return { tablero:'RH_BIOMETRICO', vista:NX.tab, ciclo:NX.D?{from:NX.D.ciclo.from,to:NX.D.ciclo.to}:null, area:NX.area||'', colaborador:p?p.n:'',
+    resumen_colaborador:p?{area:p.a,cargo:p.g,dias_marcados:p.dm,he_calculadas:nxH(p.he),he_pagadas:nxH(p.hp),txt_ciclo:nxH(p.tx),alim_transp:p.vi,pendientes:p.pe}:null }; }
+function nxYvContexto(){ const el=document.getElementById('nxYvCtx'); if(!el||document.getElementById('nxYv').hidden) return;
+  const c=nxYvCtxObj(); el.textContent='Contexto: '+(c.ciclo?'ciclo '+nxFdl(c.ciclo.from)+' a '+nxFdl(c.ciclo.to):'sin ciclo')+(c.colaborador?' · '+c.colaborador:'')+(c.area?' · área '+c.area:''); nxYvSugeridas(); }
+function nxYvSugeridas(){ const c=nxYvCtxObj(), p=c.resumen_colaborador, nm=c.colaborador?c.colaborador.split(' ')[0]:'';
+  const S=p?['¿Por qué a '+nm+' le pagaron '+p.he_pagadas+' h si calculó '+p.he_calculadas+' h?','¿Qué días de '+nm+' están pendientes de justificar?','Explícame la regla de las 4:30 p.m.']
+           :['¿Qué área tiene más pendientes por justificar?','¿Quién generó más horas extra en el ciclo?','Explícame cómo se reparte entre horas pagadas y tiempo compensatorio.'];
+  const h=document.getElementById('nxYvSug'); h.innerHTML=S.map(s=>'<button type="button">'+nxEsc(s)+'</button>').join(''); h.querySelectorAll('button').forEach(b=>b.onclick=()=>nxYvPreguntar(b.textContent)); }
+function nxYvMsg(q,html,extra){ const d=document.createElement('div'); d.className='nx-yvm '+q; d.innerHTML=html+(extra||''); const L=document.getElementById('nxYvList'); L.appendChild(d); L.scrollTop=L.scrollHeight; return d; }
+function nxYvTexto(s){ return nxEsc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>'); }
+async function nxYvAbrir(){ document.getElementById('nxYv').hidden=false; document.getElementById('nxYvBtn').hidden=true; nxYvContexto();
+  if(!document.getElementById('nxYvList').children.length) nxYvMsg('ya','Hola. Respondo con los datos publicados del tablero y las reglas de «Cómo se calcula», y cito la fuente. Si una respuesta no le parece correcta, puede enviarla como discrepancia.');
+  setTimeout(()=>document.getElementById('nxYvQ').focus(),30); }
+function nxYvCerrar(){ document.getElementById('nxYv').hidden=true; document.getElementById('nxYvBtn').hidden=false; }
+async function nxYvPreguntar(q){
+  q=String(q||'').trim(); if(!q||NX_YV.ocupado) return;
+  if(!NX_YV.pin){ let g=null; try{ g=sessionStorage.getItem('rh_yv_pin'); }catch(_){} NX_YV.pin=g||(window.ADMIN&&ADMIN.activo?ADMIN.pin:'')||await rhPedirPin('Yarvis','Ingrese su PIN para usar a Yarvis.'); if(!NX_YV.pin) return; }
+  nxYvMsg('yo',nxEsc(q)); document.getElementById('nxYvQ').value='';
+  const esp=nxYvMsg('ya','<span class="nx-note">Consultando los datos…</span>'); NX_YV.ocupado=true;
+  const t=setTimeout(()=>{ esp.innerHTML='<span class="nx-note">Sigue trabajando: las consultas grandes pueden tardar hasta un minuto.</span>'; },15000);
+  try{
+    const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),150000);
+    const r=await fetch(NX_YV_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({pin:NX_YV.pin,pregunta:q,historial:NX_YV.hist.slice(-6),conversacion:NX_YV.conv,contexto:nxYvCtxObj()}),signal:ctl.signal});
+    clearTimeout(to); const j=await r.json(); clearTimeout(t); esp.remove();
+    if(!j.ok){ if(/PIN/i.test(j.error||'')){ NX_YV.pin=''; try{ sessionStorage.removeItem('rh_yv_pin'); }catch(_){} } nxYvMsg('ya err',nxEsc(j.error||'Yarvis no pudo responder.')); return; }
+    try{ sessionStorage.setItem('rh_yv_pin',NX_YV.pin); }catch(_){}
+    NX_YV.hist.push({p:q,r:j.respuesta});
+    const fts=(j.fuentes||[]).map(f=>nxEsc(f.nombre||f)+(f.corte?' · corte '+nxEsc(f.corte):'')).join(' · ');
+    let tabla=''; if(j.tabla&&j.tabla.columnas&&j.tabla.filas){ tabla='<div style="overflow:auto"><table><tr>'+j.tabla.columnas.map(c=>'<th>'+nxEsc(c)+'</th>').join('')+'</tr>'+j.tabla.filas.slice(0,30).map(f=>'<tr>'+f.map(v=>'<td>'+nxEsc(v)+'</td>').join('')+'</tr>').join('')+'</table></div>'; }
+    const m=nxYvMsg('ya',nxYvTexto(j.respuesta||''),tabla+(fts?'<div class="src">Fuente: '+fts+'</div>':'')+'<div class="act"><button type="button" class="nx-btn sm" data-yvd="1"><svg class="nx-ic"><use href="#i-flag"/></svg>No me parece correcto</button></div>');
+    m.querySelector('[data-yvd]').onclick=()=>nxAbrirDisc({n:NX.tab==='fic'?NX.emp:'',f:'',c:'Otro',sis:'Respuesta de Yarvis a: '+q.slice(0,150),r:''},'disc');
+  }catch(e){ clearTimeout(t); esp.remove(); nxYvMsg('ya err',e&&e.name==='AbortError'?'Yarvis tardó demasiado en responder. Vuelva a intentarlo.':'No hay conexión con Yarvis.'); }
+  finally{ NX_YV.ocupado=false; }
+}
+
+/* ── Tema: claro por defecto; el sol cambia a oscuro ── */
+function nxTema(){ const r=document.documentElement, dark=r.getAttribute('data-theme')==='dark';
+  document.querySelector('#nxTheme use').setAttribute('href',dark?'#i-moon':'#i-sun');
+  document.getElementById('nxTheme').title=dark?'Tema oscuro · toque para claro':'Tema claro · toque para oscuro'; }
+(function(){ let t='light'; try{ t=localStorage.getItem('rh-theme')||'light'; }catch(_){} document.documentElement.setAttribute('data-theme',t); })();
+
+/* ── Planilla: áreas desde el JSON del ciclo ── */
 const _inicializarPlanillaOrig = inicializarPlanilla;
 inicializarPlanilla = async function(){
   if(NX.D && !PL_AREAS_CARGADAS){
     const cnt={}; NX.P.forEach(p=>{ cnt[p.a]=(cnt[p.a]||0)+1; });
-    const sel=document.getElementById('pl-area');
-    sel.innerHTML='<option value="">Seleccione un área…</option>'+Object.keys(cnt).sort((a,b)=>a.localeCompare(b,'es')).map(a=>'<option value="'+nxEsc(a)+'">'+nxEsc(a)+' ('+cnt[a]+')</option>').join('');
+    document.getElementById('pl-area').innerHTML='<option value="">Seleccione un área…</option>'+Object.keys(cnt).sort((a,b)=>a.localeCompare(b,'es')).map(a=>'<option value="'+nxEsc(a)+'">'+nxEsc(a)+' ('+cnt[a]+')</option>').join('');
     PL_AREAS_CARGADAS=true;
   }
   return _inicializarPlanillaOrig();
@@ -3840,43 +4431,48 @@ inicializarPlanilla = async function(){
 TOUR_STEPS.length=0;
 [
   { sel:null, titulo:'Panel de Recursos Humanos', texto:'Aquí se consulta la asistencia del reloj, la alimentación y el transporte, el tiempo compensatorio, las vacaciones y las incidencias del personal. Todo lo que ve sale de los datos publicados: abre al instante.' },
-  { sel:'#nxFresh', titulo:'¿Hasta cuándo llegan los datos?', texto:'Esta banda dice hasta qué fecha tiene marcaciones el reloj. Verde: al día. Ámbar o rojo: falta cargar el reporte del reloj en la Ventanilla Única de Reportes; el botón «Qué hacer» explica cómo.' },
-  { sel:'#nxCycles', titulo:'El ciclo', texto:'Cada botón es un ciclo del 16 al 15. Los que dicen «con datos» abren al instante. Los que dicen «sin marcaciones» se llenan cuando RH carga el reporte del reloj.' },
-  { sel:'#nxTabs', titulo:'Pestañas por tarea', accion:()=>nxTab('res'), texto:'Resumen para ver el ciclo completo; Personal para buscar a alguien; Pendientes para justificar marcas; Planilla T.E. para el trámite de sobretiempo; Cómo se calcula para ver las cuentas.' },
+  { sel:'#nxFresh', titulo:'¿Hasta cuándo llegan los datos?', texto:'Esta banda dice hasta qué fecha tiene marcaciones el reloj. Verde: al día. Ámbar o rojo: falta cargar o publicar el reporte del reloj.' },
+  { sel:'#nxCycles', titulo:'El ciclo', texto:'Cada botón es un ciclo del 16 al 15. Los que dicen «con datos» abren al instante.' },
+  { sel:'#nxTabs', titulo:'Pestañas por tarea', accion:()=>nxTab('res'), texto:'Resumen del ciclo, Personal para buscar a alguien, Pendientes para justificar marcas, Sugerencias y discrepancias, Planilla T.E. y Cómo se calcula.' },
   { sel:'#nxFilters', titulo:'Filtros y Excel', texto:'Filtre por área o escriba un nombre. «Excel · esta vista» descarga lo que está viendo; «Excel · ciclo completo», todo el ciclo. «Limpiar filtros» vuelve al inicio.' },
-  { sel:'#nxKpis', titulo:'Totales del ciclo', accion:()=>nxTab('res'), texto:'Bloques con los totales de lo que está filtrado. Toque un área en la tabla de abajo para ver a su personal.' },
-  { sel:'#nxTabs [data-t="pen"]', titulo:'Pendientes por justificar', accion:()=>nxTab('pen'), texto:'Su lista de trabajo: días con una sola marca y personas sin marcaciones. El botón «Justificar» abre la ficha en Incidencias con la fecha ya puesta.' },
-  { sel:'#btn-admin', titulo:'Modo administrativo', accion:()=>nxTab('res'), texto:'Para registrar o corregir (incidencias, tiempo compensatorio, vacaciones, ajustes, planilla), active este modo con su PIN: los últimos 4 dígitos de su cédula. Se pide una sola vez.' }
+  { sel:'#nxTabs [data-t="pen"]', titulo:'Pendientes por justificar', accion:()=>nxTab('pen'), texto:'Su lista de trabajo: días con una sola marca y personas sin marcaciones. «Justificar» abre la ficha en Incidencias con la fecha ya puesta.' },
+  { sel:'#nxTabs [data-t="dis"]', titulo:'Sugerencias y discrepancias', accion:()=>nxTab('dis'), texto:'Si un cálculo no le parece correcto, use la bandera del día en la ficha. Si quiere proponer un cambio de regla, use «Nueva sugerencia». La Jefatura responde aquí.' },
+  { sel:'#nxYvBtn', titulo:'Yarvis', accion:()=>nxTab('res'), texto:'Pregúntele a Yarvis sobre el ciclo, una persona o una regla. Responde con los datos publicados y cita la fuente.' },
+  { sel:'#btn-admin', titulo:'Modo administrativo', texto:'Para registrar o corregir (incidencias, tiempo compensatorio, vacaciones, ajustes, planilla), active este modo con su PIN. Mientras se guarda, puede seguir trabajando: la cabecera muestra el avance.' }
 ].forEach(s=>TOUR_STEPS.push(s));
 
 /* ── Arranque ── */
 (async function nxInit(){
-  document.body.classList.add('nx');
-  document.getElementById('nxTheme').onclick=()=>{ const d=nxTemaIcono(); const v=d?'light':'dark'; document.documentElement.setAttribute('data-theme',v); try{ localStorage.setItem('rh-theme',v); }catch(_){} nxTemaIcono(); };
-  nxTemaIcono();
+  document.body.classList.add('nx'); nxTema();
+  document.getElementById('nxTheme').onclick=()=>{ const r=document.documentElement, v=r.getAttribute('data-theme')==='dark'?'light':'dark'; r.setAttribute('data-theme',v); try{ localStorage.setItem('rh-theme',v); }catch(_){} nxTema(); };
   document.querySelectorAll('#nxTabs .nx-tab').forEach(b=>b.onclick=()=>nxTab(b.dataset.t));
   document.querySelectorAll('#nxDTabs .nx-tab').forEach(b=>b.onclick=()=>nxPane(b.dataset.ft));
   document.getElementById('nxArea').onchange=e=>{ NX.area=e.target.value; nxRender(); };
   document.getElementById('nxTxt').oninput=e=>{ NX.txt=e.target.value; nxRender(); };
   document.getElementById('nxClear').onclick=()=>{ NX.area=''; NX.txt=''; document.getElementById('nxTxt').value=''; NX_SORT.per={k:'vi',d:-1}; NX_SORT.area={k:'total',d:-1}; NX_SORT.pen={k:'f',d:1};
     const ult=NX.idx&&NX.idx.ciclos&&NX.idx.ciclos[0]; if(ult&&NX.D&&NX.D.ciclo.from!==ult.from) nxCargarCiclo(ult.from); nxTab('res'); };
-  document.getElementById('nxXlsVista').onclick=nxXlsVista;
-  document.getElementById('nxXlsTodo').onclick=nxXlsTodo;
-  document.getElementById('nxScrim').onclick=nxCerrarFicha;
-  document.getElementById('nxDClose').onclick=nxCerrarFicha;
-  document.getElementById('nxDPdf').onclick=function(){ generarPdf(this); };
+  document.getElementById('nxXlsVista').onclick=nxXlsVista; document.getElementById('nxXlsTodo').onclick=nxXlsTodo;
+  document.getElementById('nxFicBack').onclick=()=>nxTab(NX.prevTab||'per');
+  document.getElementById('nxFicSel').onchange=e=>nxFicha(e.target.value,NX.ft);
+  document.getElementById('nxFicPrev').onclick=()=>nxMover(-1); document.getElementById('nxFicNext').onclick=()=>nxMover(1);
   document.getElementById('nxDTe').onclick=function(){ generarPlanillaTE(this); };
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && document.getElementById('rhModal').style.display!=='flex' && !document.getElementById('nxDrawer').hidden) nxCerrarFicha(); });
-  // Mover el bloque de planilla de siempre a su pestaña
+  document.getElementById('nxDClose').onclick=nxCerrarDisc; document.getElementById('nxDScrim').onclick=nxCerrarDisc;
+  document.getElementById('nxDForm').addEventListener('submit',nxEnviarDisc);
+  document.getElementById('nxBtnSug').onclick=()=>nxAbrirDisc({n:'',f:'',c:'',sis:'',r:''},'sug');
+  document.getElementById('nxDisEst').onchange=nxPintarDisc; document.getElementById('nxDisTipo').onchange=nxPintarDisc;
+  document.getElementById('nxYvBtn').onclick=nxYvAbrir; document.getElementById('nxYvClose').onclick=nxYvCerrar;
+  document.getElementById('nxYvForm').addEventListener('submit',e=>{ e.preventDefault(); nxYvPreguntar(document.getElementById('nxYvQ').value); });
+  document.getElementById('nxYvQ').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); nxYvPreguntar(document.getElementById('nxYvQ').value); } });
+  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||document.getElementById('rhModal').style.display==='flex') return;
+    if(!document.getElementById('nxDDlg').hidden) nxCerrarDisc(); else if(!document.getElementById('nxYv').hidden) nxYvCerrar(); else if(NX.tab==='fic') nxTab(NX.prevTab||'per'); });
   const vp=document.getElementById('vista-planilla'); if(vp){ vp.style.display=''; document.getElementById('nxPlaHost').appendChild(vp); }
+  nxMontarReglas();
 
-  const idx=await cargarIndice(); NX.idx=idx;
-  const latest=await cargarDatos();          // rh_data.json: el ciclo vigente
+  NX.idx=await cargarIndice();
+  const latest=await cargarDatos();
   NX.ultima=(latest&&latest.ciclo&&(latest.ciclo.ultima_marcacion||latest.ciclo.to))||'';
-  if(!NX.idx||!NX.idx.ciclos||!NX.idx.ciclos.length){
-    if(latest&&latest.ciclo) NX.idx={ciclos:[{from:latest.ciclo.from,to:latest.ciclo.to}]};
-  }
-  nxEstado();
+  if((!NX.idx||!NX.idx.ciclos||!NX.idx.ciclos.length)&&latest&&latest.ciclo) NX.idx={ciclos:[{from:latest.ciclo.from,to:latest.ciclo.to}]};
+  nxEstado(); nxCargarDisc();
   const first=(latest&&latest.ciclo&&latest.ciclo.from)||(NX.idx&&NX.idx.ciclos&&NX.idx.ciclos[0]&&NX.idx.ciclos[0].from);
   if(!first){ document.getElementById('nxCargando').textContent='Todavía no hay ciclos publicados. Use «Actualizar datos» después de cargar el reporte del reloj.'; nxPintarCiclos(); return; }
   await nxCargarCiclo(first);
