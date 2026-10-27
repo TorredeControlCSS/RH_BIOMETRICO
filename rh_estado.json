@@ -1,9 +1,9 @@
 {
   "insumo": "biometrico",
   "nombre": "Reporte del reloj biométrico",
-  "actualizado_en": "2026-10-16 14:49:00",
-  "datos_hasta": "2026-10-15",
-  "ciclo": "2026-09-16 a 2026-10-15",
-  "eventos_nuevos": 6918,
-  "archivos_procesados": 2
+  "actualizado_en": "2026-10-27 09:27:02",
+  "datos_hasta": "2026-10-24",
+  "ciclo": "2026-10-16 a 2026-11-15",
+  "eventos_nuevos": 2306,
+  "archivos_procesados": 1
 }
